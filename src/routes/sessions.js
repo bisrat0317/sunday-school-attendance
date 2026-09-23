@@ -40,7 +40,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const params = [];
 
     if (category && category !== 'All') {
-      query += ' AND (s.category = ? OR s.category = "All")';
+      query += " AND (s.category = ? OR s.category = 'All')";
       params.push(category);
     }
 

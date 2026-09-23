@@ -223,7 +223,7 @@ router.get('/category-matrix', authenticateToken, async (req, res) => {
       sessionQuery += " WHERE category = ? OR category = 'All'";
       sessionParams.push(targetCategory);
     }
-    sessionQuery += ' ORDER BY session_date ASC, session_time ASC';
+    sessionQuery += ' ORDER BY session_date ASC, session_time ASC, id ASC';
 
     const [sessions] = await pool.query(sessionQuery, sessionParams);
 
