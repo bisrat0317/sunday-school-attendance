@@ -23,6 +23,30 @@ app.use(express.urlencoded({ extended: true }));
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Health check route
+app.get('/api/health', async (req, res) => {
+  try {
+    const pool = require('./config/db');
+    const [result] = await pool.query('SELECT 1 + 1 AS solution');
+    res.json({
+      status: 'ok',
+      db: 'connected',
+      dbHost: process.env.DB_HOST || 'not-set',
+      dbPort: process.env.DB_PORT || 'not-set',
+      dbName: process.env.DB_NAME || 'not-set',
+      dbSsl: process.env.DB_SSL || 'not-set'
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: err.message,
+      dbHost: process.env.DB_HOST || 'not-set',
+      dbPort: process.env.DB_PORT || 'not-set',
+      dbName: process.env.DB_NAME || 'not-set'
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
