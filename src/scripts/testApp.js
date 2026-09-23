@@ -1,10 +1,8 @@
-const http = require('http');
+const pool = require('../config/db');
+const initDatabase = require('./initDb');
 
 async function runTests() {
   console.log('=== Starting Sunday School Attendance System Verification ===');
-
-  const pool = require('../config/db');
-  const initDatabase = require('./initDb');
 
   await initDatabase();
 
@@ -13,25 +11,29 @@ async function runTests() {
   console.log('Verified MySQL Tables:', tables.map(t => Object.values(t)[0]));
 
   // Test 2: Check student records
-  const [students] = await pool.query('SELECT id, first_name, father_name, category, phone FROM students');
-  console.log(`Verified Registered Students (${students.length}):`, students.map(s => `${s.first_name} ${s.father_name} (${s.category})`));
+  const [students] = await pool.query('SELECT id, first_name, father_name, category, phone FROM students ORDER BY id ASC');
+  console.log(`Verified Registered Students (${students.length}):`, students.map(s => `[ID:${s.id}] ${s.first_name} ${s.father_name} (${s.category})`));
+
+  // Clean previous test session data
+  await pool.query('DELETE FROM attendance');
+  await pool.query('DELETE FROM sessions');
 
   // Test 3: Test 3-consecutive-absent detection logic
   console.log('\nTesting 3-consecutive-absent alert engine...');
-  const testStudent = students[0]; // Dawit Yohannes
+  const testStudent = students[0];
 
   // Create 3 historical sessions for Youth
   const [s1] = await pool.query(`
     INSERT INTO sessions (course_title, session_date, session_time, category, description)
-    VALUES ('የመጽሐፍ ቅዱስ ጥናት 1', '2026-09-01', '3:00', 'Youth', 'ክፍለ-ጊዜ 1')
+    VALUES ('የመጽሐፍ ቅዱስ ጥናት 1', '2026-10-01', '3:00', 'Youth', 'ክፍለ-ጊዜ 1')
   `);
   const [s2] = await pool.query(`
     INSERT INTO sessions (course_title, session_date, session_time, category, description)
-    VALUES ('የመጽሐፍ ቅዱስ ጥናት 2', '2026-09-08', '3:00', 'Youth', 'ክፍለ-ጊዜ 2')
+    VALUES ('የመጽሐፍ ቅዱስ ጥናት 2', '2026-10-08', '3:00', 'Youth', 'ክፍለ-ጊዜ 2')
   `);
   const [s3] = await pool.query(`
     INSERT INTO sessions (course_title, session_date, session_time, category, description)
-    VALUES ('የመጽሐፍ ቅዱስ ጥናት 3', '2026-09-15', '3:00', 'Youth', 'ክፍለ-ጊዜ 3')
+    VALUES ('የመጽሐፍ ቅዱስ ጥናት 3', '2026-10-15', '3:00', 'Youth', 'ክፍለ-ጊዜ 3')
   `);
 
   // Mark testStudent as 'absent' in all 3 sessions
@@ -63,7 +65,7 @@ async function runTests() {
           a.student_id,
           a.status,
           sess.session_date,
-          ROW_NUMBER() OVER (PARTITION BY a.student_id ORDER BY sess.session_date DESC, sess.session_time DESC) as rn
+          ROW_NUMBER() OVER (PARTITION BY a.student_id ORDER BY a.id DESC) as rn
         FROM attendance a
         JOIN sessions sess ON a.session_id = sess.id
       ) att_ranked
@@ -91,4 +93,3 @@ async function runTests() {
 }
 
 runTests();
-

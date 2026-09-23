@@ -33,7 +33,7 @@ body {
 .navbar {
   background: var(--primary);
   color: white;
-  padding: 1rem 1.5rem;
+  padding: 0.85rem 1rem;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -53,46 +53,48 @@ body {
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .brand-icon {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: 4px 8px;
+  padding: 2px 8px;
 }
 
 .brand-text h1 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .brand-text p {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #93c5fd;
 }
 
 .nav-controls {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .lang-switch {
   display: flex;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 20px;
-  padding: 3px;
+  padding: 2px;
 }
 
 .lang-btn {
   background: transparent;
   border: none;
   color: #cbd5e1;
-  padding: 4px 10px;
-  font-size: 0.85rem;
+  padding: 3px 8px;
+  font-size: 0.8rem;
   font-weight: 600;
   border-radius: 16px;
   cursor: pointer;
@@ -106,24 +108,25 @@ body {
 
 .user-badge {
   background: rgba(255, 255, 255, 0.2);
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .btn-logout {
   background: #ef4444;
   color: white;
   border: none;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
   font-weight: 600;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 
 .btn-logout:hover {
@@ -143,22 +146,23 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  padding: 0 1rem;
+  padding: 0 0.5rem;
 }
 
 .nav-tab {
-  padding: 0.85rem 1.25rem;
+  padding: 0.8rem 1rem;
   border: none;
   background: transparent;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   border-bottom: 3px solid transparent;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .nav-tab:hover {
@@ -182,8 +186,8 @@ body {
 /* Main Container */
 .main-content {
   max-width: 1200px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
+  margin: 1rem auto;
+  padding: 0 0.75rem;
 }
 
 /* Common Card Styles */
@@ -201,14 +205,14 @@ body {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .card-title {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--primary);
   display: flex;
@@ -219,19 +223,19 @@ body {
 /* Stats Grid for Dashboard */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .stat-box {
   background: white;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
   border-left: 5px solid var(--primary);
 }
 
@@ -240,18 +244,18 @@ body {
 .stat-box.danger { border-left-color: var(--danger); }
 
 .stat-icon {
-  font-size: 2rem;
+  font-size: 1.8rem;
   opacity: 0.85;
 }
 
 .stat-number {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -262,8 +266,8 @@ body {
   justify-content: center;
   gap: 0.4rem;
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0.55rem 1rem;
+  font-size: 0.88rem;
+  padding: 0.55rem 0.95rem;
   border-radius: 8px;
   cursor: pointer;
   border: none;
@@ -355,7 +359,7 @@ tr:hover td {
 }
 
 .alert-student-info h4 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #991b1b;
 }
@@ -379,7 +383,7 @@ tr:hover td {
   gap: 0.75rem;
   max-height: 65vh;
   overflow-y: auto;
-  padding-right: 0.5rem;
+  padding-right: 0.3rem;
 }
 
 .attendance-row {
@@ -400,7 +404,7 @@ tr:hover td {
 .attendance-row.marked-permission { border-left: 5px solid var(--warning); }
 
 .attendance-student-details h5 {
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 600;
 }
 
@@ -415,7 +419,7 @@ tr:hover td {
 }
 
 .btn-toggle-att {
-  padding: 0.5rem 0.9rem;
+  padding: 0.5rem 0.8rem;
   font-size: 0.85rem;
   font-weight: 700;
   border-radius: 8px;
@@ -457,7 +461,7 @@ tr:hover td {
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .modal-content {
@@ -475,7 +479,7 @@ tr:hover td {
 }
 
 .modal-header {
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
@@ -487,7 +491,7 @@ tr:hover td {
 }
 
 .modal-header h3 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   color: var(--primary);
 }
 
@@ -500,11 +504,11 @@ tr:hover td {
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.85rem 1.25rem;
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
@@ -516,23 +520,23 @@ tr:hover td {
 
 /* Form Controls */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .form-label {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
   color: #334155;
 }
 
 .form-control {
   width: 100%;
-  padding: 0.65rem 0.85rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-family: inherit;
 }
 
@@ -544,13 +548,13 @@ tr:hover td {
 
 .form-row {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .form-row > * {
-  flex: 1 1 calc(50% - 0.5rem);
-  min-width: 200px;
+  flex: 1 1 calc(50% - 0.4rem);
+  min-width: 180px;
 }
 
 /* Login Card */
@@ -558,13 +562,13 @@ tr:hover td {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
+  min-height: 75vh;
 }
 
 .login-card {
   width: 100%;
-  max-width: 420px;
-  padding: 2rem;
+  max-width: 400px;
+  padding: 1.75rem;
   background: white;
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
@@ -574,38 +578,51 @@ tr:hover td {
 /* Toast */
 #toast {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  padding: 0.85rem 1.5rem;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  left: 1.25rem;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 0.85rem 1.25rem;
   background: #1e293b;
   color: white;
   border-radius: 8px;
   font-weight: 500;
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
   z-index: 200;
+  text-align: center;
   transition: opacity 0.3s;
 }
 
-/* Mobile specific touch optimizations */
+/* Mobile Specific Cards & Layout */
+.mobile-card-list {
+  display: none;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .nav-container {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .brand-section {
+    width: 100%;
   }
   .nav-controls {
     width: 100%;
     justify-content: space-between;
   }
-  .sub-nav {
-    padding: 0;
+  .desktop-only {
+    display: none !important;
   }
-  .nav-tab {
-    padding: 0.75rem 0.9rem;
-    font-size: 0.85rem;
+  .mobile-card-list {
+    display: flex !important;
   }
   .attendance-row {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .attendance-btn-group {
     width: 100%;
@@ -614,17 +631,23 @@ tr:hover td {
   .btn-toggle-att {
     flex: 1;
     text-align: center;
-    padding: 0.65rem 0.5rem;
+    padding: 0.65rem 0.4rem;
   }
   .alert-card {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .alert-actions {
     width: 100%;
   }
   .alert-actions .btn {
     flex: 1;
+    justify-content: center;
   }
 }
 
+@media (min-width: 769px) {
+  .mobile-card-list {
+    display: none !important;
+  }
+}

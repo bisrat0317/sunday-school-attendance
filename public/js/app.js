@@ -279,14 +279,20 @@ async function loadSessions() {
   try {
     const sessions = await api(`/api/sessions?category=${category}`);
     const tbody = document.getElementById('sessionsTableBody');
+    const mobileContainer = document.getElementById('sessionsCardContainer');
     tbody.innerHTML = '';
+    if (mobileContainer) mobileContainer.innerHTML = '';
 
     if (!sessions || sessions.length === 0) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No sessions found.</td></tr>`;
+      if (mobileContainer) {
+        mobileContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No sessions found.</div>`;
+      }
       return;
     }
 
     sessions.forEach(s => {
+      // Desktop row
       tbody.innerHTML += `
         <tr>
           <td>
@@ -315,6 +321,39 @@ async function loadSessions() {
           </td>
         </tr>
       `;
+
+      // Mobile Card
+      if (mobileContainer) {
+        mobileContainer.innerHTML += `
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--primary);">${escapeHtml(s.course_title)}</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${escapeHtml(s.session_time)}</p>
+              </div>
+              <span class="tag tag-category">${escapeHtml(s.category)}</span>
+            </div>
+            ${s.description ? `<p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.6rem;">${escapeHtml(s.description)}</p>` : ''}
+            
+            <div style="display: flex; gap: 0.35rem; margin-bottom: 0.75rem;">
+              <span class="tag tag-present"><i class="fa-solid fa-check"></i> ${s.present_count}</span>
+              <span class="tag tag-absent"><i class="fa-solid fa-xmark"></i> ${s.absent_count}</span>
+              <span class="tag tag-permission"><i class="fa-solid fa-clock"></i> ${s.permission_count}</span>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; border-top: 1px solid #f1f5f9; pt-2;">
+              <button class="btn btn-primary btn-sm" style="flex: 1; justify-content: center;" onclick="openAttendanceModal(${s.id})">
+                <i class="fa-solid fa-clipboard-user"></i> ${t('takeAttendance')}
+              </button>
+              ${currentUser.role === 'admin' ? `
+                <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteSession(${s.id})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
     });
   } catch (err) {}
 }
@@ -500,15 +539,22 @@ async function loadStudents() {
   try {
     const students = await api(`/api/students?category=${category}&status=${status}&search=${encodeURIComponent(search)}`);
     const tbody = document.getElementById('studentsTableBody');
+    const mobileContainer = document.getElementById('studentsCardContainer');
     tbody.innerHTML = '';
+    if (mobileContainer) mobileContainer.innerHTML = '';
 
     if (!students || students.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No students found.</td></tr>`;
+      if (mobileContainer) {
+        mobileContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No students found.</div>`;
+      }
       return;
     }
 
     students.forEach(s => {
       const isInactive = s.status === 'inactive';
+      
+      // Desktop Table Row
       tbody.innerHTML += `
         <tr style="${isInactive ? 'opacity: 0.6;' : ''}">
           <td>
@@ -544,6 +590,53 @@ async function loadStudents() {
           </td>
         </tr>
       `;
+
+      // Mobile Student Card
+      if (mobileContainer) {
+        mobileContainer.innerHTML += `
+          <div class="card" style="margin-bottom: 0; ${isInactive ? 'opacity: 0.7;' : ''}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-dark);">${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                  ${t('motherName')}: <strong>${escapeHtml(s.mother_name)}</strong> | ${t('age')}: ${s.age}
+                </p>
+              </div>
+              <span class="tag tag-category">${escapeHtml(s.category)}</span>
+            </div>
+
+            <div style="margin-bottom: 0.75rem;">
+              <a href="tel:${escapeHtml(s.phone)}" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center; font-weight: 700; color: var(--primary);">
+                <i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone)}
+              </a>
+              ${s.emergency_contact ? `
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: center;">
+                  ${t('emergencyContact')}: <a href="tel:${escapeHtml(s.emergency_contact)}" style="color: var(--secondary);">${escapeHtml(s.emergency_contact)}</a>
+                </div>
+              ` : ''}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.6rem;">
+              <span class="tag ${s.status === 'active' ? 'tag-present' : 'tag-absent'}">
+                ${s.status === 'active' ? t('active') : t('inactive')}
+              </span>
+              <div style="display: flex; gap: 0.4rem;">
+                <button class="btn btn-outline btn-sm" onclick="viewStudentProfile(${s.id})">
+                  <i class="fa-solid fa-eye"></i> ${t('viewProfile')}
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="openEditStudentModal(${s.id})">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                ${currentUser.role === 'admin' ? `
+                  <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteStudent(${s.id})">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }
     });
   } catch (err) {}
 }

@@ -46,13 +46,21 @@ router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
         s.session_date,
         s.session_time,
         s.category,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_count,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_count,
-        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_count,
-        COUNT(a.id) AS total_marked
+        COALESCE(att.present_count, 0) AS present_count,
+        COALESCE(att.absent_count, 0) AS absent_count,
+        COALESCE(att.permission_count, 0) AS permission_count,
+        COALESCE(att.total_marked, 0) AS total_marked
       FROM sessions s
-      LEFT JOIN attendance a ON s.id = a.session_id
-      GROUP BY s.id
+      LEFT JOIN (
+        SELECT 
+          session_id,
+          COUNT(CASE WHEN status = 'present' THEN 1 END) AS present_count,
+          COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent_count,
+          COUNT(CASE WHEN status = 'permission' THEN 1 END) AS permission_count,
+          COUNT(*) AS total_marked
+        FROM attendance
+        GROUP BY session_id
+      ) att ON s.id = att.session_id
       ORDER BY s.session_date DESC, s.session_time DESC
       LIMIT 5
     `);
@@ -100,7 +108,7 @@ router.get('/three-absents', authenticateToken, requireAdmin, async (req, res) =
             a.student_id,
             a.status,
             sess.session_date,
-            ROW_NUMBER() OVER (PARTITION BY a.student_id ORDER BY sess.session_date DESC, sess.session_time DESC) as rn
+            ROW_NUMBER() OVER (PARTITION BY a.student_id ORDER BY a.id DESC) as rn
           FROM attendance a
           JOIN sessions sess ON a.session_id = sess.id
         ) att_ranked
@@ -134,15 +142,33 @@ router.get('/inactive-students', authenticateToken, requireAdmin, async (req, re
   try {
     const [inactiveList] = await pool.query(`
       SELECT 
-        s.*,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS total_present,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS total_absent,
-        MAX(CASE WHEN a.status = 'present' THEN sess.session_date END) AS last_attended_date
+        s.id,
+        s.first_name,
+        s.father_name,
+        s.mother_name,
+        s.age,
+        s.phone,
+        s.emergency_contact,
+        s.profession,
+        s.previous_service,
+        s.category,
+        s.status,
+        s.created_at,
+        COALESCE(att.total_present, 0) AS total_present,
+        COALESCE(att.total_absent, 0) AS total_absent,
+        att.last_attended_date
       FROM students s
-      LEFT JOIN attendance a ON s.id = a.student_id
-      LEFT JOIN sessions sess ON a.session_id = sess.id
+      LEFT JOIN (
+        SELECT 
+          a.student_id,
+          COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS total_present,
+          COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS total_absent,
+          MAX(CASE WHEN a.status = 'present' THEN sess.session_date END) AS last_attended_date
+        FROM attendance a
+        JOIN sessions sess ON a.session_id = sess.id
+        GROUP BY a.student_id
+      ) att ON s.id = att.student_id
       WHERE s.status = 'inactive'
-      GROUP BY s.id
       ORDER BY s.first_name ASC
     `);
 

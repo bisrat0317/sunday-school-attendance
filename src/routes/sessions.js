@@ -10,15 +10,31 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     let query = `
       SELECT 
-        s.*,
+        s.id,
+        s.course_title,
+        s.session_date,
+        s.session_time,
+        s.category,
+        s.description,
+        s.created_by,
+        s.created_at,
         u.full_name AS created_by_name,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_count,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_count,
-        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_count,
-        COUNT(a.id) AS total_marked
+        COALESCE(att.present_count, 0) AS present_count,
+        COALESCE(att.absent_count, 0) AS absent_count,
+        COALESCE(att.permission_count, 0) AS permission_count,
+        COALESCE(att.total_marked, 0) AS total_marked
       FROM sessions s
       LEFT JOIN users u ON s.created_by = u.id
-      LEFT JOIN attendance a ON s.id = a.session_id
+      LEFT JOIN (
+        SELECT 
+          session_id,
+          COUNT(CASE WHEN status = 'present' THEN 1 END) AS present_count,
+          COUNT(CASE WHEN status = 'absent' THEN 1 END) AS absent_count,
+          COUNT(CASE WHEN status = 'permission' THEN 1 END) AS permission_count,
+          COUNT(*) AS total_marked
+        FROM attendance
+        GROUP BY session_id
+      ) att ON s.id = att.session_id
       WHERE 1=1
     `;
     const params = [];
@@ -28,13 +44,13 @@ router.get('/', authenticateToken, async (req, res) => {
       params.push(category);
     }
 
-    query += ' GROUP BY s.id ORDER BY s.session_date DESC, s.session_time DESC';
+    query += ' ORDER BY s.session_date DESC, s.session_time DESC';
 
     const [sessions] = await pool.query(query, params);
     res.json(sessions);
   } catch (error) {
     console.error('Fetch sessions error:', error);
-    res.status(500).json({ message: 'Error retrieving sessions' });
+    res.status(500).json({ message: `Error retrieving sessions: ${error.message}` });
   }
 });
 
