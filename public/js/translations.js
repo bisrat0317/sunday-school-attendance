@@ -112,6 +112,7 @@ const translations = {
     // Excel Export
     exportExcel: "Export Excel",
     exportStudentsList: "Export Students (Excel)",
+    exportMasterMatrix: "Master Attendance Register (Excel)",
 
     // Form buttons
     save: "Save",
@@ -232,6 +233,7 @@ const translations = {
     // Excel Export
     exportExcel: "በ-Excel አውርድ",
     exportStudentsList: "የተማሪዎች መረጃ በ-Excel አውርድ",
+    exportMasterMatrix: "የአስተዳደር አጠቃላይ መገኘት መዝገብ (Excel)",
 
     // Form buttons
     save: "መዝግብ",

@@ -179,5 +179,25 @@ router.get('/inactive-students', authenticateToken, requireAdmin, async (req, re
   }
 });
 
+// GET /api/reports/master-attendance-matrix - Multi-sheet attendance register query
+router.get('/master-attendance-matrix', authenticateToken, async (req, res) => {
+  try {
+    const [categories] = await pool.query('SELECT DISTINCT category FROM students WHERE status = "active" ORDER BY category ASC');
+    const [students] = await pool.query('SELECT id, first_name, father_name, mother_name, phone, category FROM students WHERE status = "active" ORDER BY first_name ASC, father_name ASC');
+    const [sessions] = await pool.query('SELECT id, course_title, session_date, session_time, category FROM sessions ORDER BY session_date ASC, session_time ASC');
+    const [attendance] = await pool.query('SELECT session_id, student_id, status, remarks FROM attendance');
+
+    res.json({
+      categories: categories.map(c => c.category),
+      students,
+      sessions,
+      attendance
+    });
+  } catch (error) {
+    console.error('Master matrix report error:', error);
+    res.status(500).json({ message: 'Error generating master matrix report' });
+  }
+});
+
 module.exports = router;
 
