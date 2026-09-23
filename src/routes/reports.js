@@ -199,5 +199,47 @@ router.get('/master-attendance-matrix', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/reports/category-matrix - Single Category Matrix with Student Registration Date
+router.get('/category-matrix', authenticateToken, async (req, res) => {
+  const { category } = req.query;
+  const targetCategory = category || 'Youth';
+
+  try {
+    let studentQuery = 'SELECT id, first_name, father_name, mother_name, phone, emergency_contact, category, created_at FROM students WHERE status = "active"';
+    const studentParams = [];
+
+    if (targetCategory !== 'All') {
+      studentQuery += ' AND category = ?';
+      studentParams.push(targetCategory);
+    }
+    studentQuery += ' ORDER BY first_name ASC, father_name ASC';
+
+    const [students] = await pool.query(studentQuery, studentParams);
+
+    let sessionQuery = 'SELECT id, course_title, session_date, session_time, category FROM sessions';
+    const sessionParams = [];
+
+    if (targetCategory !== 'All') {
+      sessionQuery += ' WHERE category = ? OR category = "All"';
+      sessionParams.push(targetCategory);
+    }
+    sessionQuery += ' ORDER BY session_date ASC, session_time ASC';
+
+    const [sessions] = await pool.query(sessionQuery, sessionParams);
+
+    const [attendance] = await pool.query('SELECT session_id, student_id, status, remarks FROM attendance');
+
+    res.json({
+      category: targetCategory,
+      students,
+      sessions,
+      attendance
+    });
+  } catch (error) {
+    console.error('Category matrix report error:', error);
+    res.status(500).json({ message: 'Error generating category matrix report' });
+  }
+});
+
 module.exports = router;
 

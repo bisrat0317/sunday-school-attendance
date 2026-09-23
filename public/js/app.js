@@ -195,6 +195,7 @@ function switchTab(tabName) {
   if (tabName === 'dashboard' && currentUser.role === 'admin') loadDashboard();
   if (tabName === 'sessions') loadSessions();
   if (tabName === 'students') loadStudents();
+  if (tabName === 'categoryMatrix') loadCategoryMatrix();
   if (tabName === 'alerts' && currentUser.role === 'admin') load3AbsentAlerts();
   if (tabName === 'inactive' && currentUser.role === 'admin') loadInactiveStudents();
   if (tabName === 'users' && currentUser.role === 'admin') loadUsers();
@@ -207,6 +208,7 @@ function refreshActiveTabData() {
   if (tabId === 'tabDashboard') loadDashboard();
   else if (tabId === 'tabSessions') loadSessions();
   else if (tabId === 'tabStudents') loadStudents();
+  else if (tabId === 'tabCategoryMatrix') loadCategoryMatrix();
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
   else if (tabId === 'tabUsers') loadUsers();
@@ -268,7 +270,7 @@ async function loadDashboard() {
         `;
       });
     }
-  } catch (err) {}
+  } catch (err) { }
 }
 
 // ==========================================
@@ -355,7 +357,7 @@ async function loadSessions() {
         `;
       }
     });
-  } catch (err) {}
+  } catch (err) { }
 }
 
 function openCreateSessionModal() {
@@ -380,7 +382,7 @@ async function handleCreateSession(e) {
     closeModal('modalSession');
     showToast('Session created successfully!', 'success');
     loadSessions();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function deleteSession(id) {
@@ -389,7 +391,7 @@ async function deleteSession(id) {
     await api(`/api/sessions/${id}`, { method: 'DELETE' });
     showToast('Session deleted', 'info');
     loadSessions();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 // Attendance Modal & Marking
@@ -416,7 +418,7 @@ async function openAttendanceModal(sessionId) {
 
     renderAttendanceStudentList();
     openModal('modalAttendance');
-  } catch (err) {}
+  } catch (err) { }
 }
 
 function renderAttendanceStudentList() {
@@ -553,7 +555,7 @@ async function loadStudents() {
 
     students.forEach(s => {
       const isInactive = s.status === 'inactive';
-      
+
       // Desktop Table Row
       tbody.innerHTML += `
         <tr style="${isInactive ? 'opacity: 0.6;' : ''}">
@@ -638,7 +640,7 @@ async function loadStudents() {
         `;
       }
     });
-  } catch (err) {}
+  } catch (err) { }
 }
 
 function openRegisterStudentModal() {
@@ -667,7 +669,7 @@ async function openEditStudentModal(id) {
 
     document.getElementById('modalStudentTitle').textContent = t('edit') + ': ' + s.first_name;
     openModal('modalStudent');
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function handleSaveStudent(e) {
@@ -695,7 +697,7 @@ async function handleSaveStudent(e) {
     }
     closeModal('modalStudent');
     loadStudents();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function viewStudentProfile(id) {
@@ -749,7 +751,7 @@ async function viewStudentProfile(id) {
     }
 
     openModal('modalStudentProfile');
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function toggleStudentStatus(id, currentStatus) {
@@ -763,7 +765,7 @@ async function toggleStudentStatus(id, currentStatus) {
     closeModal('modalStudentProfile');
     loadStudents();
     if (currentUser.role === 'admin') loadInactiveStudents();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function deleteStudent(id) {
@@ -772,7 +774,7 @@ async function deleteStudent(id) {
     await api(`/api/students/${id}`, { method: 'DELETE' });
     showToast('Student deleted', 'info');
     loadStudents();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 // ==========================================
@@ -831,7 +833,7 @@ async function load3AbsentAlerts() {
         </div>
       `;
     });
-  } catch (err) {}
+  } catch (err) { }
 }
 
 // ==========================================
@@ -873,7 +875,7 @@ async function loadInactiveStudents() {
         </div>
       `;
     });
-  } catch (err) {}
+  } catch (err) { }
 }
 
 // ==========================================
@@ -907,7 +909,7 @@ async function loadUsers() {
         </tr>
       `;
     });
-  } catch (err) {}
+  } catch (err) { }
 }
 
 function openCreateUserModal() {
@@ -929,7 +931,7 @@ async function handleCreateUser(e) {
     closeModal('modalUser');
     showToast('User created successfully!', 'success');
     loadUsers();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function deleteUser(id) {
@@ -938,7 +940,7 @@ async function deleteUser(id) {
     await api(`/api/users/${id}`, { method: 'DELETE' });
     showToast('User deleted', 'info');
     loadUsers();
-  } catch (err) {}
+  } catch (err) { }
 }
 
 // ==========================================
@@ -960,7 +962,7 @@ function exportSessionAttendanceToExcel() {
 
   const exportData = activeSessionData.students.map((s, index) => {
     const rec = activeAttendanceRecords[s.student_id] || { status: s.attendance_status || 'present', remarks: '' };
-    
+
     let statusLabel = rec.status;
     if (rec.status === 'present') statusLabel = isAmharic ? 'ተገኝቷል' : 'Present';
     if (rec.status === 'absent') statusLabel = isAmharic ? 'ቀረ' : 'Absent';
@@ -1019,8 +1021,8 @@ async function exportStudentsToExcel() {
     }
 
     const exportData = students.map((s, index) => {
-      const statusLabel = s.status === 'active' 
-        ? (isAmharic ? 'ንቁ' : 'Active') 
+      const statusLabel = s.status === 'active'
+        ? (isAmharic ? 'ንቁ' : 'Active')
         : (isAmharic ? 'እንቅስቃሴ ያቆመ' : 'Inactive');
 
       if (isAmharic) {
@@ -1067,7 +1069,7 @@ async function exportStudentsToExcel() {
     const fileName = `Sunday_School_Students_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
     showToast('Students list exported to Excel!', 'success');
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function exportMasterAttendanceMatrixToExcel() {
@@ -1139,7 +1141,7 @@ async function exportMasterAttendanceMatrixToExcel() {
         row[isAmharic ? 'የተገኘበት ብዛት' : 'Total Present'] = presentCount;
         row[isAmharic ? 'የቀረበት ብዛት' : 'Total Absent'] = absentCount;
         row[isAmharic ? 'በፈቃድ የቀረ' : 'Total Permission'] = permissionCount;
-        
+
         const rate = catSessions.length > 0 ? Math.round((presentCount / catSessions.length) * 100) : 0;
         row[isAmharic ? 'የመገኘት %' : 'Attendance %'] = `${rate}%`;
 
@@ -1160,7 +1162,191 @@ async function exportMasterAttendanceMatrixToExcel() {
     const fileName = `Sunday_School_Master_Attendance_Register_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
     showToast('Master Attendance Register downloaded successfully!', 'success');
-  } catch (err) {}
+  } catch (err) { }
+}
+
+// Category Matrix & Excel Export Logic
+function isSessionBeforeRegistration(sessionDateStr, studentCreatedAtStr) {
+  if (!sessionDateStr || !studentCreatedAtStr) return false;
+  try {
+    const sessDay = new Date(sessionDateStr).toISOString().split('T')[0];
+    const regDay = new Date(studentCreatedAtStr).toISOString().split('T')[0];
+    return sessDay < regDay;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function loadCategoryMatrix() {
+  const categorySelect = document.getElementById('filterCategoryMatrixCategory');
+  const selectedCategory = categorySelect ? categorySelect.value : 'Youth';
+  const container = document.getElementById('categoryMatrixTableContainer');
+  if (!container) return;
+
+  container.innerHTML = `<div style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:0.5rem;">${t('loading')}</p></div>`;
+
+  try {
+    const data = await api(`/api/reports/category-matrix?category=${selectedCategory}`);
+    if (!data || !data.students || data.students.length === 0) {
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No active students found in this category.</div>`;
+      return;
+    }
+
+    const { students, sessions, attendance } = data;
+    const isAmharic = currentLang === 'am';
+
+    const attMap = {};
+    if (attendance) {
+      attendance.forEach(a => {
+        attMap[`${a.session_id}_${a.student_id}`] = a;
+      });
+    }
+
+    let html = `<table><thead><tr>`;
+    html += `<th>#</th>`;
+    html += `<th>${isAmharic ? 'የተማሪው ሙሉ ስም' : 'Student Name'}</th>`;
+    html += `<th>${isAmharic ? 'ስልክ' : 'Phone'}</th>`;
+    html += `<th>${isAmharic ? 'የተመዘገበበት ቀን' : 'Reg Date'}</th>`;
+
+    sessions.forEach(sess => {
+      html += `<th style="text-align: center; white-space: nowrap;">
+        <div>${formatDate(sess.session_date)}</div>
+        <small style="font-weight: normal; font-size: 0.75rem;">${escapeHtml(sess.course_title)}</small>
+      </th>`;
+    });
+
+    html += `</tr></thead><tbody>`;
+
+    students.forEach((s, idx) => {
+      html += `<tr>`;
+      html += `<td>${idx + 1}</td>`;
+      html += `<td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</strong></td>`;
+      html += `<td>${escapeHtml(s.phone || '-')}</td>`;
+      html += `<td><small style="color: var(--text-muted);">${formatDate(s.created_at)}</small></td>`;
+
+      sessions.forEach(sess => {
+        const att = attMap[`${sess.id}_${s.id}`];
+        let val = '-';
+        let color = '#94a3b8';
+
+        if (att) {
+          if (att.status === 'present') {
+            val = '✓';
+            color = 'var(--success)';
+          } else if (att.status === 'absent') {
+            val = '✗';
+            color = 'var(--danger)';
+          } else if (att.status === 'permission') {
+            val = isAmharic ? 'ፈ' : 'P';
+            color = 'var(--warning)';
+          }
+        } else if (!isSessionBeforeRegistration(sess.session_date, s.created_at)) {
+          val = '✗';
+          color = 'var(--danger)';
+        }
+
+        html += `<td style="text-align: center; font-weight: bold; color: ${color}; font-size: 1.1rem;">${val}</td>`;
+      });
+
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<div style="text-align: center; color: var(--danger); padding: 2rem;">Error loading category matrix.</div>`;
+  }
+}
+
+async function exportCategoryMatrixToExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Excel library loading, please try again in a moment', 'info');
+    return;
+  }
+
+  const categorySelect = document.getElementById('filterCategoryMatrixCategory');
+  const selectedCategory = categorySelect ? categorySelect.value : 'Youth';
+  const isAmharic = currentLang === 'am';
+
+  showToast('Generating Category Matrix Excel...', 'info');
+
+  try {
+    const data = await api(`/api/reports/category-matrix?category=${selectedCategory}`);
+    if (!data || !data.students || data.students.length === 0) {
+      showToast('No student records found to export', 'warning');
+      return;
+    }
+
+    const { students, sessions, attendance } = data;
+    const attMap = {};
+    if (attendance) {
+      attendance.forEach(a => {
+        attMap[`${a.session_id}_${a.student_id}`] = a;
+      });
+    }
+
+    const rows = students.map((s, idx) => {
+      const row = {
+        [isAmharic ? 'ተራ ቁጥር' : 'No.']: idx + 1,
+        [isAmharic ? 'የተማሪው ሙሉ ስም' : 'Student Name']: `${s.first_name} ${s.father_name}`,
+        [isAmharic ? 'የእናት ስም' : 'Mother Name']: s.mother_name || '',
+        [isAmharic ? 'ምድብ' : 'Category']: s.category,
+        [isAmharic ? 'ስልክ ቁጥር' : 'Phone']: s.phone || '',
+        [isAmharic ? 'የተመዘገበበት ቀን' : 'Reg Date']: formatDate(s.created_at)
+      };
+
+      let presentCount = 0;
+      let absentCount = 0;
+      let permissionCount = 0;
+
+      sessions.forEach(sess => {
+        const colHeader = `${formatDate(sess.session_date)} (${sess.course_title})`;
+        const att = attMap[`${sess.id}_${s.id}`];
+
+        if (att) {
+          if (att.status === 'present') {
+            row[colHeader] = '✓';
+            presentCount++;
+          } else if (att.status === 'absent') {
+            row[colHeader] = '✗';
+            absentCount++;
+          } else if (att.status === 'permission') {
+            row[colHeader] = isAmharic ? 'ፈ' : 'P';
+            permissionCount++;
+          }
+        } else if (isSessionBeforeRegistration(sess.session_date, s.created_at)) {
+          row[colHeader] = '-';
+        } else {
+          row[colHeader] = '✗';
+          absentCount++;
+        }
+      });
+
+      row[isAmharic ? 'የተገኘበት ብዛት' : 'Total Present'] = presentCount;
+      row[isAmharic ? 'የቀረበት ብዛት' : 'Total Absent'] = absentCount;
+      row[isAmharic ? 'በፈቃድ የቀረ' : 'Total Permission'] = permissionCount;
+
+      const totalApplicableSessions = sessions.filter(sess => !isSessionBeforeRegistration(sess.session_date, s.created_at)).length;
+      const rate = totalApplicableSessions > 0 ? Math.round((presentCount / totalApplicableSessions) * 100) : 0;
+      row[isAmharic ? 'የመገኘት %' : 'Attendance %'] = `${rate}%`;
+
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    const sheetTitle = selectedCategory === 'All'
+      ? (isAmharic ? 'ሁሉም ምድቦች' : 'All Categories')
+      : selectedCategory;
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetTitle);
+
+    const fileName = `Category_Attendance_${selectedCategory}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    showToast('Category attendance matrix exported to Excel!', 'success');
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // Utilities

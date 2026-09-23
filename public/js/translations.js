@@ -12,7 +12,7 @@ const translations = {
     loggingIn: "Signing in...",
     adminRole: "Administrator",
     encoderRole: "Encoder",
-    
+
     // Navigation
     navDashboard: "Dashboard",
     navSessions: "Sessions",
@@ -20,6 +20,7 @@ const translations = {
     navAlerts: "3-Absent Alerts",
     navInactive: "Inactive Students",
     navUsers: "User Management",
+    navCategoryMatrix: "Category Matrix & Export",
 
     // Dashboard Cards
     totalStudents: "Total Students",
@@ -113,6 +114,9 @@ const translations = {
     exportExcel: "Export Excel",
     exportStudentsList: "Export Students (Excel)",
     exportMasterMatrix: "Master Attendance Register (Excel)",
+    categoryMatrixTitle: "Category Attendance Matrix Register",
+    categoryMatrixSubtitle: "Live attendance grid filtered by category and student registration date",
+    regDate: "Registration Date",
 
     // Form buttons
     save: "Save",
@@ -234,6 +238,9 @@ const translations = {
     exportExcel: "በ-Excel አውርድ",
     exportStudentsList: "የተማሪዎች መረጃ በ-Excel አውርድ",
     exportMasterMatrix: "የአስተዳደር አጠቃላይ መገኘት መዝገብ (Excel)",
+    categoryMatrixTitle: "የምድብ መገኘት መዝገብ እና Excel ማውረጃ",
+    categoryMatrixSubtitle: "የተማሪዎችን መዝገብ የተመዘገቡበትን ቀን መሠረት ያደረገ መቆጣጠሪያ",
+    regDate: "የተመዘገበበት ቀን",
 
     // Form buttons
     save: "መዝግብ",

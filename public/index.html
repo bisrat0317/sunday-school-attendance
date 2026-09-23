@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="am">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,6 +9,7 @@
   <!-- Lucide Icons or FontAwesome via CDN for clean visuals -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
   <!-- Top Navbar -->
@@ -53,6 +55,9 @@
       <button class="nav-tab" id="tabBtnStudents" onclick="switchTab('students')">
         <i class="fa-solid fa-graduation-cap"></i> <span data-i18n="navStudents">ተማሪዎች</span>
       </button>
+      <button class="nav-tab" id="tabBtnCategoryMatrix" onclick="switchTab('categoryMatrix')">
+        <i class="fa-solid fa-table-cells"></i> <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
+      </button>
       <button class="nav-tab admin-only" id="tabBtnAlerts" onclick="switchTab('alerts')">
         <i class="fa-solid fa-bell"></i> <span data-i18n="navAlerts">3 ሳምንት የቀሩ</span>
         <span class="badge-alert" id="badge3AbsentCount" style="display:none;">0</span>
@@ -87,12 +92,14 @@
             <label class="form-label" data-i18n="password">የይለፍ ቃል</label>
             <input type="password" id="loginPassword" class="form-control" required placeholder="••••••••">
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;" id="btnLoginSubmit">
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;"
+            id="btnLoginSubmit">
             <i class="fa-solid fa-arrow-right-to-bracket"></i> <span data-i18n="signIn">ግባ</span>
           </button>
         </form>
 
-        <div style="margin-top: 1.5rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.8rem; color: #64748b;">
+        <div
+          style="margin-top: 1.5rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.8rem; color: #64748b;">
           <strong>Demo Login / የመግቢያ መረጃ:</strong><br>
           • <strong>Admin:</strong> admin / admin123<br>
           • <strong>Encoder:</strong> encoder / encoder123
@@ -140,7 +147,8 @@
           <!-- Category breakdown card -->
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title"><i class="fa-solid fa-layer-group"></i> <span data-i18n="categoryBreakdown">የተማሪዎች ምድብ ብዛት</span></h3>
+              <h3 class="card-title"><i class="fa-solid fa-layer-group"></i> <span data-i18n="categoryBreakdown">የተማሪዎች
+                  ምድብ ብዛት</span></h3>
             </div>
             <div id="dashCategoriesList" style="display: flex; flex-direction: column; gap: 0.6rem;">
               <!-- Rendered via JS -->
@@ -150,7 +158,8 @@
           <!-- Recent sessions card -->
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="recentSessions">የቅርብ ጊዜ ክፍለ-ጊዜያት</span></h3>
+              <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="recentSessions">የቅርብ
+                  ጊዜ ክፍለ-ጊዜያት</span></h3>
             </div>
             <div id="dashRecentSessionsList" style="display: flex; flex-direction: column; gap: 0.6rem;">
               <!-- Rendered via JS -->
@@ -163,10 +172,15 @@
       <section id="tabSessions" class="tab-pane" style="display: none;">
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="sessionsTitle">የትምህርት ክፍለ-ጊዜያት</span></h3>
+            <h3 class="card-title"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="sessionsTitle">የትምህርት
+                ክፍለ-ጊዜያት</span></h3>
+            <button class="btn btn-primary" onclick="openCreateSessionModal()">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="createSession">+ አዲስ ክፍለ-ጊዜ ፍጠር</span>
+            </button>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               <button class="btn btn-warning" onclick="exportMasterAttendanceMatrixToExcel()">
-                <i class="fa-solid fa-table-cells"></i> <span data-i18n="exportMasterMatrix">የአስተዳደር አጠቃላይ መገኘት መዝገብ (Excel)</span>
+                <i class="fa-solid fa-table-cells"></i> <span data-i18n="exportMasterMatrix">የአስተዳደር አጠቃላይ መገኘት መዝገብ
+                  (Excel)</span>
               </button>
               <button class="btn btn-primary" onclick="openCreateSessionModal()">
                 <i class="fa-solid fa-plus"></i> <span data-i18n="createSession">+ አዲስ ክፍለ-ጊዜ ፍጠር</span>
@@ -214,10 +228,12 @@
       <section id="tabStudents" class="tab-pane" style="display: none;">
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት ተማሪዎች</span></h3>
+            <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት
+                ተማሪዎች</span></h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               <button class="btn btn-success" onclick="exportStudentsToExcel()">
-                <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportStudentsList">የተማሪዎች መረጃ በ-Excel አውርድ</span>
+                <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportStudentsList">የተማሪዎች መረጃ በ-Excel
+                  አውርድ</span>
               </button>
               <button class="btn btn-primary" onclick="openRegisterStudentModal()">
                 <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerStudent">+ አዲስ ተማሪ መዝግብ</span>
@@ -227,10 +243,11 @@
 
           <!-- Filters -->
           <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
-            <input type="text" id="searchStudentInput" class="form-control" style="flex: 2; min-width: 200px;" 
-                   placeholder="ተማሪ በስም ወይም በስልክ ፈልግ..." data-i18n-ph="searchStudent" oninput="debounceLoadStudents()">
-            
-            <select id="filterStudentCategory" class="form-control" style="flex: 1; min-width: 140px;" onchange="loadStudents()">
+            <input type="text" id="searchStudentInput" class="form-control" style="flex: 2; min-width: 200px;"
+              placeholder="ተማሪ በስም ወይም በስልክ ፈልግ..." data-i18n-ph="searchStudent" oninput="debounceLoadStudents()">
+
+            <select id="filterStudentCategory" class="form-control" style="flex: 1; min-width: 140px;"
+              onchange="loadStudents()">
               <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
               <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
@@ -238,7 +255,8 @@
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
             </select>
 
-            <select id="filterStudentStatus" class="form-control" style="flex: 1; min-width: 120px;" onchange="loadStudents()">
+            <select id="filterStudentStatus" class="form-control" style="flex: 1; min-width: 120px;"
+              onchange="loadStudents()">
               <option value="All" data-i18n="allStatuses">ሁሉም ሁኔታ</option>
               <option value="active" data-i18n="active">ንቁ (Active)</option>
               <option value="inactive" data-i18n="inactive">እንቅስቃሴ ያቆመ (Inactive)</option>
@@ -277,8 +295,10 @@
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title" style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="alertsTitle">3 ተከታታይ ሳምንት የቀሩ ተማሪዎች</span></h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="alertsSubtitle">አስቸኳይ ክትትል የሚሹ</p>
+              <h3 class="card-title" style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i>
+                <span data-i18n="alertsTitle">3 ተከታታይ ሳምንት የቀሩ ተማሪዎች</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="alertsSubtitle">አስቸኳይ
+                ክትትል የሚሹ</p>
             </div>
             <button class="btn btn-outline" onclick="load3AbsentAlerts()">
               <i class="fa-solid fa-rotate"></i> Refresh
@@ -296,8 +316,10 @@
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title"><i class="fa-solid fa-user-xmark"></i> <span data-i18n="inactiveTitle">እንቅስቃሴ ያቆሙ ተማሪዎች</span></h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="inactiveSubtitle">በሰንበት ት/ቤቱ እንቅስቃሴ ያቆሙ ተማሪዎች ዝርዝር</p>
+              <h3 class="card-title"><i class="fa-solid fa-user-xmark"></i> <span data-i18n="inactiveTitle">እንቅስቃሴ ያቆሙ
+                  ተማሪዎች</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="inactiveSubtitle">
+                በሰንበት ት/ቤቱ እንቅስቃሴ ያቆሙ ተማሪዎች ዝርዝር</p>
             </div>
             <button class="btn btn-outline" onclick="loadInactiveStudents()">
               <i class="fa-solid fa-rotate"></i> Refresh
@@ -314,7 +336,8 @@
       <section id="tabUsers" class="tab-pane admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n="usersTitle">የስርዓቱ ተጠቃሚዎች</span></h3>
+            <h3 class="card-title"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n="usersTitle">የስርዓቱ
+                ተጠቃሚዎች</span></h3>
             <button class="btn btn-primary" onclick="openCreateUserModal()">
               <i class="fa-solid fa-plus"></i> <span data-i18n="addUser">+ አዲስ ተጠቃሚ ጨምር</span>
             </button>
@@ -345,6 +368,46 @@
         </div>
       </section>
 
+      <!-- TAB: CATEGORY ATTENDANCE MATRIX & EXPORT -->
+      <section id="tabCategoryMatrix" class="tab-pane" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><i class="fa-solid fa-table-cells"></i> <span data-i18n="categoryMatrixTitle">የምድብ መገኘት መዝገብ እና Excel ማውረጃ</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="categoryMatrixSubtitle">የተማሪዎችን መዝገብ የተመዘገቡበትን ቀን መሠረት ያደረገ መቆጣጠሪያ</p>
+            </div>
+            <button class="btn btn-success" onclick="exportCategoryMatrixToExcel()">
+              <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
+            </button>
+          </div>
+
+          <!-- Controls / Category Selector -->
+          <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+            <label style="font-weight: 600; font-size: 0.9rem;" data-i18n="filterCategory">በምድብ ለይ:</label>
+            <select id="filterCategoryMatrixCategory" class="form-control" style="max-width: 250px;" onchange="loadCategoryMatrix()">
+              <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
+              <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+              <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+              <option value="All" data-i18n="catAll">ለሁሉም (All)</option>
+            </select>
+          </div>
+
+          <!-- Legend -->
+          <div style="display: flex; gap: 1rem; margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; flex-wrap: wrap;">
+            <span><strong style="color: var(--success);">✓</strong> = <span data-i18n="statusPresent">ተገኝቷል</span></span>
+            <span><strong style="color: var(--danger);">✗</strong> = <span data-i18n="statusAbsent">ቀረ</span></span>
+            <span><strong style="color: var(--warning);">ፈ / P</strong> = <span data-i18n="statusPermission">ፈቃድ</span></span>
+            <span><strong style="color: var(--text-muted);">-</strong> = አልተመዘገበም (ያልተመዘገበበት ጊዜ)</span>
+          </div>
+
+          <!-- Matrix Table Container -->
+          <div class="table-responsive" id="categoryMatrixTableContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -363,9 +426,10 @@
 
       <div class="modal-body">
         <!-- Top bar with Quick Search & "Mark All Present" -->
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
-          <input type="text" id="attSearchInput" class="form-control" style="max-width: 320px;" 
-                 placeholder="ተማሪ በስም ፈልግ..." oninput="filterAttendanceList()">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <input type="text" id="attSearchInput" class="form-control" style="max-width: 320px;"
+            placeholder="ተማሪ በስም ፈልግ..." oninput="filterAttendanceList()">
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button class="btn btn-warning" onclick="exportSessionAttendanceToExcel()">
               <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
@@ -453,12 +517,14 @@
 
           <div class="form-group">
             <label class="form-label" data-i18n="previousService">ቀደም ሲል ያገለገሉበት ክፍል</label>
-            <input type="text" id="studentPreviousService" class="form-control" placeholder="የዝማሬ ክፍል / የህፃናት ክፍል / አዲስ">
+            <input type="text" id="studentPreviousService" class="form-control"
+              placeholder="የዝማሬ ክፍል / የህፃናት ክፍል / አዲስ">
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modalStudent')" data-i18n="cancel">ተመለስ</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalStudent')"
+            data-i18n="cancel">ተመለስ</button>
           <button type="submit" class="btn btn-primary" id="btnSubmitStudent">
             <i class="fa-solid fa-save"></i> <span data-i18n="save">መዝግብ</span>
           </button>
@@ -478,7 +544,8 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" data-i18n="courseTitle">የትምህርቱ ርዕስ *</label>
-            <input type="text" id="sessionCourseTitle" class="form-control" required placeholder="የኦርቶዶክስ ተዋሕዶ እምነት መሠረታት">
+            <input type="text" id="sessionCourseTitle" class="form-control" required
+              placeholder="የኦርቶዶክስ ተዋሕዶ እምነት መሠረታት">
           </div>
 
           <div class="form-row">
@@ -505,12 +572,14 @@
 
           <div class="form-group">
             <label class="form-label" data-i18n="description">ማብራሪያ / ማስታወሻ</label>
-            <textarea id="sessionDescription" class="form-control" rows="3" placeholder="ስለ ትምህርቱ ተጨማሪ ማስታወሻ..."></textarea>
+            <textarea id="sessionDescription" class="form-control" rows="3"
+              placeholder="ስለ ትምህርቱ ተጨማሪ ማስታወሻ..."></textarea>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modalSession')" data-i18n="cancel">ተመለስ</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalSession')"
+            data-i18n="cancel">ተመለስ</button>
           <button type="submit" class="btn btn-primary" id="btnSubmitSession">
             <i class="fa-solid fa-plus"></i> <span data-i18n="save">ፍጠር</span>
           </button>
@@ -527,11 +596,13 @@
         <button class="modal-close" onclick="closeModal('modalStudentProfile')">&times;</button>
       </div>
       <div class="modal-body">
-        <div id="profileDetailsCard" style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+        <div id="profileDetailsCard"
+          style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
           <!-- Rendered via JS -->
         </div>
 
-        <h4 style="margin-bottom: 0.75rem; color: var(--primary);"><i class="fa-solid fa-history"></i> የመገኘት ታሪክ (Attendance Timeline)</h4>
+        <h4 style="margin-bottom: 0.75rem; color: var(--primary);"><i class="fa-solid fa-history"></i> የመገኘት ታሪክ
+          (Attendance Timeline)</h4>
         <div class="table-responsive">
           <table>
             <thead>
@@ -584,7 +655,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modalUser')" data-i18n="cancel">ተመለስ</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalUser')"
+            data-i18n="cancel">ተመለስ</button>
           <button type="submit" class="btn btn-primary" id="btnSubmitUser">
             <i class="fa-solid fa-save"></i> <span data-i18n="save">መዝግብ</span>
           </button>
@@ -601,5 +673,5 @@
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
 </body>
-</html>
 
+</html>
