@@ -941,6 +941,135 @@ async function deleteUser(id) {
   } catch (err) {}
 }
 
+// ==========================================
+// EXCEL EXPORT FUNCTIONS (SheetJS)
+// ==========================================
+function exportSessionAttendanceToExcel() {
+  if (!activeSessionData || !activeSessionData.students) {
+    showToast('No session data available to export', 'danger');
+    return;
+  }
+
+  if (typeof XLSX === 'undefined') {
+    showToast('Excel library loading, please try again in a moment', 'info');
+    return;
+  }
+
+  const session = activeSessionData.session;
+  const isAmharic = currentLang === 'am';
+
+  const exportData = activeSessionData.students.map((s, index) => {
+    const rec = activeAttendanceRecords[s.student_id] || { status: s.attendance_status || 'present', remarks: '' };
+    
+    let statusLabel = rec.status;
+    if (rec.status === 'present') statusLabel = isAmharic ? 'ተገኝቷል' : 'Present';
+    if (rec.status === 'absent') statusLabel = isAmharic ? 'ቀረ' : 'Absent';
+    if (rec.status === 'permission') statusLabel = isAmharic ? 'ፈቃድ' : 'Permission';
+
+    if (isAmharic) {
+      return {
+        'ተራ ቁጥር': index + 1,
+        'የተማሪው ሙሉ ስም': `${s.first_name} ${s.father_name}`,
+        'የእናት ስም': s.mother_name,
+        'ምድብ': s.category,
+        'ስልክ ቁጥር': s.phone,
+        'የአደጋ ጊዜ ስልክ': s.emergency_contact || '',
+        'የመገኘት ሁኔታ': statusLabel,
+        'አስተያየት': rec.remarks || ''
+      };
+    } else {
+      return {
+        'No.': index + 1,
+        'Student Name': `${s.first_name} ${s.father_name}`,
+        'Mother Name': s.mother_name,
+        'Category': s.category,
+        'Phone': s.phone,
+        'Emergency Contact': s.emergency_contact || '',
+        'Attendance Status': statusLabel,
+        'Remarks': rec.remarks || ''
+      };
+    }
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Sheet');
+
+  const fileName = `Attendance_${session.course_title.replace(/[^a-zA-Z0-9]/g, '_')}_${formatDate(session.session_date)}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+  showToast('Excel file downloaded successfully!', 'success');
+}
+
+async function exportStudentsToExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Excel library loading, please try again in a moment', 'info');
+    return;
+  }
+
+  const category = document.getElementById('filterStudentCategory').value;
+  const status = document.getElementById('filterStudentStatus').value;
+  const search = document.getElementById('searchStudentInput').value;
+  const isAmharic = currentLang === 'am';
+
+  try {
+    const students = await api(`/api/students?category=${category}&status=${status}&search=${encodeURIComponent(search)}`);
+    if (!students || students.length === 0) {
+      showToast('No student records found to export', 'warning');
+      return;
+    }
+
+    const exportData = students.map((s, index) => {
+      const statusLabel = s.status === 'active' 
+        ? (isAmharic ? 'ንቁ' : 'Active') 
+        : (isAmharic ? 'እንቅስቃሴ ያቆመ' : 'Inactive');
+
+      if (isAmharic) {
+        return {
+          'ተራ ቁጥር': index + 1,
+          'የተማሪው ስም': s.first_name,
+          'የአባት ስም': s.father_name,
+          'የእናት ስም': s.mother_name,
+          'ዕድሜ': s.age,
+          'ምድብ': s.category,
+          'ስልክ ቁጥር': s.phone,
+          'የአደጋ ጊዜ ስልክ': s.emergency_contact || '',
+          'ሙያ/ትምህርት': s.profession || '',
+          'ቀደም ሲል ያገለገሉበት': s.previous_service || '',
+          'ሁኔታ': statusLabel,
+          'የተገኘበት ብዛት': s.present_count || 0,
+          'የቀረበት ብዛት': s.absent_count || 0,
+          'በፈቃድ የቀረ': s.permission_count || 0
+        };
+      } else {
+        return {
+          'No.': index + 1,
+          'First Name': s.first_name,
+          'Father Name': s.father_name,
+          'Mother Name': s.mother_name,
+          'Age': s.age,
+          'Category': s.category,
+          'Phone': s.phone,
+          'Emergency Contact': s.emergency_contact || '',
+          'Profession': s.profession || '',
+          'Previous Service': s.previous_service || '',
+          'Status': statusLabel,
+          'Total Present': s.present_count || 0,
+          'Total Absent': s.absent_count || 0,
+          'Total Permission': s.permission_count || 0
+        };
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sunday School Students');
+
+    const fileName = `Sunday_School_Students_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    showToast('Students list exported to Excel!', 'success');
+  } catch (err) {}
+}
+
 // Utilities
 function escapeHtml(str) {
   if (!str) return '';

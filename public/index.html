@@ -16,8 +16,8 @@
       <div class="brand-section">
         <div class="brand-icon">✝</div>
         <div class="brand-text">
-          <h1 data-i18n="appTitle">የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ</h1>
-          <p data-i18n="appSubtitle">የተማሪዎች ምዝገባ እና የመገኘት ክትትል</p>
+          <h1 data-i18n="appTitle">ቤተ ያሬድ ሰንበት ት/ቤት</h1>
+          <p data-i18n="appSubtitle">የተማሪዎች ምዝገባ እና መከታተያ</p>
         </div>
       </div>
 
@@ -210,9 +210,14 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት ተማሪዎች</span></h3>
-            <button class="btn btn-primary" onclick="openRegisterStudentModal()">
-              <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerStudent">+ አዲስ ተማሪ መዝግብ</span>
-            </button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-success" onclick="exportStudentsToExcel()">
+                <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportStudentsList">የተማሪዎች መረጃ በ-Excel አውርድ</span>
+              </button>
+              <button class="btn btn-primary" onclick="openRegisterStudentModal()">
+                <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerStudent">+ አዲስ ተማሪ መዝግብ</span>
+              </button>
+            </div>
           </div>
 
           <!-- Filters -->
@@ -356,9 +361,14 @@
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
           <input type="text" id="attSearchInput" class="form-control" style="max-width: 320px;" 
                  placeholder="ተማሪ በስም ፈልግ..." oninput="filterAttendanceList()">
-          <button class="btn btn-success" onclick="markAllPresent()">
-            <i class="fa-solid fa-check-double"></i> <span data-i18n="markAllPresent">ሁሉንም ተገኝቷል በል</span>
-          </button>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-warning" onclick="exportSessionAttendanceToExcel()">
+              <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
+            </button>
+            <button class="btn btn-success" onclick="markAllPresent()">
+              <i class="fa-solid fa-check-double"></i> <span data-i18n="markAllPresent">ሁሉንም ተገኝቷል በል</span>
+            </button>
+          </div>
         </div>
 
         <!-- Student Attendance Grid -->
@@ -582,6 +592,7 @@
   <div id="toast" style="display: none;"></div>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
 </body>

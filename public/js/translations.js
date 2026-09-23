@@ -109,6 +109,10 @@ const translations = {
     role: "System Role",
     createdDate: "Created Date",
 
+    // Excel Export
+    exportExcel: "Export Excel",
+    exportStudentsList: "Export Students (Excel)",
+
     // Form buttons
     save: "Save",
     cancel: "Cancel",
@@ -224,6 +228,10 @@ const translations = {
     fullName: "ሙሉ ስም",
     role: "የሥራ ድርሻ",
     createdDate: "የተመዘገበበት ቀን",
+
+    // Excel Export
+    exportExcel: "በ-Excel አውርድ",
+    exportStudentsList: "የተማሪዎች መረጃ በ-Excel አውርድ",
 
     // Form buttons
     save: "መዝግብ",
