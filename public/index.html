@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ - Sunday School Attendance</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Lucide Icons or FontAwesome via CDN for clean visuals -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand-section">
+        <div class="brand-icon">✝</div>
+        <div class="brand-text">
+          <h1 data-i18n="appTitle">የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ</h1>
+          <p data-i18n="appSubtitle">የተማሪዎች ምዝገባ እና የመገኘት ክትትል</p>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <!-- Language Switcher -->
+        <div class="lang-switch">
+          <button type="button" class="lang-btn active" id="btnLangAm" onclick="setLanguage('am')">አማርኛ</button>
+          <button type="button" class="lang-btn" id="btnLangEn" onclick="setLanguage('en')">English</button>
+        </div>
+
+        <!-- User Profile & Logout -->
+        <div id="navUserSection" style="display: none; align-items: center; gap: 0.75rem;">
+          <div class="user-badge">
+            <i class="fa-solid fa-user-circle"></i>
+            <span id="navUsername">User</span>
+            <span id="navRole" class="tag tag-category">Role</span>
+          </div>
+          <button class="btn-logout" onclick="logout()" data-i18n="logout">ውጣ</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Navigation Tabs (Visible when logged in) -->
+  <nav class="sub-nav" id="subNavBar" style="display: none;">
+    <div class="tabs-container">
+      <button class="nav-tab active" id="tabBtnDashboard" onclick="switchTab('dashboard')">
+        <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navDashboard">ዳሽቦርድ</span>
+      </button>
+      <button class="nav-tab" id="tabBtnSessions" onclick="switchTab('sessions')">
+        <i class="fa-solid fa-calendar-check"></i> <span data-i18n="navSessions">ክፍለ-ጊዜያት</span>
+      </button>
+      <button class="nav-tab" id="tabBtnStudents" onclick="switchTab('students')">
+        <i class="fa-solid fa-graduation-cap"></i> <span data-i18n="navStudents">ተማሪዎች</span>
+      </button>
+      <button class="nav-tab admin-only" id="tabBtnAlerts" onclick="switchTab('alerts')">
+        <i class="fa-solid fa-bell"></i> <span data-i18n="navAlerts">3 ሳምንት የቀሩ</span>
+        <span class="badge-alert" id="badge3AbsentCount" style="display:none;">0</span>
+      </button>
+      <button class="nav-tab admin-only" id="tabBtnInactive" onclick="switchTab('inactive')">
+        <i class="fa-solid fa-user-slash"></i> <span data-i18n="navInactive">እንቅስቃሴ ያቆሙ</span>
+      </button>
+      <button class="nav-tab admin-only" id="tabBtnUsers" onclick="switchTab('users')">
+        <i class="fa-solid fa-users-gear"></i> <span data-i18n="navUsers">ተጠቃሚዎች</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+
+    <!-- 1. LOGIN VIEW -->
+    <section id="viewLogin" class="login-wrapper">
+      <div class="login-card">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="font-size: 2.8rem; color: var(--primary); margin-bottom: 0.5rem;">✝</div>
+          <h2 style="color: var(--primary);" data-i18n="signIn">ግባ</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="appSubtitle">የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ</p>
+        </div>
+
+        <form id="formLogin" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label class="form-label" data-i18n="username">የተጠቃሚ ስም</label>
+            <input type="text" id="loginUsername" class="form-control" required placeholder="admin / encoder" autofocus>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="password">የይለፍ ቃል</label>
+            <input type="password" id="loginPassword" class="form-control" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;" id="btnLoginSubmit">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> <span data-i18n="signIn">ግባ</span>
+          </button>
+        </form>
+
+        <div style="margin-top: 1.5rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.8rem; color: #64748b;">
+          <strong>Demo Login / የመግቢያ መረጃ:</strong><br>
+          • <strong>Admin:</strong> admin / admin123<br>
+          • <strong>Encoder:</strong> encoder / encoder123
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. APPLICATION TABS (Visible when authenticated) -->
+    <div id="viewApp" style="display: none;">
+
+      <!-- TAB: DASHBOARD (Admin Only) -->
+      <section id="tabDashboard" class="tab-pane">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-icon" style="color: var(--primary);"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <div class="stat-number" id="dashTotalStudents">0</div>
+              <div class="stat-label" data-i18n="totalStudents">አጠቃላይ ተማሪዎች</div>
+            </div>
+          </div>
+          <div class="stat-box success">
+            <div class="stat-icon" style="color: var(--success);"><i class="fa-solid fa-user-check"></i></div>
+            <div>
+              <div class="stat-number" id="dashActiveStudents">0</div>
+              <div class="stat-label" data-i18n="activeStudents">ንቁ ተማሪዎች</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon" style="color: var(--primary);"><i class="fa-solid fa-chalkboard-user"></i></div>
+            <div>
+              <div class="stat-number" id="dashTotalSessions">0</div>
+              <div class="stat-label" data-i18n="totalSessions">የተካሄዱ ክፍለ-ጊዜያት</div>
+            </div>
+          </div>
+          <div class="stat-box warning">
+            <div class="stat-icon" style="color: var(--secondary);"><i class="fa-solid fa-percent"></i></div>
+            <div>
+              <div class="stat-number" id="dashAttendanceRate">0%</div>
+              <div class="stat-label" data-i18n="overallRate">የመገኘት መጠን</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+          <!-- Category breakdown card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-layer-group"></i> <span data-i18n="categoryBreakdown">የተማሪዎች ምድብ ብዛት</span></h3>
+            </div>
+            <div id="dashCategoriesList" style="display: flex; flex-direction: column; gap: 0.6rem;">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Recent sessions card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="recentSessions">የቅርብ ጊዜ ክፍለ-ጊዜያት</span></h3>
+            </div>
+            <div id="dashRecentSessionsList" style="display: flex; flex-direction: column; gap: 0.6rem;">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: SESSIONS & ATTENDANCE -->
+      <section id="tabSessions" class="tab-pane" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="sessionsTitle">የትምህርት ክፍለ-ጊዜያት</span></h3>
+            <button class="btn btn-primary" onclick="openCreateSessionModal()">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="createSession">+ አዲስ ክፍለ-ጊዜ ፍጠር</span>
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <select id="filterSessionCategory" class="form-control" style="max-width: 250px;" onchange="loadSessions()">
+              <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
+              <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+              <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
+              <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+            </select>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="courseTitle">የትምህርቱ ርዕስ</th>
+                  <th data-i18n="sessionDate">ቀን</th>
+                  <th data-i18n="sessionTime">ሰዓት</th>
+                  <th data-i18n="category">ምድብ</th>
+                  <th data-i18n="markedCount">የተመዘገቡ</th>
+                  <th data-i18n="actions">ድርጊት</th>
+                </tr>
+              </thead>
+              <tbody id="sessionsTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: STUDENTS DIRECTORY & REGISTRATION -->
+      <section id="tabStudents" class="tab-pane" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት ተማሪዎች</span></h3>
+            <button class="btn btn-primary" onclick="openRegisterStudentModal()">
+              <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerStudent">+ አዲስ ተማሪ መዝግብ</span>
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <input type="text" id="searchStudentInput" class="form-control" style="flex: 2; min-width: 200px;" 
+                   placeholder="ተማሪ በስም ወይም በስልክ ፈልግ..." data-i18n-ph="searchStudent" oninput="debounceLoadStudents()">
+            
+            <select id="filterStudentCategory" class="form-control" style="flex: 1; min-width: 140px;" onchange="loadStudents()">
+              <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
+              <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+              <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
+              <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+            </select>
+
+            <select id="filterStudentStatus" class="form-control" style="flex: 1; min-width: 120px;" onchange="loadStudents()">
+              <option value="All" data-i18n="allStatuses">ሁሉም ሁኔታ</option>
+              <option value="active" data-i18n="active">ንቁ (Active)</option>
+              <option value="inactive" data-i18n="inactive">እንቅስቃሴ ያቆመ (Inactive)</option>
+            </select>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="studentName">የተማሪው ሙሉ ስም</th>
+                  <th data-i18n="motherName">የእናት ስም</th>
+                  <th data-i18n="category">ምድብ</th>
+                  <th data-i18n="age">ዕድሜ</th>
+                  <th data-i18n="phone">ስልክ</th>
+                  <th data-i18n="status">ሁኔታ</th>
+                  <th data-i18n="actions">ድርጊት</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: 3-CONSECUTIVE ABSENCES ALERT (Admin Only) -->
+      <section id="tabAlerts" class="tab-pane admin-only" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title" style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="alertsTitle">3 ተከታታይ ሳምንት የቀሩ ተማሪዎች</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="alertsSubtitle">አስቸኳይ ክትትል የሚሹ</p>
+            </div>
+            <button class="btn btn-outline" onclick="load3AbsentAlerts()">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <div id="alertsContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: INACTIVE STUDENTS (Admin Only) -->
+      <section id="tabInactive" class="tab-pane admin-only" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><i class="fa-solid fa-user-xmark"></i> <span data-i18n="inactiveTitle">እንቅስቃሴ ያቆሙ ተማሪዎች</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="inactiveSubtitle">በሰንበት ት/ቤቱ እንቅስቃሴ ያቆሙ ተማሪዎች ዝርዝር</p>
+            </div>
+            <button class="btn btn-outline" onclick="loadInactiveStudents()">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <div id="inactiveContainer">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: USER MANAGEMENT (Admin Only) -->
+      <section id="tabUsers" class="tab-pane admin-only" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n="usersTitle">የስርዓቱ ተጠቃሚዎች</span></h3>
+            <button class="btn btn-primary" onclick="openCreateUserModal()">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="addUser">+ አዲስ ተጠቃሚ ጨምር</span>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="fullName">ሙሉ ስም</th>
+                  <th data-i18n="username">የተጠቃሚ ስም</th>
+                  <th data-i18n="role">የሥራ ድርሻ</th>
+                  <th data-i18n="createdDate">የተመዘገበበት ቀን</th>
+                  <th data-i18n="actions">ድርጊት</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. MODAL: TAKE / VIEW ATTENDANCE -->
+  <div id="modalAttendance" class="modal-overlay" style="display: none;">
+    <div class="modal-content large">
+      <div class="modal-header">
+        <div>
+          <h3 id="attModalSessionTitle">የመገኘት መመዝገቢያ</h3>
+          <p id="attModalSessionSubtitle" style="font-size: 0.85rem; color: var(--text-muted);"></p>
+        </div>
+        <button class="modal-close" onclick="closeModal('modalAttendance')">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Top bar with Quick Search & "Mark All Present" -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <input type="text" id="attSearchInput" class="form-control" style="max-width: 320px;" 
+                 placeholder="ተማሪ በስም ፈልግ..." oninput="filterAttendanceList()">
+          <button class="btn btn-success" onclick="markAllPresent()">
+            <i class="fa-solid fa-check-double"></i> <span data-i18n="markAllPresent">ሁሉንም ተገኝቷል በል</span>
+          </button>
+        </div>
+
+        <!-- Student Attendance Grid -->
+        <div id="attStudentsGrid" class="attendance-grid">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('modalAttendance')" data-i18n="cancel">ተመለስ</button>
+        <button class="btn btn-primary" id="btnSaveAttendance" onclick="saveAttendance()">
+          <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveAttendance">መገኘቱን መዝግብ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL: REGISTER / EDIT STUDENT -->
+  <div id="modalStudent" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalStudentTitle" data-i18n="registerStudent">አዲስ ተማሪ መዝግብ</h3>
+        <button class="modal-close" onclick="closeModal('modalStudent')">&times;</button>
+      </div>
+      <form id="formStudent" onsubmit="handleSaveStudent(event)">
+        <div class="modal-body">
+          <input type="hidden" id="studentEditId" value="">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="firstName">የተማሪው ስም *</label>
+              <input type="text" id="studentFirstName" class="form-control" required placeholder="ዳዊት">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="fatherName">የአባት ስም *</label>
+              <input type="text" id="studentFatherName" class="form-control" required placeholder="ዮሐንስ">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="motherName">የእናት ስም *</label>
+              <input type="text" id="studentMotherName" class="form-control" required placeholder="ማርታ">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="age">ዕድሜ *</label>
+              <input type="number" id="studentAge" class="form-control" required min="1" max="100" placeholder="18">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="phone">ስልክ ቁጥር *</label>
+              <input type="tel" id="studentPhone" class="form-control" required placeholder="0911223344">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="emergencyContact">የአደጋ ጊዜ / አማራጭ ስልክ</label>
+              <input type="tel" id="studentEmergency" class="form-control" placeholder="0922334455 (የወላጅ)">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="category">ምድብ *</label>
+              <select id="studentCategory" class="form-control" required>
+                <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+                <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+                <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
+                <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="profession">ሙያ / የትምህርት ደረጃ</label>
+              <input type="text" id="studentProfession" class="form-control" placeholder="ተማሪ / መምህር / ሠራተኛ">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="previousService">ቀደም ሲል ያገለገሉበት ክፍል</label>
+            <input type="text" id="studentPreviousService" class="form-control" placeholder="የዝማሬ ክፍል / የህፃናት ክፍል / አዲስ">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalStudent')" data-i18n="cancel">ተመለስ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitStudent">
+            <i class="fa-solid fa-save"></i> <span data-i18n="save">መዝግብ</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. MODAL: CREATE SESSION -->
+  <div id="modalSession" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="createSession">አዲስ ክፍለ-ጊዜ ፍጠር</h3>
+        <button class="modal-close" onclick="closeModal('modalSession')">&times;</button>
+      </div>
+      <form id="formSession" onsubmit="handleCreateSession(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" data-i18n="courseTitle">የትምህርቱ ርዕስ *</label>
+            <input type="text" id="sessionCourseTitle" class="form-control" required placeholder="የኦርቶዶክስ ተዋሕዶ እምነት መሠረታት">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="sessionDate">ቀን *</label>
+              <input type="date" id="sessionDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="sessionTime">ሰዓት *</label>
+              <input type="text" id="sessionTime" class="form-control" required placeholder="3:00 - 5:00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="category">ምድብ *</label>
+            <select id="sessionCategory" class="form-control" required>
+              <option value="All" data-i18n="catAll">ለሁሉም (All)</option>
+              <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+              <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
+              <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="description">ማብራሪያ / ማስታወሻ</label>
+            <textarea id="sessionDescription" class="form-control" rows="3" placeholder="ስለ ትምህርቱ ተጨማሪ ማስታወሻ..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalSession')" data-i18n="cancel">ተመለስ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitSession">
+            <i class="fa-solid fa-plus"></i> <span data-i18n="save">ፍጠር</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. MODAL: STUDENT PROFILE & HISTORY -->
+  <div id="modalStudentProfile" class="modal-overlay" style="display: none;">
+    <div class="modal-content large">
+      <div class="modal-header">
+        <h3 id="profileStudentName">የተማሪው መረጃ</h3>
+        <button class="modal-close" onclick="closeModal('modalStudentProfile')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="profileDetailsCard" style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+          <!-- Rendered via JS -->
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; color: var(--primary);"><i class="fa-solid fa-history"></i> የመገኘት ታሪክ (Attendance Timeline)</h4>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="sessionDate">ቀን</th>
+                <th data-i18n="courseTitle">ርዕስ</th>
+                <th data-i18n="status">ሁኔታ</th>
+                <th data-i18n="remarks">አስተያየት</th>
+              </tr>
+            </thead>
+            <tbody id="profileHistoryTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('modalStudentProfile')" data-i18n="close">ዝጋ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL: ADD USER (Admin Only) -->
+  <div id="modalUser" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="addUser">አዲስ ተጠቃሚ ጨምር</h3>
+        <button class="modal-close" onclick="closeModal('modalUser')">&times;</button>
+      </div>
+      <form id="formUser" onsubmit="handleCreateUser(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" data-i18n="fullName">ሙሉ ስም *</label>
+            <input type="text" id="userFullName" class="form-control" required placeholder="መርጌታ ዮሐንስ">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="username">የተጠቃሚ ስም (Username) *</label>
+            <input type="text" id="userUsername" class="form-control" required placeholder="yohannes">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="password">የይለፍ ቃል *</label>
+            <input type="password" id="userPassword" class="form-control" required placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="role">የሥራ ድርሻ *</label>
+            <select id="userRole" class="form-control" required>
+              <option value="encoder" selected data-i18n="encoderRole">መዝጋቢ (Encoder)</option>
+              <option value="admin" data-i18n="adminRole">ዋና አስተዳዳሪ (Admin)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalUser')" data-i18n="cancel">ተመለስ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitUser">
+            <i class="fa-solid fa-save"></i> <span data-i18n="save">መዝግብ</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" style="display: none;"></div>
+
+  <!-- Scripts -->
+  <script src="js/translations.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
