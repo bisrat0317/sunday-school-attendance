@@ -106,7 +106,10 @@ async function initDatabase() {
     console.log('Database initialization completed successfully!');
   } catch (error) {
     console.error('Database initialization error:', error);
-    process.exit(1);
+    if (require.main === module) {
+      process.exit(1);
+    }
+    throw error;
   }
 }
 
