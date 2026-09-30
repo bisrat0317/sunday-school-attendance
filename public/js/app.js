@@ -351,7 +351,7 @@ async function loadDashboard() {
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.75rem; background: #f8fafc; border-radius: 8px; flex-wrap: wrap; gap: 0.5rem;">
             <div>
               <div style="font-weight: 600;">${escapeHtml(s.course_title)}</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${escapeHtml(s.session_time)} (${s.category})</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${formatTime(s.session_time)} (${s.category})</div>
             </div>
             <div style="display: flex; gap: 0.35rem;">
               <span class="tag tag-present"><i class="fa-solid fa-check"></i> ${s.present_count}</span>
@@ -394,7 +394,7 @@ async function loadSessions() {
             ${s.description ? `<br><small style="color: var(--text-muted);">${escapeHtml(s.description)}</small>` : ''}
           </td>
           <td>${formatDate(s.session_date)}</td>
-          <td>${escapeHtml(s.session_time)}</td>
+          <td>${formatTime(s.session_time)}</td>
           <td><span class="tag tag-category">${escapeHtml(s.category)}</span></td>
           <td>
             <span class="tag tag-present"><i class="fa-solid fa-check"></i> ${s.present_count}</span>
@@ -423,7 +423,7 @@ async function loadSessions() {
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
               <div>
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--primary);">${escapeHtml(s.course_title)}</h4>
-                <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${escapeHtml(s.session_time)}</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${formatTime(s.session_time)}</p>
               </div>
               <span class="tag tag-category">${escapeHtml(s.category)}</span>
             </div>
@@ -452,15 +452,110 @@ async function loadSessions() {
   } catch (err) { }
 }
 
+function populateEthiopicPickerOptions() {
+  const daySelect = document.getElementById('sessionEthDay');
+  const monthSelect = document.getElementById('sessionEthMonth');
+  const yearSelect = document.getElementById('sessionEthYear');
+  const startHourSelect = document.getElementById('sessionStartEthHour');
+  const endHourSelect = document.getElementById('sessionEndEthHour');
+
+  if (!daySelect || !monthSelect || !yearSelect || !startHourSelect || !endHourSelect) return;
+
+  // Days 1..30
+  daySelect.innerHTML = '';
+  for (let d = 1; d <= 30; d++) {
+    daySelect.innerHTML += `<option value="${d}">${d}</option>`;
+  }
+
+  // Months
+  monthSelect.innerHTML = '';
+  const monthsArr = currentLang === 'am' ? ETHIOPIC_MONTHS_AM : ETHIOPIC_MONTHS_EN;
+  monthsArr.forEach((mName, idx) => {
+    monthSelect.innerHTML += `<option value="${idx + 1}">${mName} (${idx + 1})</option>`;
+  });
+
+  // Years
+  const todayEth = toEthiopicDate(new Date().toISOString().split('T')[0]);
+  const currentEthYear = todayEth ? todayEth.year : 2017;
+
+  yearSelect.innerHTML = '';
+  for (let y = currentEthYear - 2; y <= currentEthYear + 3; y++) {
+    const isSel = y === currentEthYear ? 'selected' : '';
+    yearSelect.innerHTML += `<option value="${y}" ${isSel}>${y} ${currentLang === 'am' ? 'ዓ.ም.' : 'E.C.'}</option>`;
+  }
+
+  // Hours 1..12
+  startHourSelect.innerHTML = '';
+  endHourSelect.innerHTML = '';
+  for (let h = 1; h <= 12; h++) {
+    startHourSelect.innerHTML += `<option value="${h}">${h}:00</option>`;
+    endHourSelect.innerHTML += `<option value="${h}">${h}:00</option>`;
+  }
+}
+
+function updateEthiopicDatePreview() {
+  const daySelect = document.getElementById('sessionEthDay');
+  const monthSelect = document.getElementById('sessionEthMonth');
+  const yearSelect = document.getElementById('sessionEthYear');
+
+  if (!daySelect || !monthSelect || !yearSelect) return;
+
+  const day = daySelect.value;
+  const month = monthSelect.value;
+  const year = yearSelect.value;
+
+  const gregDateStr = toGregorianDateStr(year, month, day);
+  document.getElementById('sessionDate').value = gregDateStr;
+
+  const monthsArr = currentLang === 'am' ? ETHIOPIC_MONTHS_AM : ETHIOPIC_MONTHS_EN;
+  const monthName = monthsArr[month - 1] || '';
+  const ethFormatted = `${monthName} ${day}, ${year} ${currentLang === 'am' ? 'ዓ.ም.' : 'E.C.'}`;
+  document.getElementById('sessionGregorianPreview').textContent = `${ethFormatted} ➔ (Gregorian: ${gregDateStr})`;
+}
+
+function updateEthiopicTimePreview() {
+  const startH = document.getElementById('sessionStartEthHour').value;
+  const startM = document.getElementById('sessionStartEthMin').value;
+  const startP = document.getElementById('sessionStartEthPeriod').value;
+
+  const endH = document.getElementById('sessionEndEthHour').value;
+  const endM = document.getElementById('sessionEndEthMin').value;
+  const endP = document.getElementById('sessionEndEthPeriod').value;
+
+  const stdStart = ethTimeToStandard(startH, startM, startP);
+  const stdEnd = ethTimeToStandard(endH, endM, endP);
+
+  const stdRange = `${stdStart} - ${stdEnd}`;
+  document.getElementById('sessionTime').value = stdRange;
+
+  const formattedPreview = formatAppTime(stdRange, currentLang);
+  document.getElementById('sessionTimePreview').textContent = `${formattedPreview} ➔ (Standard: ${stdRange})`;
+}
+
 function openCreateSessionModal() {
   document.getElementById('formSession').reset();
-  // Default date to today
-  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
-  // Default time to current local time HH:MM
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  document.getElementById('sessionTime').value = `${hours}:${minutes}`;
+  populateEthiopicPickerOptions();
+
+  // Default to today's Ethiopian date
+  const todayEth = toEthiopicDate(new Date().toISOString().split('T')[0]);
+  if (todayEth) {
+    document.getElementById('sessionEthDay').value = todayEth.day;
+    document.getElementById('sessionEthMonth').value = todayEth.month;
+    document.getElementById('sessionEthYear').value = todayEth.year;
+  }
+  updateEthiopicDatePreview();
+
+  // Default start to 3:00 ጠዋት (09:00), end to 5:00 ጠዋት (11:00)
+  document.getElementById('sessionStartEthHour').value = '3';
+  document.getElementById('sessionStartEthMin').value = '00';
+  document.getElementById('sessionStartEthPeriod').value = 'morning';
+
+  document.getElementById('sessionEndEthHour').value = '5';
+  document.getElementById('sessionEndEthMin').value = '00';
+  document.getElementById('sessionEndEthPeriod').value = 'morning';
+
+  updateEthiopicTimePreview();
+
   openModal('modalSession');
 }
 
@@ -502,7 +597,7 @@ async function openAttendanceModal(sessionId) {
 
     activeSessionData = data;
     document.getElementById('attModalSessionTitle').textContent = `${data.session.course_title} (${data.session.category})`;
-    document.getElementById('attModalSessionSubtitle').textContent = `${formatDate(data.session.session_date)} | ${data.session.session_time}`;
+    document.getElementById('attModalSessionSubtitle').textContent = `${formatDate(data.session.session_date)} | ${formatTime(data.session.session_time)}`;
     document.getElementById('attSearchInput').value = '';
 
     // Initialize in-memory attendance record states
@@ -1386,8 +1481,19 @@ function escapeHtml(str) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
+  if (typeof formatAppDate === 'function') {
+    return formatAppDate(dateStr, currentLang);
+  }
   const d = new Date(dateStr);
   return d.toISOString().split('T')[0];
+}
+
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  if (typeof formatAppTime === 'function') {
+    return formatAppTime(timeStr, currentLang);
+  }
+  return String(timeStr);
 }
 
 // Initial Bootstrap on Page Load

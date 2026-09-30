@@ -617,15 +617,64 @@
               placeholder="የኦርቶዶክስ ተዋሕዶ እምነት መሠረታት">
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" data-i18n="sessionDate">ቀን *</label>
-              <input type="date" id="sessionDate" class="form-control" required>
+          <!-- Date Section: Ethiopian Date Picker -->
+          <div class="form-group">
+            <label class="form-label" data-i18n="sessionDate">ቀን (የኢትዮጵያ ዘመን አቆጣጠር) *</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <select id="sessionEthDay" class="form-control" style="flex: 1;" onchange="updateEthiopicDatePreview()"></select>
+              <select id="sessionEthMonth" class="form-control" style="flex: 2;" onchange="updateEthiopicDatePreview()"></select>
+              <select id="sessionEthYear" class="form-control" style="flex: 1.5;" onchange="updateEthiopicDatePreview()"></select>
             </div>
-            <div class="form-group">
-              <label class="form-label" data-i18n="sessionTime">ሰዓት *</label>
-              <input type="time" id="sessionTime" class="form-control" required>
+            <input type="hidden" id="sessionDate" required>
+            <small id="sessionGregorianPreview" style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; display: block;"></small>
+          </div>
+
+          <!-- Time Section: Ethiopian Time Range Picker (Start - End) -->
+          <div class="form-group">
+            <label class="form-label" data-i18n="sessionTime">ሰዓት (የኢትዮጵያ ሰዓት) *</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <!-- Start Time -->
+              <div style="background: #f8fafc; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 4px;">የመጀመሪያ ሰዓት (Start)</div>
+                <div style="display: flex; gap: 0.35rem;">
+                  <select id="sessionStartEthHour" class="form-control" style="padding: 4px;" onchange="updateEthiopicTimePreview()"></select>
+                  <select id="sessionStartEthMin" class="form-control" style="padding: 4px;" onchange="updateEthiopicTimePreview()">
+                    <option value="00">:00</option>
+                    <option value="15">:15</option>
+                    <option value="30">:30</option>
+                    <option value="45">:45</option>
+                  </select>
+                  <select id="sessionStartEthPeriod" class="form-control" style="padding: 4px;" onchange="updateEthiopicTimePreview()">
+                    <option value="morning">ጠዋት</option>
+                    <option value="daytime">ቀን</option>
+                    <option value="evening">ምሽት</option>
+                    <option value="night">ሌሊት</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- End Time -->
+              <div style="background: #f8fafc; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 4px;">የማብቂያ ሰዓት (End)</div>
+                <div style="display: flex; gap: 0.35rem;">
+                  <select id="sessionEndEthHour" class="form-control" style="padding: 4px;" onchange="updateEthiopicTimePreview()"></select>
+                  <select id="sessionEndEthMin" class="form-control" style="padding: 4px;" onchange="updateEthiopicTimePreview()">
+                    <option value="00">:00</option>
+                    <option value="15">:15</option>
+                    <option value="30">:30</option>
+                    <option value="45">:45</option>
+                  </select>
+                  <select id="sessionEndEthPeriod" class="form-control" style="padding: 4px;" onchange="updateEthiopicTimePreview()">
+                    <option value="morning">ጠዋት</option>
+                    <option value="daytime">ቀን</option>
+                    <option value="evening">ምሽት</option>
+                    <option value="night">ሌሊት</option>
+                  </select>
+                </div>
+              </div>
             </div>
+            <input type="hidden" id="sessionTime" required>
+            <small id="sessionTimePreview" style="color: var(--primary); font-weight: 600; font-size: 0.82rem; margin-top: 6px; display: block;"></small>
           </div>
 
           <div class="form-group">
@@ -740,6 +789,7 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="js/ethiopianCalendar.js"></script>
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
 </body>
