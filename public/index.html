@@ -46,7 +46,7 @@
   <!-- Secondary Navigation Tabs (Visible when logged in) -->
   <nav class="sub-nav" id="subNavBar" style="display: none;">
     <div class="tabs-container">
-      <button class="nav-tab active" id="tabBtnDashboard" onclick="switchTab('dashboard')">
+      <button class="nav-tab active admin-only" id="tabBtnDashboard" onclick="switchTab('dashboard')">
         <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navDashboard">ዳሽቦርድ</span>
       </button>
       <button class="nav-tab" id="tabBtnSessions" onclick="switchTab('sessions')">
@@ -55,7 +55,7 @@
       <button class="nav-tab" id="tabBtnStudents" onclick="switchTab('students')">
         <i class="fa-solid fa-graduation-cap"></i> <span data-i18n="navStudents">ተማሪዎች</span>
       </button>
-      <button class="nav-tab" id="tabBtnCategoryMatrix" onclick="switchTab('categoryMatrix')">
+      <button class="nav-tab admin-only" id="tabBtnCategoryMatrix" onclick="switchTab('categoryMatrix')">
         <i class="fa-solid fa-table-cells"></i> <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
       </button>
       <button class="nav-tab admin-only" id="tabBtnAlerts" onclick="switchTab('alerts')">
@@ -65,7 +65,7 @@
       <button class="nav-tab admin-only" id="tabBtnInactive" onclick="switchTab('inactive')">
         <i class="fa-solid fa-user-slash"></i> <span data-i18n="navInactive">እንቅስቃሴ ያቆሙ</span>
       </button>
-      <button class="nav-tab admin-only" id="tabBtnUsers" onclick="switchTab('users')">
+      <button class="nav-tab super-admin-only" id="tabBtnUsers" onclick="switchTab('users')">
         <i class="fa-solid fa-users-gear"></i> <span data-i18n="navUsers">ተጠቃሚዎች</span>
       </button>
     </div>
@@ -101,6 +101,7 @@
         <div
           style="margin-top: 1.5rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.8rem; color: #64748b;">
           <strong>Demo Login / የመግቢያ መረጃ:</strong><br>
+          • <strong>Super Admin:</strong> superadmin / superadmin123<br>
           • <strong>Admin:</strong> admin / admin123<br>
           • <strong>Encoder:</strong> encoder / encoder123
         </div>
@@ -221,7 +222,7 @@
             <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት
                 ተማሪዎች</span></h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="btn btn-success" onclick="exportStudentsToExcel()">
+              <button class="btn btn-success admin-only" onclick="exportStudentsToExcel()">
                 <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportStudentsList">የተማሪዎች መረጃ በ-Excel
                   አውርድ</span>
               </button>
@@ -322,8 +323,8 @@
         </div>
       </section>
 
-      <!-- TAB: USER MANAGEMENT (Admin Only) -->
-      <section id="tabUsers" class="tab-pane admin-only" style="display: none;">
+      <!-- TAB: USER MANAGEMENT (Super Admin Only) -->
+      <section id="tabUsers" class="tab-pane super-admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n="usersTitle">የስርዓቱ
@@ -640,7 +641,8 @@
             <label class="form-label" data-i18n="role">የሥራ ድርሻ *</label>
             <select id="userRole" class="form-control" required>
               <option value="encoder" selected data-i18n="encoderRole">መዝጋቢ (Encoder)</option>
-              <option value="admin" data-i18n="adminRole">ዋና አስተዳዳሪ (Admin)</option>
+              <option value="admin" data-i18n="adminRole">አስተዳዳሪ (Admin)</option>
+              <option value="super_admin" data-i18n="superAdminRole">ዋና አስተዳዳሪ (Super Admin)</option>
             </select>
           </div>
         </div>

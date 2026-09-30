@@ -10,6 +10,7 @@ const translations = {
     password: "Password",
     signIn: "Sign In",
     loggingIn: "Signing in...",
+    superAdminRole: "Super Admin",
     adminRole: "Administrator",
     encoderRole: "Encoder",
 
@@ -135,7 +136,8 @@ const translations = {
     password: "የይለፍ ቃል",
     signIn: "ግባ",
     loggingIn: "በመግባት ላይ...",
-    adminRole: "ዋና አስተዳዳሪ (Admin)",
+    superAdminRole: "ዋና አስተዳዳሪ (Super Admin)",
+    adminRole: "አስተዳዳሪ (Admin)",
     encoderRole: "መዝጋቢ (Encoder)",
 
     // Navigation

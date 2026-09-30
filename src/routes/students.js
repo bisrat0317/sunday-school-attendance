@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 
 // GET /api/students - List students with optional search, category, and status filters
 router.get('/', authenticateToken, async (req, res) => {
@@ -193,8 +193,8 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/students/:id - Delete student (Admin only)
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+// DELETE /api/students/:id - Delete student (Super Admin only)
+router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('DELETE FROM students WHERE id = ?', [id]);

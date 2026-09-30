@@ -12,7 +12,7 @@ async function initDatabase() {
         username VARCHAR(50) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         full_name VARCHAR(100) NOT NULL,
-        role VARCHAR(20) DEFAULT 'encoder' CHECK (role IN ('admin', 'encoder')),
+        role VARCHAR(20) DEFAULT 'encoder' CHECK (role IN ('super_admin', 'admin', 'encoder')),
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -69,18 +69,21 @@ async function initDatabase() {
     const [existingUsers] = await pool.query('SELECT id, username, role FROM users LIMIT 2');
     if (existingUsers.length === 0) {
       console.log('Seeding initial default users...');
+      const superAdminPass = await bcrypt.hash('superadmin123', 10);
       const adminPass = await bcrypt.hash('admin123', 10);
       const encoderPass = await bcrypt.hash('encoder123', 10);
 
       await pool.query(`
         INSERT INTO users (username, password_hash, full_name, role) VALUES 
+        ('superadmin', ?, 'Sunday School Super Admin', 'super_admin'),
         ('admin', ?, 'Sunday School Admin', 'admin'),
         ('encoder', ?, 'Sunday School Encoder', 'encoder')
-      `, [adminPass, encoderPass]);
+      `, [superAdminPass, adminPass, encoderPass]);
 
       console.log('Default accounts created:');
-      console.log('  Admin   -> username: admin, password: admin123');
-      console.log('  Encoder -> username: encoder, password: encoder123');
+      console.log('  Super Admin -> username: superadmin, password: superadmin123');
+      console.log('  Admin       -> username: admin,      password: admin123');
+      console.log('  Encoder     -> username: encoder,    password: encoder123');
     }
 
     // Seed initial sample students if empty for quick testing

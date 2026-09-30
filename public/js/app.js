@@ -158,7 +158,10 @@ function logout() {
 function updateUserBadge() {
   if (!currentUser) return;
   document.getElementById('navUsername').textContent = currentUser.full_name || currentUser.username;
-  document.getElementById('navRole').textContent = currentUser.role === 'admin' ? t('adminRole') : t('encoderRole');
+  let roleLabel = t('encoderRole');
+  if (currentUser.role === 'super_admin') roleLabel = t('superAdminRole');
+  else if (currentUser.role === 'admin') roleLabel = t('adminRole');
+  document.getElementById('navRole').textContent = roleLabel;
 }
 
 // App Initialization
@@ -171,7 +174,13 @@ function initAppView() {
   updateUserBadge();
 
   // Role visibility guards
-  const isAdmin = currentUser.role === 'admin';
+  const isSuperAdmin = currentUser.role === 'super_admin';
+  const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
+
+  document.querySelectorAll('.super-admin-only').forEach(el => {
+    el.style.display = isSuperAdmin ? '' : 'none';
+  });
+
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
@@ -181,13 +190,23 @@ function initAppView() {
     switchTab('dashboard');
     load3AbsentAlerts(); // background count check
   } else {
-    // Encoder starts directly on Sessions or Students
     switchTab('sessions');
   }
 }
 
 // Tab Switching
 function switchTab(tabName) {
+  const isSuperAdmin = currentUser.role === 'super_admin';
+  const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
+
+  // Role access guards
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive') && !isAdmin) {
+    tabName = 'sessions';
+  }
+  if (tabName === 'users' && !isSuperAdmin) {
+    tabName = 'sessions';
+  }
+
   // Update Tab buttons
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   const activeBtn = document.getElementById(`tabBtn${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
@@ -201,13 +220,13 @@ function switchTab(tabName) {
   if (pane) pane.style.display = 'block';
 
   // Load data for that tab
-  if (tabName === 'dashboard' && currentUser.role === 'admin') loadDashboard();
+  if (tabName === 'dashboard' && isAdmin) loadDashboard();
   if (tabName === 'sessions') loadSessions();
   if (tabName === 'students') loadStudents();
-  if (tabName === 'categoryMatrix') loadCategoryMatrix();
-  if (tabName === 'alerts' && currentUser.role === 'admin') load3AbsentAlerts();
-  if (tabName === 'inactive' && currentUser.role === 'admin') loadInactiveStudents();
-  if (tabName === 'users' && currentUser.role === 'admin') loadUsers();
+  if (tabName === 'categoryMatrix' && isAdmin) loadCategoryMatrix();
+  if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
+  if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
+  if (tabName === 'users' && isSuperAdmin) loadUsers();
 }
 
 function refreshActiveTabData() {
@@ -592,7 +611,7 @@ async function loadStudents() {
               <button class="btn btn-outline btn-sm" onclick="openEditStudentModal(${s.id})" title="${t('edit')}">
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
-              ${currentUser.role === 'admin' ? `
+              ${currentUser.role === 'super_admin' ? `
                 <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteStudent(${s.id})" title="${t('delete')}">
                   <i class="fa-solid fa-trash"></i>
                 </button>
@@ -638,7 +657,7 @@ async function loadStudents() {
                 <button class="btn btn-outline btn-sm" onclick="openEditStudentModal(${s.id})">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
-                ${currentUser.role === 'admin' ? `
+                ${currentUser.role === 'super_admin' ? `
                   <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteStudent(${s.id})">
                     <i class="fa-solid fa-trash"></i>
                   </button>
@@ -902,11 +921,21 @@ async function loadUsers() {
     }
 
     users.forEach(u => {
+      let roleTagClass = 'tag-permission';
+      let roleText = t('encoderRole');
+      if (u.role === 'super_admin') {
+        roleTagClass = 'tag-present';
+        roleText = t('superAdminRole');
+      } else if (u.role === 'admin') {
+        roleTagClass = 'tag-category';
+        roleText = t('adminRole');
+      }
+
       tbody.innerHTML += `
         <tr>
           <td><strong>${escapeHtml(u.full_name)}</strong></td>
           <td>${escapeHtml(u.username)}</td>
-          <td><span class="tag ${u.role === 'admin' ? 'tag-category' : 'tag-permission'}">${u.role === 'admin' ? t('adminRole') : t('encoderRole')}</span></td>
+          <td><span class="tag ${roleTagClass}">${roleText}</span></td>
           <td>${formatDate(u.created_at)}</td>
           <td>
             ${u.id !== currentUser.id ? `

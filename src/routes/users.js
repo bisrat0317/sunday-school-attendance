@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
 
-// GET /api/users - List system users (Admin only)
-router.get('/', authenticateToken, requireAdmin, async (req, res) => {
+// GET /api/users - List system users (Super Admin only)
+router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const [users] = await pool.query(
       'SELECT id, username, full_name, role, created_at FROM users ORDER BY created_at DESC'
@@ -17,16 +17,16 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/users - Create new encoder or admin (Admin only)
-router.post('/', authenticateToken, requireAdmin, async (req, res) => {
+// POST /api/users - Create new encoder, admin, or super admin (Super Admin only)
+router.post('/', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { username, password, full_name, role } = req.body;
 
   if (!username || !password || !full_name || !role) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  if (!['admin', 'encoder'].includes(role)) {
-    return res.status(400).json({ message: 'Role must be admin or encoder' });
+  if (!['super_admin', 'admin', 'encoder'].includes(role)) {
+    return res.status(400).json({ message: 'Role must be super_admin, admin, or encoder' });
   }
 
   try {
@@ -51,8 +51,8 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/users/:id - Delete user (Cannot delete self)
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+// DELETE /api/users/:id - Delete user (Super Admin only, cannot delete self)
+router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
 
   if (parseInt(id, 10) === req.user.id) {
@@ -69,4 +69,3 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
-
