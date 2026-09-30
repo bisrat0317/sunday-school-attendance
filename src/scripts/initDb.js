@@ -17,6 +17,14 @@ async function initDatabase() {
       );
     `);
 
+    // Migrate users_role_check constraint if table was created previously with older allowed roles
+    try {
+      await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;`);
+      await pool.query(`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'admin', 'encoder'));`);
+    } catch (err) {
+      console.log('Constraint update notice:', err.message);
+    }
+
     // 2. Students Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS students (
