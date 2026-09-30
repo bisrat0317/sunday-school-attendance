@@ -456,10 +456,8 @@ function populateEthiopicPickerOptions() {
   const daySelect = document.getElementById('sessionEthDay');
   const monthSelect = document.getElementById('sessionEthMonth');
   const yearSelect = document.getElementById('sessionEthYear');
-  const startHourSelect = document.getElementById('sessionStartEthHour');
-  const endHourSelect = document.getElementById('sessionEndEthHour');
 
-  if (!daySelect || !monthSelect || !yearSelect || !startHourSelect || !endHourSelect) return;
+  if (!daySelect || !monthSelect || !yearSelect) return;
 
   // Days 1..30
   daySelect.innerHTML = '';
@@ -482,14 +480,6 @@ function populateEthiopicPickerOptions() {
   for (let y = currentEthYear - 2; y <= currentEthYear + 3; y++) {
     const isSel = y === currentEthYear ? 'selected' : '';
     yearSelect.innerHTML += `<option value="${y}" ${isSel}>${y} ${currentLang === 'am' ? 'ዓ.ም.' : 'E.C.'}</option>`;
-  }
-
-  // Hours 1..12
-  startHourSelect.innerHTML = '';
-  endHourSelect.innerHTML = '';
-  for (let h = 1; h <= 12; h++) {
-    startHourSelect.innerHTML += `<option value="${h}">${h}:00</option>`;
-    endHourSelect.innerHTML += `<option value="${h}">${h}:00</option>`;
   }
 }
 
