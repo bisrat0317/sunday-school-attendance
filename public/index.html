@@ -617,36 +617,26 @@
               placeholder="የኦርቶዶክስ ተዋሕዶ እምነት መሠረታት">
           </div>
 
-          <!-- Date Section: Ethiopian Date Picker -->
-          <div class="form-group">
-            <label class="form-label" data-i18n="sessionDate">ቀን (የኢትዮጵያ ዘመን አቆጣጠር) *</label>
-            <div style="display: flex; gap: 0.5rem;">
-              <select id="sessionEthDay" class="form-control" style="flex: 1;" onchange="updateEthiopicDatePreview()"></select>
-              <select id="sessionEthMonth" class="form-control" style="flex: 2;" onchange="updateEthiopicDatePreview()"></select>
-              <select id="sessionEthYear" class="form-control" style="flex: 1.5;" onchange="updateEthiopicDatePreview()"></select>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="sessionDate">ቀን *</label>
+              <input type="date" id="sessionDate" class="form-control" required>
             </div>
-            <input type="hidden" id="sessionDate" required>
-            <small id="sessionGregorianPreview" style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; display: block;"></small>
+            <div class="form-group">
+              <label class="form-label">መጀመሪያ ሰዓት (Start) *</label>
+              <input type="time" id="sessionStartTime" class="form-control" required oninput="updateDualTimePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ማብቂያ ሰዓት (End) *</label>
+              <input type="time" id="sessionEndTime" class="form-control" required oninput="updateDualTimePreview()">
+            </div>
           </div>
 
-          <!-- Time Section: Standard AM/PM Time Range Picker (Start - End) -->
-          <div class="form-group">
-            <label class="form-label" data-i18n="sessionTime">ሰዓት (Standard Time Range) *</label>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
-              <!-- Start Time -->
-              <div style="background: #f8fafc; padding: 0.65rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                <label style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; display: block;">የመጀመሪያ ሰዓት (Start Time)</label>
-                <input type="time" id="sessionStartTime" class="form-control" required onchange="updateStandardTimePreview()">
-              </div>
-
-              <!-- End Time -->
-              <div style="background: #f8fafc; padding: 0.65rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                <label style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; display: block;">የማብቂያ ሰዓት (End Time)</label>
-                <input type="time" id="sessionEndTime" class="form-control" required onchange="updateStandardTimePreview()">
-              </div>
+          <div style="margin-bottom: 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.85rem; color: #1e40af;">
+            <i class="fa-solid fa-clock"></i> <strong>የኢትዮጵያ እና Standard ሰዓት (Dual Time):</strong>
+            <div id="dualTimePreview" style="font-weight: 700; font-size: 0.95rem; color: #1e3a8a; margin-top: 2px;">
+              ከጠዋቱ 3:00 - 5:00 ሰዓት (09:00 - 11:00)
             </div>
-            <input type="hidden" id="sessionTime" required>
-            <small id="sessionTimePreview" style="color: var(--primary); font-weight: 600; font-size: 0.85rem; margin-top: 6px; display: block;"></small>
           </div>
 
           <div class="form-group">
@@ -761,8 +751,6 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="js/kenat.global.js"></script>
-  <script src="js/ethiopianCalendar.js"></script>
   <script src="js/translations.js"></script>
   <script src="js/app.js"></script>
 </body>

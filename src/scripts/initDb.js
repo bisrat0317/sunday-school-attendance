@@ -49,13 +49,22 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         course_title VARCHAR(150) NOT NULL,
         session_date DATE NOT NULL,
-        session_time VARCHAR(20) NOT NULL,
+        session_time VARCHAR(50) NOT NULL,
+        start_time VARCHAR(10) DEFAULT '09:00',
+        end_time VARCHAR(10) DEFAULT '11:00',
         category VARCHAR(50) NOT NULL,
         description TEXT,
         created_by INT REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    try {
+      await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS start_time VARCHAR(10) DEFAULT '09:00';`);
+      await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS end_time VARCHAR(10) DEFAULT '11:00';`);
+    } catch (err) {
+      console.log('Sessions migration notice:', err.message);
+    }
 
     // 4. Attendance Table
     await pool.query(`

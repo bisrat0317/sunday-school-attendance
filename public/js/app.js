@@ -351,7 +351,7 @@ async function loadDashboard() {
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.75rem; background: #f8fafc; border-radius: 8px; flex-wrap: wrap; gap: 0.5rem;">
             <div>
               <div style="font-weight: 600;">${escapeHtml(s.course_title)}</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${formatTime(s.session_time)} (${s.category})</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${escapeHtml(getDualTimeDisplay(s.session_time, s.start_time, s.end_time))} (${s.category})</div>
             </div>
             <div style="display: flex; gap: 0.35rem;">
               <span class="tag tag-present"><i class="fa-solid fa-check"></i> ${s.present_count}</span>
@@ -363,6 +363,76 @@ async function loadDashboard() {
       });
     }
   } catch (err) { }
+}
+
+// Ethiopian & Standard Dual Time Helper
+function formatSingleEthiopianTime(time24) {
+  if (!time24) return '';
+  const cleanTime = time24.trim();
+  const parts = cleanTime.split(':');
+  if (parts.length < 2) return time24;
+  let h = parseInt(parts[0], 10);
+  let m = parts[1].slice(0, 2);
+  if (isNaN(h)) return time24;
+
+  let ethHour = h >= 6 ? h - 6 : h + 6;
+  if (ethHour > 12) ethHour -= 12;
+  if (ethHour === 0) ethHour = 12;
+
+  let period = 'ከጠዋቱ';
+  if (h >= 12 && h < 18) period = 'ከቀኑ';
+  else if (h >= 18 && h <= 23) period = 'ከምሽቱ';
+  else if (h >= 0 && h < 6) period = 'ከሌሊቱ';
+
+  return `${period} ${ethHour}:${m}`;
+}
+
+function getDualTimeDisplay(sessionTime, startTime, endTime) {
+  let start = startTime;
+  let end = endTime;
+
+  // If sessionTime already contains formatted string with 'ከጠዋቱ' or dual info, return it directly
+  if (sessionTime && (sessionTime.includes('ከጠዋቱ') || sessionTime.includes('ከቀኑ') || sessionTime.includes('ከምሽቱ') || sessionTime.includes('ከሌሊቱ'))) {
+    return sessionTime;
+  }
+
+  if ((!start || !end) && sessionTime) {
+    const parts = sessionTime.split('-');
+    if (parts.length === 2) {
+      start = parts[0].trim();
+      end = parts[1].trim();
+    } else {
+      start = sessionTime.trim();
+    }
+  }
+
+  if (!start) return sessionTime || '';
+
+  const ethStart = formatSingleEthiopianTime(start);
+  if (!end) {
+    return `${ethStart} (${start})`;
+  }
+
+  const ethEndFormatted = formatSingleEthiopianTime(end);
+  const ethEndParts = ethEndFormatted.split(' ');
+  const ethEndNum = ethEndParts.length > 1 ? ethEndParts[1] : ethEndFormatted;
+
+  const ethStr = `${ethStart} - ${ethEndNum} ሰዓት`;
+  const stdStr = `(${start} - ${end})`;
+
+  return `${ethStr} ${stdStr}`;
+}
+
+function updateDualTimePreview() {
+  const startEl = document.getElementById('sessionStartTime');
+  const endEl = document.getElementById('sessionEndTime');
+  const previewEl = document.getElementById('dualTimePreview');
+  if (!startEl || !endEl || !previewEl) return;
+
+  const startVal = startEl.value || '09:00';
+  const endVal = endEl.value || '11:00';
+
+  previewEl.textContent = getDualTimeDisplay('', startVal, endVal);
 }
 
 // ==========================================
@@ -386,6 +456,8 @@ async function loadSessions() {
     }
 
     sessions.forEach(s => {
+      const dualTime = getDualTimeDisplay(s.session_time, s.start_time, s.end_time);
+
       // Desktop row
       tbody.innerHTML += `
         <tr>
@@ -394,7 +466,7 @@ async function loadSessions() {
             ${s.description ? `<br><small style="color: var(--text-muted);">${escapeHtml(s.description)}</small>` : ''}
           </td>
           <td>${formatDate(s.session_date)}</td>
-          <td>${formatTime(s.session_time)}</td>
+          <td><strong style="color: var(--primary);">${escapeHtml(dualTime)}</strong></td>
           <td><span class="tag tag-category">${escapeHtml(s.category)}</span></td>
           <td>
             <span class="tag tag-present"><i class="fa-solid fa-check"></i> ${s.present_count}</span>
@@ -423,7 +495,7 @@ async function loadSessions() {
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
               <div>
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--primary);">${escapeHtml(s.course_title)}</h4>
-                <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | ${formatTime(s.session_time)}</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | <strong style="color: var(--primary);">${escapeHtml(dualTime)}</strong></p>
               </div>
               <span class="tag tag-category">${escapeHtml(s.category)}</span>
             </div>
@@ -452,106 +524,27 @@ async function loadSessions() {
   } catch (err) { }
 }
 
-function populateEthiopicPickerOptions() {
-  const daySelect = document.getElementById('sessionEthDay');
-  const monthSelect = document.getElementById('sessionEthMonth');
-  const yearSelect = document.getElementById('sessionEthYear');
-
-  if (!daySelect || !monthSelect || !yearSelect) return;
-
-  // Days 1..30
-  daySelect.innerHTML = '';
-  for (let d = 1; d <= 30; d++) {
-    daySelect.innerHTML += `<option value="${d}">${d}</option>`;
-  }
-
-  // Months
-  monthSelect.innerHTML = '';
-  const monthsArr = currentLang === 'am' ? ETHIOPIC_MONTHS_AM : ETHIOPIC_MONTHS_EN;
-  monthsArr.forEach((mName, idx) => {
-    monthSelect.innerHTML += `<option value="${idx + 1}">${mName} (${idx + 1})</option>`;
-  });
-
-  // Years
-  const todayEth = toEthiopicDate(new Date().toISOString().split('T')[0]);
-  const currentEthYear = todayEth ? todayEth.year : 2017;
-
-  yearSelect.innerHTML = '';
-  for (let y = currentEthYear - 2; y <= currentEthYear + 3; y++) {
-    const isSel = y === currentEthYear ? 'selected' : '';
-    yearSelect.innerHTML += `<option value="${y}" ${isSel}>${y} ${currentLang === 'am' ? 'ዓ.ም.' : 'E.C.'}</option>`;
-  }
-}
-
-function updateEthiopicDatePreview() {
-  const daySelect = document.getElementById('sessionEthDay');
-  const monthSelect = document.getElementById('sessionEthMonth');
-  const yearSelect = document.getElementById('sessionEthYear');
-
-  if (!daySelect || !monthSelect || !yearSelect) return;
-
-  const day = daySelect.value;
-  const month = monthSelect.value;
-  const year = yearSelect.value;
-
-  const gregDateStr = toGregorianDateStr(year, month, day);
-  document.getElementById('sessionDate').value = gregDateStr;
-
-  const monthsArr = currentLang === 'am' ? ETHIOPIC_MONTHS_AM : ETHIOPIC_MONTHS_EN;
-  const monthName = monthsArr[month - 1] || '';
-  const ethFormatted = `${monthName} ${day}, ${year} ${currentLang === 'am' ? 'ዓ.ም.' : 'E.C.'}`;
-  document.getElementById('sessionGregorianPreview').textContent = `${ethFormatted} ➔ (Gregorian: ${gregDateStr})`;
-}
-
-function updateStandardTimePreview() {
-  const startEl = document.getElementById('sessionStartTime');
-  const endEl = document.getElementById('sessionEndTime');
-  if (!startEl || !endEl) return;
-
-  const startTime = startEl.value || '09:00';
-  const endTime = endEl.value || '11:00';
-
-  const timeRange = `${startTime} - ${endTime}`;
-  document.getElementById('sessionTime').value = timeRange;
-
-  const ethTimeFormatted = formatAppTime(timeRange, 'am');
-  const stdTimeFormatted = formatAppTime(timeRange, 'en');
-
-  if (currentLang === 'am') {
-    document.getElementById('sessionTimePreview').textContent = `${ethTimeFormatted} ➔ (${stdTimeFormatted})`;
-  } else {
-    document.getElementById('sessionTimePreview').textContent = `${stdTimeFormatted} ➔ (${ethTimeFormatted})`;
-  }
-}
-
 function openCreateSessionModal() {
   document.getElementById('formSession').reset();
-  populateEthiopicPickerOptions();
-
-  // Default to today's Ethiopian date
-  const todayEth = toEthiopicDate(new Date().toISOString().split('T')[0]);
-  if (todayEth) {
-    document.getElementById('sessionEthDay').value = todayEth.day;
-    document.getElementById('sessionEthMonth').value = todayEth.month;
-    document.getElementById('sessionEthYear').value = todayEth.year;
-  }
-  updateEthiopicDatePreview();
-
-  // Default start to 09:00 (9:00 AM / 3:00 ጠዋት), end to 11:00 (11:00 AM / 5:00 ጠዋት)
+  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('sessionStartTime').value = '09:00';
   document.getElementById('sessionEndTime').value = '11:00';
-
-  updateStandardTimePreview();
-
+  updateDualTimePreview();
   openModal('modalSession');
 }
 
 async function handleCreateSession(e) {
   e.preventDefault();
+  const startTime = document.getElementById('sessionStartTime').value;
+  const endTime = document.getElementById('sessionEndTime').value;
+  const dualTimeStr = getDualTimeDisplay('', startTime, endTime);
+
   const body = {
     course_title: document.getElementById('sessionCourseTitle').value,
     session_date: document.getElementById('sessionDate').value,
-    session_time: document.getElementById('sessionTime').value,
+    start_time: startTime,
+    end_time: endTime,
+    session_time: dualTimeStr,
     category: document.getElementById('sessionCategory').value,
     description: document.getElementById('sessionDescription').value
   };
@@ -583,8 +576,11 @@ async function openAttendanceModal(sessionId) {
     if (!data) return;
 
     activeSessionData = data;
+    const dualTime = getDualTimeDisplay(data.session.session_time, data.session.start_time, data.session.end_time);
+
     document.getElementById('attModalSessionTitle').textContent = `${data.session.course_title} (${data.session.category})`;
-    document.getElementById('attModalSessionSubtitle').textContent = `${formatDate(data.session.session_date)} | ${formatTime(data.session.session_time)}`;
+    document.getElementById('attModalSessionSubtitle').textContent = `${formatDate(data.session.session_date)} | ${dualTime}`;
+    document.getElementById('attSearchInput').value = '';
     document.getElementById('attSearchInput').value = '';
 
     // Initialize in-memory attendance record states
@@ -1468,19 +1464,8 @@ function escapeHtml(str) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  if (typeof formatAppDate === 'function') {
-    return formatAppDate(dateStr, currentLang);
-  }
   const d = new Date(dateStr);
   return d.toISOString().split('T')[0];
-}
-
-function formatTime(timeStr) {
-  if (!timeStr) return '';
-  if (typeof formatAppTime === 'function') {
-    return formatAppTime(timeStr, currentLang);
-  }
-  return String(timeStr);
 }
 
 // Initial Bootstrap on Page Load

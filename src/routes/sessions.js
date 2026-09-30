@@ -79,54 +79,69 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
 // POST /api/sessions - Create new session (Encoder & Admin)
 router.post('/', authenticateToken, async (req, res) => {
-  const { course_title, session_date, session_time, category, description } = req.body;
+  const { course_title, session_date, session_time, start_time, end_time, category, description } = req.body;
 
-  if (!course_title || !session_date || !session_time || !category) {
+  if (!course_title || !session_date || (!session_time && !start_time) || !category) {
     return res.status(400).json({ 
-      message: 'Required fields: course_title, session_date, session_time, category' 
+      message: 'Required fields: course_title, session_date, category, start_time/end_time' 
     });
   }
 
   const sDate = session_date.trim();
-  const sTime = session_time.trim();
   const sCategory = category.trim();
+  let sStart = (start_time || '').trim();
+  let sEnd = (end_time || '').trim();
+  let sTime = (session_time || '').trim();
 
-  // Parse new session start and end times (24hr HH:MM)
-  const rangeParts = sTime.split('-').map(str => str.trim());
-  const newStart = rangeParts[0];
-  const newEnd = rangeParts.length > 1 ? rangeParts[1] : rangeParts[0];
+  if (!sStart || !sEnd) {
+    const parts = sTime.split('-');
+    if (parts.length === 2) {
+      sStart = parts[0].trim();
+      sEnd = parts[1].trim();
+    } else {
+      sStart = sTime || '09:00';
+      sEnd = sTime || '11:00';
+    }
+  }
+
+  // Format 5-char HH:MM if needed
+  if (sStart.length === 4 && sStart.includes(':')) sStart = '0' + sStart;
+  if (sEnd.length === 4 && sEnd.includes(':')) sEnd = '0' + sEnd;
+
+  if (!sTime) {
+    sTime = `${sStart} - ${sEnd}`;
+  }
 
   try {
-    // Check for overlapping session for same date and category (or All)
-    const [existingSessions] = await pool.query(`
-      SELECT id, course_title, category, session_time FROM sessions 
+    // True Time Interval Overlap Query:
+    // Two intervals [S1, E1] and [S2, E2] overlap iff S1 < E2 AND E1 > S2
+    const [existing] = await pool.query(`
+      SELECT id, course_title, category, session_time, start_time, end_time FROM sessions 
       WHERE session_date = ? 
         AND (category = ? OR category = 'All' OR ? = 'All')
-    `, [sDate, sCategory, sCategory]);
+        AND COALESCE(start_time, session_time) < ? 
+        AND COALESCE(end_time, session_time) > ?
+      LIMIT 1
+    `, [sDate, sCategory, sCategory, sEnd, sStart]);
 
-    for (const ex of existingSessions) {
-      const exParts = ex.session_time.split('-').map(str => str.trim());
-      const existStart = exParts[0];
-      const existEnd = exParts.length > 1 ? exParts[1] : exParts[0];
-
-      // Mathematical interval overlap check: StartA < EndB AND EndA > StartB
-      const overlaps = (newStart < existEnd && newEnd > existStart) ||
-                       (newStart === existStart && newEnd === existEnd);
-
-      if (overlaps) {
-        return res.status(400).json({
-          message: `Overlapping Session Error: Time range (${sTime}) overlaps with existing session "${ex.course_title}" (${ex.session_time}) for category "${ex.category}".`
-        });
-      }
+    if (existing.length > 0) {
+      const exTitle = existing[0].course_title;
+      const exCat = existing[0].category;
+      const exTime = existing[0].session_time || `${existing[0].start_time} - ${existing[0].end_time}`;
+      return res.status(400).json({
+        message: `Time Overlap Error: A session for category "${exCat}" already exists on ${sDate} from ${exTime} ("${exTitle}"). Overlapping time slots are not allowed.`
+      });
     }
 
     const [result] = await pool.query(`
-      INSERT INTO sessions (course_title, session_date, session_time, category, description, created_by)
-      VALUES (?, ?, ?, ?, ?, ?) RETURNING id
+      INSERT INTO sessions (course_title, session_date, session_time, start_time, end_time, category, description, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `, [
       course_title.trim(),
       sDate,
       sTime,
+      sStart,
+      sEnd,
       sCategory,
       (description || '').trim(),
       req.user.id
