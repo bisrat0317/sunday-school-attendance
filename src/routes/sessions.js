@@ -87,15 +87,34 @@ router.post('/', authenticateToken, async (req, res) => {
     });
   }
 
+  const sDate = session_date.trim();
+  const sTime = session_time.trim();
+  const sCategory = category.trim();
+
   try {
+    // Check for overlapping session for same date, time, and category (or All)
+    const [existing] = await pool.query(`
+      SELECT id, course_title, category FROM sessions 
+      WHERE session_date = ? 
+        AND session_time = ? 
+        AND (category = ? OR category = 'All' OR ? = 'All')
+      LIMIT 1
+    `, [sDate, sTime, sCategory, sCategory]);
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        message: `Overlapping session error: A session for category "${existing[0].category}" already exists on ${sDate} at ${sTime} ("${existing[0].course_title}").`
+      });
+    }
+
     const [result] = await pool.query(`
       INSERT INTO sessions (course_title, session_date, session_time, category, description, created_by)
       VALUES (?, ?, ?, ?, ?, ?) RETURNING id
     `, [
       course_title.trim(),
-      session_date,
-      session_time.trim(),
-      category.trim(),
+      sDate,
+      sTime,
+      sCategory,
       (description || '').trim(),
       req.user.id
     ]);

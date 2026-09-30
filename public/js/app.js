@@ -456,6 +456,11 @@ function openCreateSessionModal() {
   document.getElementById('formSession').reset();
   // Default date to today
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+  // Default time to current local time HH:MM
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('sessionTime').value = `${hours}:${minutes}`;
   openModal('modalSession');
 }
 
