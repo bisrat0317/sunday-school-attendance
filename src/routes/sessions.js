@@ -90,7 +90,7 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     const [result] = await pool.query(`
       INSERT INTO sessions (course_title, session_date, session_time, category, description, created_by)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?) RETURNING id
     `, [
       course_title.trim(),
       session_date,

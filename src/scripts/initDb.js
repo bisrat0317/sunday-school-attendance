@@ -2,25 +2,25 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 
 async function initDatabase() {
-  console.log('Connecting to database and initializing tables...');
+  console.log('Connecting to PostgreSQL database and initializing tables...');
 
   try {
     // 1. Users Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         full_name VARCHAR(100) NOT NULL,
-        role ENUM('admin', 'encoder') DEFAULT 'encoder',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        role VARCHAR(20) DEFAULT 'encoder' CHECK (role IN ('admin', 'encoder')),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // 2. Students Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS students (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         first_name VARCHAR(100) NOT NULL,
         father_name VARCHAR(100) NOT NULL,
         mother_name VARCHAR(100) NOT NULL,
@@ -30,41 +30,37 @@ async function initDatabase() {
         profession VARCHAR(100) DEFAULT '',
         previous_service VARCHAR(150) DEFAULT '',
         category VARCHAR(50) NOT NULL,
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // 3. Sessions Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         course_title VARCHAR(150) NOT NULL,
         session_date DATE NOT NULL,
         session_time VARCHAR(20) NOT NULL,
         category VARCHAR(50) NOT NULL,
         description TEXT,
-        created_by INT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        created_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // 4. Attendance Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        session_id INT NOT NULL,
-        student_id INT NOT NULL,
-        status ENUM('present', 'absent', 'permission') NOT NULL,
+        id SERIAL PRIMARY KEY,
+        session_id INT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+        student_id INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+        status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'permission')),
         remarks VARCHAR(255) DEFAULT '',
-        marked_by INT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_session_student (session_id, student_id),
-        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-        FOREIGN KEY (marked_by) REFERENCES users(id) ON DELETE SET NULL
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        marked_by INT REFERENCES users(id) ON DELETE SET NULL,
+        timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uniq_session_student UNIQUE (session_id, student_id)
+      );
     `);
 
     console.log('Tables verified and ready.');
@@ -114,8 +110,7 @@ async function initDatabase() {
 }
 
 if (require.main === module) {
-  initDatabase().then(() => pool.end());
+  initDatabase().then(() => pool.pool.end());
 }
 
 module.exports = initDatabase;
-

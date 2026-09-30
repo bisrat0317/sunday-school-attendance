@@ -72,10 +72,10 @@ router.post('/session/:sessionId', authenticateToken, async (req, res) => {
     const insertOrUpdateQuery = `
       INSERT INTO attendance (session_id, student_id, status, remarks, marked_by)
       VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        status = VALUES(status),
-        remarks = VALUES(remarks),
-        marked_by = VALUES(marked_by),
+      ON CONFLICT (session_id, student_id) DO UPDATE SET
+        status = EXCLUDED.status,
+        remarks = EXCLUDED.remarks,
+        marked_by = EXCLUDED.marked_by,
         timestamp = CURRENT_TIMESTAMP
     `;
 

@@ -37,7 +37,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
+      'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?) RETURNING id',
       [username.trim(), passwordHash, full_name.trim(), role]
     );
 

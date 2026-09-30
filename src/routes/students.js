@@ -109,7 +109,7 @@ router.post('/', authenticateToken, async (req, res) => {
       INSERT INTO students (
         first_name, father_name, mother_name, age, phone, 
         emergency_contact, profession, previous_service, category, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') RETURNING id
     `, [
       first_name.trim(),
       father_name.trim(),
