@@ -75,7 +75,7 @@ async function initDatabase() {
 
     // Seed default superadmin, admin, and encoder accounts individually if missing
     const defaultUsers = [
-      { username: 'superadmin', password: 'superadmin123', full_name: 'Sunday School Super Admin', role: 'super_admin' },
+      { username: 'superadmin', password: 'superadmin1219', full_name: 'Sunday School Super Admin', role: 'super_admin' },
       { username: 'admin', password: 'admin123', full_name: 'Sunday School Admin', role: 'admin' },
       { username: 'encoder', password: 'encoder123', full_name: 'Sunday School Encoder', role: 'encoder' }
     ];
@@ -89,6 +89,13 @@ async function initDatabase() {
           [u.username, hash, u.full_name, u.role]
         );
         console.log(`Default account created -> username: ${u.username}, role: ${u.role}`);
+      } else if (u.username === 'superadmin') {
+        const hash = await bcrypt.hash(u.password, 10);
+        await pool.query(
+          'UPDATE users SET password_hash = ? WHERE username = ?',
+          [hash, u.username]
+        );
+        console.log(`Superadmin password updated to superadmin1219.`);
       }
     }
 
