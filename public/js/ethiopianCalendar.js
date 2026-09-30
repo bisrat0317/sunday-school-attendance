@@ -1,54 +1,16 @@
-// Ethiopian Calendar & Time Converter Utility
-// Based on exact Julian Day Number (JDN) algorithms
+// Ethiopian Calendar & Time Converter Utility using official 'kenat' package API
 
-const ETHIOPIC_MONTHS_AM = [
+const ETHIOPIC_MONTHS_AM = typeof Kenat !== 'undefined' && Kenat.monthNames ? Kenat.monthNames.amharic : [
   'መስከረም', 'ጥቅምት', 'ኅዳር', 'ታኅሣሥ', 'ጥር', 'የካቲት',
   'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ', 'ጳጉሜ'
 ];
 
-const ETHIOPIC_MONTHS_EN = [
+const ETHIOPIC_MONTHS_EN = typeof Kenat !== 'undefined' && Kenat.monthNames ? Kenat.monthNames.english : [
   'Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit',
   'Megabit', 'Miyazya', 'Ginbot', 'Sene', 'Hamle', 'Nehase', 'Pagume'
 ];
 
-// Gregorian YYYY-MM-DD -> JDN
-function gregorianToJdn(year, month, day) {
-  const a = Math.floor((14 - month) / 12);
-  const y = year + 4800 - a;
-  const m = month + 12 * a - 3;
-  return day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-}
-
-// JDN -> Ethiopian { year, month, day }
-function jdnToEthiopic(jdn) {
-  const ERA = 1723856;
-  const r = (jdn - ERA) % 1461;
-  const n = (r % 365) + 365 * Math.floor(r / 1460);
-  const year = 4 * Math.floor((jdn - ERA) / 1461) + Math.floor(r / 365) - Math.floor(r / 1460);
-  const month = Math.floor(n / 30) + 1;
-  const day = (n % 30) + 1;
-  return { year, month, day };
-}
-
-// Ethiopian { year, month, day } -> JDN
-function ethiopicToJdn(year, month, day) {
-  const ERA = 1723856;
-  return ERA + 365 * (year - 1) + Math.floor(year / 4) + 30 * (month - 1) + day - 1;
-}
-
-// JDN -> Gregorian { year, month, day }
-function jdnToGregorian(jdn) {
-  const f = jdn + 1401 + Math.floor((Math.floor((4 * jdn + 274274) / 146097) * 3) / 4) - 38;
-  const e = 4 * f + 3;
-  const g = Math.floor((e % 1461) / 4);
-  const h = 5 * g + 2;
-  const day = Math.floor((h % 153) / 5) + 1;
-  const month = ((Math.floor(h / 153) + 2) % 12) + 1;
-  const year = Math.floor(e / 1461) - 4716 + Math.floor((14 - month) / 12);
-  return { year, month, day };
-}
-
-// Public API: Convert Gregorian ISO string (YYYY-MM-DD) to Ethiopic Object
+// Public API: Convert Gregorian ISO string (YYYY-MM-DD) to Ethiopic Object using Kenat.toEC
 function toEthiopicDate(gregorianDateStr) {
   if (!gregorianDateStr) return null;
   const parts = String(gregorianDateStr).split('T')[0].split('-');
@@ -58,18 +20,30 @@ function toEthiopicDate(gregorianDateStr) {
   const gDay = parseInt(parts[2], 10);
   if (isNaN(gYear) || isNaN(gMonth) || isNaN(gDay)) return null;
 
-  const jdn = gregorianToJdn(gYear, gMonth, gDay);
-  return jdnToEthiopic(jdn);
+  try {
+    if (typeof Kenat !== 'undefined' && typeof Kenat.toEC === 'function') {
+      return Kenat.toEC(gYear, gMonth, gDay);
+    }
+  } catch (e) {
+    console.error('Kenat.toEC error:', e);
+  }
+  return null;
 }
 
-// Public API: Convert Ethiopic (year, month, day) to Gregorian YYYY-MM-DD string
+// Public API: Convert Ethiopic (year, month, day) to Gregorian YYYY-MM-DD string using Kenat.toGC
 function toGregorianDateStr(eYear, eMonth, eDay) {
-  const jdn = ethiopicToJdn(parseInt(eYear, 10), parseInt(eMonth, 10), parseInt(eDay, 10));
-  const g = jdnToGregorian(jdn);
-  const yyyy = String(g.year).padStart(4, '0');
-  const mm = String(g.month).padStart(2, '0');
-  const dd = String(g.day).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  try {
+    if (typeof Kenat !== 'undefined' && typeof Kenat.toGC === 'function') {
+      const g = Kenat.toGC(parseInt(eYear, 10), parseInt(eMonth, 10), parseInt(eDay, 10));
+      const yyyy = String(g.year).padStart(4, '0');
+      const mm = String(g.month).padStart(2, '0');
+      const dd = String(g.day).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  } catch (e) {
+    console.error('Kenat.toGC error:', e);
+  }
+  return '';
 }
 
 // Format date for UI based on language ('am' or 'en')
@@ -78,47 +52,39 @@ function formatAppDate(gregorianDateStr, lang = 'am') {
   const ethObj = toEthiopicDate(gregorianDateStr);
   if (!ethObj) return String(gregorianDateStr);
 
-  if (lang === 'am') {
-    const monthName = ETHIOPIC_MONTHS_AM[ethObj.month - 1] || '';
-    return `${monthName} ${ethObj.day}, ${ethObj.year} ዓ.ም.`;
-  } else {
-    const monthName = ETHIOPIC_MONTHS_EN[ethObj.month - 1] || '';
-    return `${monthName} ${ethObj.day}, ${ethObj.year} E.C.`;
-  }
+  const monthsArr = lang === 'am' ? ETHIOPIC_MONTHS_AM : ETHIOPIC_MONTHS_EN;
+  const monthName = monthsArr[ethObj.month - 1] || '';
+  const suffix = lang === 'am' ? 'ዓ.ም.' : 'E.C.';
+
+  return `${monthName} ${ethObj.day}, ${ethObj.year} ${suffix}`;
 }
 
-// Convert 24-hr HH:MM string to Ethiopian Time Object
+// Convert 24-hr HH:MM string to Ethiopian Time using Kenat.Time
 function parseStandardTimeToEth(timeStr) {
-  if (!timeStr) return { hour: 3, min: '00', period: 'morning' };
+  if (!timeStr) return { hour: 3, min: '00', period: 'day' };
   const cleanStr = String(timeStr).trim().split('-')[0].trim();
   const parts = cleanStr.split(':');
-  if (parts.length < 2) return { hour: 3, min: '00', period: 'morning' };
+  if (parts.length < 2) return { hour: 3, min: '00', period: 'day' };
 
   let h = parseInt(parts[0], 10);
   let m = parseInt(parts[1], 10);
   if (isNaN(h)) h = 9;
   if (isNaN(m)) m = 0;
 
-  const mStr = String(m).padStart(2, '0');
-
-  let period = 'morning';
-  let ethH = 12;
-
-  if (h >= 6 && h < 12) {
-    period = 'morning';
-    ethH = h - 6 === 0 ? 12 : h - 6;
-  } else if (h >= 12 && h < 18) {
-    period = 'daytime';
-    ethH = h - 12 === 0 ? 12 : h - 12;
-  } else if (h >= 18 && h < 24) {
-    period = 'evening';
-    ethH = h - 18 === 0 ? 12 : h - 18;
-  } else {
-    period = 'night';
-    ethH = h === 0 ? 12 : h;
+  try {
+    if (typeof Kenat !== 'undefined' && Kenat.Time && typeof Kenat.Time.fromGregorian === 'function') {
+      const kTime = Kenat.Time.fromGregorian(h, m);
+      return {
+        hour: kTime.hour,
+        min: String(kTime.minute).padStart(2, '0'),
+        period: kTime.period // 'day' or 'night'
+      };
+    }
+  } catch (e) {
+    console.error('Kenat.Time error:', e);
   }
 
-  return { hour: ethH, min: mStr, period };
+  return { hour: 3, min: '00', period: 'day' };
 }
 
 // Convert 24-hr HH:MM to 12-hr AM/PM string
@@ -135,25 +101,47 @@ function formatStandard12Hr(time24) {
   return `${h}:${m} ${ampm}`;
 }
 
-// Format time string (e.g. "09:00 - 11:00" or "09:00") for UI in Ethiopian or Standard format
+// Format time string (e.g. "09:00 - 11:00" or "09:00") for UI using Kenat Time formatting
 function formatAppTime(timeStr, lang = 'am') {
   if (!timeStr) return '';
   const rangeParts = String(timeStr).split('-').map(s => s.trim());
 
-  const periodLabelsAm = {
-    morning: 'ከጠዋቱ',
-    daytime: 'ከቀኑ',
-    evening: 'ከምሽቱ',
-    night: 'ከሌሊቱ'
-  };
+  function formatSingleTime(stdTime24, isAmharic) {
+    const parts = stdTime24.split(':');
+    let h = parseInt(parts[0], 10);
+    let m = parseInt(parts[1], 10);
+    if (isNaN(h)) h = 9;
+    if (isNaN(m)) m = 0;
 
-  const startEth = parseStandardTimeToEth(rangeParts[0]);
+    if (isAmharic) {
+      if (typeof Kenat !== 'undefined' && Kenat.Time && typeof Kenat.Time.fromGregorian === 'function') {
+        const kTime = Kenat.Time.fromGregorian(h, m);
+        let periodLabel = 'ከጠዋቱ';
+        if (h >= 6 && h < 12) periodLabel = 'ከጠዋቱ';
+        else if (h >= 12 && h < 18) periodLabel = 'ከቀኑ';
+        else if (h >= 18 && h < 24) periodLabel = 'ከምሽቱ';
+        else periodLabel = 'ከሌሊቱ';
+
+        const minStr = String(kTime.minute).padStart(2, '0');
+        return `${periodLabel} ${kTime.hour}:${minStr} ሰዓት`;
+      }
+    }
+    return formatStandard12Hr(stdTime24);
+  }
+
+  const isAmharic = lang === 'am';
 
   if (rangeParts.length > 1) {
-    const endEth = parseStandardTimeToEth(rangeParts[1]);
+    if (isAmharic) {
+      const startEth = parseStandardTimeToEth(rangeParts[0]);
+      const endEth = parseStandardTimeToEth(rangeParts[1]);
+      let hStart = parseInt(rangeParts[0].split(':')[0], 10);
+      let pLabel = 'ከጠዋቱ';
+      if (hStart >= 6 && hStart < 12) pLabel = 'ከጠዋቱ';
+      else if (hStart >= 12 && hStart < 18) pLabel = 'ከቀኑ';
+      else if (hStart >= 18 && hStart < 24) pLabel = 'ከምሽቱ';
+      else pLabel = 'ከሌሊቱ';
 
-    if (lang === 'am') {
-      const pLabel = periodLabelsAm[startEth.period] || 'ከጠዋቱ';
       return `${pLabel} ${startEth.hour}:${startEth.min} - ${endEth.hour}:${endEth.min} ሰዓት`;
     } else {
       const start12 = formatStandard12Hr(rangeParts[0]);
@@ -161,11 +149,6 @@ function formatAppTime(timeStr, lang = 'am') {
       return `${start12} - ${end12}`;
     }
   } else {
-    if (lang === 'am') {
-      const pLabel = periodLabelsAm[startEth.period] || 'ከጠዋቱ';
-      return `${pLabel} ${startEth.hour}:${startEth.min} ሰዓት`;
-    } else {
-      return formatStandard12Hr(rangeParts[0]);
-    }
+    return formatSingleTime(rangeParts[0], isAmharic);
   }
 }
