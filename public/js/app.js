@@ -513,23 +513,25 @@ function updateEthiopicDatePreview() {
   document.getElementById('sessionGregorianPreview').textContent = `${ethFormatted} ➔ (Gregorian: ${gregDateStr})`;
 }
 
-function updateEthiopicTimePreview() {
-  const startH = document.getElementById('sessionStartEthHour').value;
-  const startM = document.getElementById('sessionStartEthMin').value;
-  const startP = document.getElementById('sessionStartEthPeriod').value;
+function updateStandardTimePreview() {
+  const startEl = document.getElementById('sessionStartTime');
+  const endEl = document.getElementById('sessionEndTime');
+  if (!startEl || !endEl) return;
 
-  const endH = document.getElementById('sessionEndEthHour').value;
-  const endM = document.getElementById('sessionEndEthMin').value;
-  const endP = document.getElementById('sessionEndEthPeriod').value;
+  const startTime = startEl.value || '09:00';
+  const endTime = endEl.value || '11:00';
 
-  const stdStart = ethTimeToStandard(startH, startM, startP);
-  const stdEnd = ethTimeToStandard(endH, endM, endP);
+  const timeRange = `${startTime} - ${endTime}`;
+  document.getElementById('sessionTime').value = timeRange;
 
-  const stdRange = `${stdStart} - ${stdEnd}`;
-  document.getElementById('sessionTime').value = stdRange;
+  const ethTimeFormatted = formatAppTime(timeRange, 'am');
+  const stdTimeFormatted = formatAppTime(timeRange, 'en');
 
-  const formattedPreview = formatAppTime(stdRange, currentLang);
-  document.getElementById('sessionTimePreview').textContent = `${formattedPreview} ➔ (Standard: ${stdRange})`;
+  if (currentLang === 'am') {
+    document.getElementById('sessionTimePreview').textContent = `${ethTimeFormatted} ➔ (${stdTimeFormatted})`;
+  } else {
+    document.getElementById('sessionTimePreview').textContent = `${stdTimeFormatted} ➔ (${ethTimeFormatted})`;
+  }
 }
 
 function openCreateSessionModal() {
@@ -545,16 +547,11 @@ function openCreateSessionModal() {
   }
   updateEthiopicDatePreview();
 
-  // Default start to 3:00 ጠዋት (09:00), end to 5:00 ጠዋት (11:00)
-  document.getElementById('sessionStartEthHour').value = '3';
-  document.getElementById('sessionStartEthMin').value = '00';
-  document.getElementById('sessionStartEthPeriod').value = 'morning';
+  // Default start to 09:00 (9:00 AM / 3:00 ጠዋት), end to 11:00 (11:00 AM / 5:00 ጠዋት)
+  document.getElementById('sessionStartTime').value = '09:00';
+  document.getElementById('sessionEndTime').value = '11:00';
 
-  document.getElementById('sessionEndEthHour').value = '5';
-  document.getElementById('sessionEndEthMin').value = '00';
-  document.getElementById('sessionEndEthPeriod').value = 'morning';
-
-  updateEthiopicTimePreview();
+  updateStandardTimePreview();
 
   openModal('modalSession');
 }

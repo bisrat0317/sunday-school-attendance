@@ -91,20 +91,33 @@ router.post('/', authenticateToken, async (req, res) => {
   const sTime = session_time.trim();
   const sCategory = category.trim();
 
-  try {
-    // Check for overlapping session for same date, time, and category (or All)
-    const [existing] = await pool.query(`
-      SELECT id, course_title, category FROM sessions 
-      WHERE session_date = ? 
-        AND session_time = ? 
-        AND (category = ? OR category = 'All' OR ? = 'All')
-      LIMIT 1
-    `, [sDate, sTime, sCategory, sCategory]);
+  // Parse new session start and end times (24hr HH:MM)
+  const rangeParts = sTime.split('-').map(str => str.trim());
+  const newStart = rangeParts[0];
+  const newEnd = rangeParts.length > 1 ? rangeParts[1] : rangeParts[0];
 
-    if (existing.length > 0) {
-      return res.status(400).json({
-        message: `Overlapping session error: A session for category "${existing[0].category}" already exists on ${sDate} at ${sTime} ("${existing[0].course_title}").`
-      });
+  try {
+    // Check for overlapping session for same date and category (or All)
+    const [existingSessions] = await pool.query(`
+      SELECT id, course_title, category, session_time FROM sessions 
+      WHERE session_date = ? 
+        AND (category = ? OR category = 'All' OR ? = 'All')
+    `, [sDate, sCategory, sCategory]);
+
+    for (const ex of existingSessions) {
+      const exParts = ex.session_time.split('-').map(str => str.trim());
+      const existStart = exParts[0];
+      const existEnd = exParts.length > 1 ? exParts[1] : exParts[0];
+
+      // Mathematical interval overlap check: StartA < EndB AND EndA > StartB
+      const overlaps = (newStart < existEnd && newEnd > existStart) ||
+                       (newStart === existStart && newEnd === existEnd);
+
+      if (overlaps) {
+        return res.status(400).json({
+          message: `Overlapping Session Error: Time range (${sTime}) overlaps with existing session "${ex.course_title}" (${ex.session_time}) for category "${ex.category}".`
+        });
+      }
     }
 
     const [result] = await pool.query(`

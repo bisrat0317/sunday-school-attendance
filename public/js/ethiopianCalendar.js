@@ -121,23 +121,18 @@ function parseStandardTimeToEth(timeStr) {
   return { hour: ethH, min: mStr, period };
 }
 
-// Convert Ethiopian Time selection (hour 1-12, min 00-59, period) to 24-hr HH:MM string
-function ethTimeToStandard(ethH, minStr, period) {
-  let h = parseInt(ethH, 10);
-  const m = String(minStr).padStart(2, '0');
-
-  let stdH = 0;
-  if (period === 'morning') { // ከጠዋቱ
-    stdH = (h % 12) + 6;
-  } else if (period === 'daytime') { // ከቀኑ
-    stdH = (h % 12) + 12;
-  } else if (period === 'evening') { // ከምሽቱ
-    stdH = (h % 12) + 18;
-  } else if (period === 'night') { // ከሌሊቱ
-    stdH = h % 12;
-  }
-
-  return `${String(stdH).padStart(2, '0')}:${m}`;
+// Convert 24-hr HH:MM to 12-hr AM/PM string
+function formatStandard12Hr(time24) {
+  if (!time24) return '';
+  const parts = String(time24).trim().split(':');
+  if (parts.length < 2) return time24;
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || '00';
+  if (isNaN(h)) return time24;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
 }
 
 // Format time string (e.g. "09:00 - 11:00" or "09:00") for UI in Ethiopian or Standard format
@@ -152,13 +147,6 @@ function formatAppTime(timeStr, lang = 'am') {
     night: 'ከሌሊቱ'
   };
 
-  const periodLabelsEn = {
-    morning: 'Morning',
-    daytime: 'Afternoon',
-    evening: 'Evening',
-    night: 'Night'
-  };
-
   const startEth = parseStandardTimeToEth(rangeParts[0]);
 
   if (rangeParts.length > 1) {
@@ -168,16 +156,16 @@ function formatAppTime(timeStr, lang = 'am') {
       const pLabel = periodLabelsAm[startEth.period] || 'ከጠዋቱ';
       return `${pLabel} ${startEth.hour}:${startEth.min} - ${endEth.hour}:${endEth.min} ሰዓት`;
     } else {
-      const pLabel = periodLabelsEn[startEth.period] || 'Morning';
-      return `${startEth.hour}:${startEth.min} - ${endEth.hour}:${endEth.min} (${pLabel})`;
+      const start12 = formatStandard12Hr(rangeParts[0]);
+      const end12 = formatStandard12Hr(rangeParts[1]);
+      return `${start12} - ${end12}`;
     }
   } else {
     if (lang === 'am') {
       const pLabel = periodLabelsAm[startEth.period] || 'ከጠዋቱ';
       return `${pLabel} ${startEth.hour}:${startEth.min} ሰዓት`;
     } else {
-      const pLabel = periodLabelsEn[startEth.period] || 'Morning';
-      return `${startEth.hour}:${startEth.min} (${pLabel})`;
+      return formatStandard12Hr(rangeParts[0]);
     }
   }
 }
