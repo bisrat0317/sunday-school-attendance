@@ -1,8 +1,8 @@
 // Bilingual Dictionary: English & Amharic (አማርኛ)
 const translations = {
   en: {
-    appTitle: "Sunday School Attendance",
-    appSubtitle: "Student Management & Attendance Tracking System",
+    appTitle: "Bete Yared Sunday School",
+    appSubtitle: "Student Registration & Attendance System",
     welcome: "Welcome",
     login: "Login",
     logout: "Logout",
@@ -127,8 +127,8 @@ const translations = {
   },
 
   am: {
-    appTitle: "የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ",
-    appSubtitle: "የተማሪዎች ምዝገባ እና የመገኘት ክትትል ሥርዓት",
+    appTitle: "ቤተ ያሬድ ሰንበት ትምሕርት ቤት",
+    appSubtitle: "የተማሪዎች ምዝገባ እና መከታተያ",
     welcome: "እንኳን ደህና መጡ",
     login: "ግባ",
     logout: "ውጣ",

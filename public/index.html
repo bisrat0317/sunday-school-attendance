@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ - Sunday School Attendance</title>
+  <title>ቤተ ያሬድ ሰንበት ትምሕርት ቤት - Bete Yared Sunday School</title>
   <link rel="stylesheet" href="css/style.css">
   <!-- Lucide Icons or FontAwesome via CDN for clean visuals -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,26 +12,105 @@
 
 <body>
 
+  <!-- Drawer Backdrop Overlay -->
+  <div id="drawerOverlay" class="drawer-overlay" onclick="closeMobileDrawer()"></div>
+
+  <!-- Telegram Slide Bar Drawer -->
+  <aside id="sidebarDrawer" class="sidebar-drawer">
+    <div class="drawer-header">
+      <div class="drawer-header-content">
+        <div class="drawer-brand-box">
+          <img src="images/logo.png" alt="Logo" class="drawer-logo">
+          <div class="drawer-brand-text">
+            <h2 data-i18n="appTitle">ቤተ ያሬድ ሰንበት ትምሕርት ቤት</h2>
+            <p data-i18n="appSubtitle">የተማሪዎች ምዝገባ እና መከታተያ</p>
+          </div>
+        </div>
+        <button type="button" class="drawer-close-btn" onclick="closeMobileDrawer()" aria-label="Close menu">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- User profile in drawer -->
+      <div id="drawerUserSection" class="drawer-user-card" style="display: none;">
+        <div class="drawer-user-avatar">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="drawer-user-info">
+          <span id="drawerUsername" class="drawer-username">User</span>
+          <span id="drawerRole" class="drawer-role-tag">Role</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-body">
+      <nav class="drawer-nav">
+        <button class="drawer-nav-item admin-only" id="drawerTabDashboard" onclick="switchTab('dashboard')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-chart-pie"></i></div>
+          <span data-i18n="navDashboard">ዳሽቦርድ</span>
+        </button>
+        <button class="drawer-nav-item" id="drawerTabSessions" onclick="switchTab('sessions')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-calendar-check"></i></div>
+          <span data-i18n="navSessions">ክፍለ-ጊዜያት</span>
+        </button>
+        <button class="drawer-nav-item" id="drawerTabStudents" onclick="switchTab('students')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-graduation-cap"></i></div>
+          <span data-i18n="navStudents">ተማሪዎች</span>
+        </button>
+        <button class="drawer-nav-item admin-only" id="drawerTabCategoryMatrix" onclick="switchTab('categoryMatrix')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-table-cells"></i></div>
+          <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
+        </button>
+        <button class="drawer-nav-item admin-only" id="drawerTabAlerts" onclick="switchTab('alerts')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-bell"></i></div>
+          <span data-i18n="navAlerts">3 ሳምንት የቀሩ</span>
+          <span class="badge-alert" id="drawerBadge3AbsentCount" style="display:none;">0</span>
+        </button>
+        <button class="drawer-nav-item admin-only" id="drawerTabInactive" onclick="switchTab('inactive')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-user-slash"></i></div>
+          <span data-i18n="navInactive">እንቅስቃሴ ያቆሙ</span>
+        </button>
+        <button class="drawer-nav-item super-admin-only" id="drawerTabUsers" onclick="switchTab('users')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-users-gear"></i></div>
+          <span data-i18n="navUsers">ተጠቃሚዎች</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="drawer-footer">
+      <div class="drawer-lang-switch">
+        <button type="button" class="lang-btn active" id="btnLangAmDrawer" onclick="setLanguage('am')">አማርኛ</button>
+        <button type="button" class="lang-btn" id="btnLangEnDrawer" onclick="setLanguage('en')">English</button>
+      </div>
+      <button class="btn-logout-drawer" onclick="logout()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span data-i18n="logout">ውጣ</span>
+      </button>
+    </div>
+  </aside>
+
   <!-- Top Navbar -->
   <header class="navbar">
     <div class="nav-container">
       <div class="brand-section">
-        <div class="brand-icon">✝</div>
+        <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileDrawer()" aria-label="Open menu" style="display: none;">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <img src="images/logo.png" alt="ቤተ ያሬድ ሰንበት ትምሕርት ቤት Logo" class="brand-logo-img">
         <div class="brand-text">
-          <h1 data-i18n="appTitle">ቤተ ያሬድ ሰንበት ት/ቤት</h1>
+          <h1 data-i18n="appTitle">ቤተ ያሬድ ሰንበት ትምሕርት ቤት</h1>
           <p data-i18n="appSubtitle">የተማሪዎች ምዝገባ እና መከታተያ</p>
         </div>
       </div>
 
       <div class="nav-controls">
         <!-- Language Switcher -->
-        <div class="lang-switch">
+        <div class="lang-switch desktop-only">
           <button type="button" class="lang-btn active" id="btnLangAm" onclick="setLanguage('am')">አማርኛ</button>
           <button type="button" class="lang-btn" id="btnLangEn" onclick="setLanguage('en')">English</button>
         </div>
 
         <!-- User Profile & Logout -->
-        <div id="navUserSection" style="display: none; align-items: center; gap: 0.75rem;">
+        <div id="navUserSection" class="desktop-only" style="display: none; align-items: center; gap: 0.75rem;">
           <div class="user-badge">
             <i class="fa-solid fa-user-circle"></i>
             <span id="navUsername">User</span>
@@ -43,8 +122,8 @@
     </div>
   </header>
 
-  <!-- Secondary Navigation Tabs (Visible when logged in) -->
-  <nav class="sub-nav" id="subNavBar" style="display: none;">
+  <!-- Secondary Navigation Tabs (Visible on desktop when logged in) -->
+  <nav class="sub-nav desktop-only" id="subNavBar" style="display: none;">
     <div class="tabs-container">
       <button class="nav-tab active admin-only" id="tabBtnDashboard" onclick="switchTab('dashboard')">
         <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navDashboard">ዳሽቦርድ</span>
@@ -78,9 +157,9 @@
     <section id="viewLogin" class="login-wrapper">
       <div class="login-card">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-          <div style="font-size: 2.8rem; color: var(--primary); margin-bottom: 0.5rem;">✝</div>
-          <h2 style="color: var(--primary);" data-i18n="signIn">ግባ</h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="appSubtitle">የሰንበት ት/ቤት የመገኘት መቆጣጠሪያ</p>
+          <img src="images/logo.png" alt="Logo" class="login-logo-img">
+          <h2 style="color: var(--primary); margin-top: 0.5rem;" data-i18n="appTitle">ቤተ ያሬድ ሰንበት ትምሕርት ቤት</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="appSubtitle">የተማሪዎች ምዝገባ እና መከታተያ</p>
         </div>
 
         <form id="formLogin" onsubmit="handleLogin(event)">

@@ -19,14 +19,47 @@ function t(key) {
   return key;
 }
 
+// Mobile Telegram Slide Bar Drawer Controller
+function toggleMobileDrawer() {
+  const drawer = document.getElementById('sidebarDrawer');
+  if (drawer && drawer.classList.contains('open')) {
+    closeMobileDrawer();
+  } else {
+    openMobileDrawer();
+  }
+}
+
+function openMobileDrawer() {
+  const drawer = document.getElementById('sidebarDrawer');
+  const overlay = document.getElementById('drawerOverlay');
+  if (drawer) drawer.classList.add('open');
+  if (overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileDrawer() {
+  const drawer = document.getElementById('sidebarDrawer');
+  const overlay = document.getElementById('drawerOverlay');
+  if (drawer) drawer.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 // Update UI Language
 function setLanguage(lang) {
   currentLang = lang;
   localStorage.setItem('app_lang', lang);
 
   // Update Lang buttons active state
-  document.getElementById('btnLangAm').classList.toggle('active', lang === 'am');
-  document.getElementById('btnLangEn').classList.toggle('active', lang === 'en');
+  const btnAm = document.getElementById('btnLangAm');
+  const btnEn = document.getElementById('btnLangEn');
+  if (btnAm) btnAm.classList.toggle('active', lang === 'am');
+  if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+
+  const drawerAm = document.getElementById('btnLangAmDrawer');
+  const drawerEn = document.getElementById('btnLangEnDrawer');
+  if (drawerAm) drawerAm.classList.toggle('active', lang === 'am');
+  if (drawerEn) drawerEn.classList.toggle('active', lang === 'en');
 
   // Translate all text elements with data-i18n
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -148,26 +181,49 @@ function logout() {
   currentUser = null;
   localStorage.removeItem('app_token');
   localStorage.removeItem('app_user');
+  closeMobileDrawer();
+
   document.getElementById('viewApp').style.display = 'none';
   document.getElementById('subNavBar').style.display = 'none';
   document.getElementById('navUserSection').style.display = 'none';
+
+  const drawerUserSec = document.getElementById('drawerUserSection');
+  if (drawerUserSec) drawerUserSec.style.display = 'none';
+
+  const mobileBtn = document.getElementById('mobileMenuBtn');
+  if (mobileBtn) mobileBtn.style.display = 'none';
+
   document.getElementById('viewLogin').style.display = 'flex';
   showToast('Logged out successfully', 'info');
 }
 
 function updateUserBadge() {
   if (!currentUser) return;
-  document.getElementById('navUsername').textContent = currentUser.full_name || currentUser.username;
+  const fullName = currentUser.full_name || currentUser.username;
+  document.getElementById('navUsername').textContent = fullName;
+  const drawerUserEl = document.getElementById('drawerUsername');
+  if (drawerUserEl) drawerUserEl.textContent = fullName;
+
   let roleLabel = t('encoderRole');
   if (currentUser.role === 'super_admin') roleLabel = t('superAdminRole');
   else if (currentUser.role === 'admin') roleLabel = t('adminRole');
+
   document.getElementById('navRole').textContent = roleLabel;
+  const drawerRoleEl = document.getElementById('drawerRole');
+  if (drawerRoleEl) drawerRoleEl.textContent = roleLabel;
 }
 
 // App Initialization
 function initAppView() {
   document.getElementById('viewLogin').style.display = 'none';
   document.getElementById('navUserSection').style.display = 'flex';
+
+  const drawerUserSec = document.getElementById('drawerUserSection');
+  if (drawerUserSec) drawerUserSec.style.display = 'flex';
+
+  const mobileBtn = document.getElementById('mobileMenuBtn');
+  if (mobileBtn) mobileBtn.style.display = 'flex';
+
   document.getElementById('subNavBar').style.display = 'block';
   document.getElementById('viewApp').style.display = 'block';
 
@@ -196,6 +252,8 @@ function initAppView() {
 
 // Tab Switching
 function switchTab(tabName) {
+  closeMobileDrawer();
+
   const isSuperAdmin = currentUser.role === 'super_admin';
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
@@ -207,10 +265,16 @@ function switchTab(tabName) {
     tabName = 'sessions';
   }
 
-  // Update Tab buttons
+  // Update Tab buttons & Drawer items
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-  const activeBtn = document.getElementById(`tabBtn${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+  document.querySelectorAll('.drawer-nav-item').forEach(b => b.classList.remove('active'));
+
+  const tabTitle = tabName.charAt(0).toUpperCase() + tabName.slice(1);
+  const activeBtn = document.getElementById(`tabBtn${tabTitle}`);
   if (activeBtn) activeBtn.classList.add('active');
+
+  const activeDrawerBtn = document.getElementById(`drawerTab${tabTitle}`);
+  if (activeDrawerBtn) activeDrawerBtn.classList.add('active');
 
   // Hide all panes
   document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
@@ -812,10 +876,12 @@ async function load3AbsentAlerts() {
   try {
     const alerts = await api('/api/reports/three-absents');
     const badge = document.getElementById('badge3AbsentCount');
+    const drawerBadge = document.getElementById('drawerBadge3AbsentCount');
     const container = document.getElementById('alertsContainer');
 
     if (!alerts || alerts.length === 0) {
-      badge.style.display = 'none';
+      if (badge) badge.style.display = 'none';
+      if (drawerBadge) drawerBadge.style.display = 'none';
       if (container) {
         container.innerHTML = `
           <div style="text-align: center; padding: 2.5rem; color: #15803d; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
@@ -827,8 +893,14 @@ async function load3AbsentAlerts() {
       return;
     }
 
-    badge.style.display = 'inline-block';
-    badge.textContent = alerts.length;
+    if (badge) {
+      badge.style.display = 'inline-block';
+      badge.textContent = alerts.length;
+    }
+    if (drawerBadge) {
+      drawerBadge.style.display = 'inline-block';
+      drawerBadge.textContent = alerts.length;
+    }
 
     if (!container) return;
     container.innerHTML = '';
