@@ -391,18 +391,19 @@ function getDualTimeDisplay(sessionTime, startTime, endTime) {
   let start = startTime;
   let end = endTime;
 
-  // If sessionTime already contains formatted string with 'ከጠዋቱ' or dual info, return it directly
+  // If sessionTime already contains Ethiopian time formatted string, strip any legacy bracketed standard time
   if (sessionTime && (sessionTime.includes('ከጠዋቱ') || sessionTime.includes('ከቀኑ') || sessionTime.includes('ከምሽቱ') || sessionTime.includes('ከሌሊቱ'))) {
-    return sessionTime;
+    return sessionTime.replace(/\s*\([^)]*\)/g, '').trim();
   }
 
   if ((!start || !end) && sessionTime) {
-    const parts = sessionTime.split('-');
+    const cleanStr = sessionTime.replace(/\s*\([^)]*\)/g, '').trim();
+    const parts = cleanStr.split('-');
     if (parts.length === 2) {
       start = parts[0].trim();
       end = parts[1].trim();
     } else {
-      start = sessionTime.trim();
+      start = cleanStr.trim();
     }
   }
 
@@ -410,17 +411,14 @@ function getDualTimeDisplay(sessionTime, startTime, endTime) {
 
   const ethStart = formatSingleEthiopianTime(start);
   if (!end) {
-    return `${ethStart} (${start})`;
+    return ethStart;
   }
 
   const ethEndFormatted = formatSingleEthiopianTime(end);
   const ethEndParts = ethEndFormatted.split(' ');
   const ethEndNum = ethEndParts.length > 1 ? ethEndParts[1] : ethEndFormatted;
 
-  const ethStr = `${ethStart} - ${ethEndNum} ሰዓት`;
-  const stdStr = `(${start} - ${end})`;
-
-  return `${ethStr} ${stdStr}`;
+  return `${ethStart} - ${ethEndNum} ሰዓት`;
 }
 
 function updateDualTimePreview() {
@@ -1462,9 +1460,49 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+// Ethiopian Calendar Conversion Helper (Beyene-Kudlek Algorithm)
+const ETHIOPIAN_MONTHS_AM = [
+  "መስከረም", "ጥቅምት", "ኅዳር", "ታኅሣሥ", "ጥር", "የካቲት",
+  "መጋቢት", "ሚያዝያ", "ግንቦት", "ሰኔ", "ሐምሌ", "ነሐሴ", "ጳጉሜ"
+];
+
+function gregorianToEthiopian(gregDate) {
+  if (!gregDate) return null;
+  let dateObj = typeof gregDate === 'string' ? new Date(gregDate) : gregDate;
+  if (isNaN(dateObj.getTime())) return null;
+
+  let gy = dateObj.getFullYear();
+  let gm = dateObj.getMonth() + 1;
+  let gd = dateObj.getDate();
+
+  let a = Math.floor((14 - gm) / 12);
+  let y = gy + 4800 - a;
+  let m = gm + 12 * a - 3;
+  let jdn = gd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+
+  let r = (jdn - 1723856) % 1461;
+  let n = (r % 365) + 365 * Math.floor(r / 1460);
+
+  let ey = 4 * Math.floor((jdn - 1723856) / 1461) + Math.floor(r / 365) - Math.floor(r / 1460);
+  let em = Math.floor(n / 30) + 1;
+  let ed = (n % 30) + 1;
+
+  return { year: ey, month: em, day: ed };
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+
+  if (currentLang === 'am') {
+    const eth = gregorianToEthiopian(d);
+    if (eth && eth.month) {
+      const monthName = ETHIOPIAN_MONTHS_AM[eth.month - 1] || '';
+      return `${monthName} ${eth.day} ቀን ${eth.year} ዓ.ም`;
+    }
+  }
+
   return d.toISOString().split('T')[0];
 }
 
