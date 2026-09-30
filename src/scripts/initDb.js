@@ -65,25 +65,23 @@ async function initDatabase() {
 
     console.log('Tables verified and ready.');
 
-    // Seed default admin and encoder if no users exist
-    const [existingUsers] = await pool.query('SELECT id, username, role FROM users LIMIT 2');
-    if (existingUsers.length === 0) {
-      console.log('Seeding initial default users...');
-      const superAdminPass = await bcrypt.hash('superadmin123', 10);
-      const adminPass = await bcrypt.hash('admin123', 10);
-      const encoderPass = await bcrypt.hash('encoder123', 10);
+    // Seed default superadmin, admin, and encoder accounts individually if missing
+    const defaultUsers = [
+      { username: 'superadmin', password: 'superadmin123', full_name: 'Sunday School Super Admin', role: 'super_admin' },
+      { username: 'admin', password: 'admin123', full_name: 'Sunday School Admin', role: 'admin' },
+      { username: 'encoder', password: 'encoder123', full_name: 'Sunday School Encoder', role: 'encoder' }
+    ];
 
-      await pool.query(`
-        INSERT INTO users (username, password_hash, full_name, role) VALUES 
-        ('superadmin', ?, 'Sunday School Super Admin', 'super_admin'),
-        ('admin', ?, 'Sunday School Admin', 'admin'),
-        ('encoder', ?, 'Sunday School Encoder', 'encoder')
-      `, [superAdminPass, adminPass, encoderPass]);
-
-      console.log('Default accounts created:');
-      console.log('  Super Admin -> username: superadmin, password: superadmin123');
-      console.log('  Admin       -> username: admin,      password: admin123');
-      console.log('  Encoder     -> username: encoder,    password: encoder123');
+    for (const u of defaultUsers) {
+      const [userRows] = await pool.query('SELECT id FROM users WHERE username = ?', [u.username]);
+      if (userRows.length === 0) {
+        const hash = await bcrypt.hash(u.password, 10);
+        await pool.query(
+          'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
+          [u.username, hash, u.full_name, u.role]
+        );
+        console.log(`Default account created -> username: ${u.username}, role: ${u.role}`);
+      }
     }
 
     // Seed initial sample students if empty for quick testing
