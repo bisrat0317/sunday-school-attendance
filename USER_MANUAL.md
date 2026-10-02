@@ -16,11 +16,10 @@
    - [3.7 Cross-Category Attendance (Make-up Classes)](#37-cross-category-attendance-make-up-classes)
    - [3.8 3-Consecutive Absent Follow-up Engine](#38-3-consecutive-absent-follow-up-engine)
    - [3.9 Category Matrix & Exporting](#39-category-matrix--exporting)
-   - [3.10 Security, Audit Trail & User Management](#310-security-audit-trail--user-management)
+   - [3.10 Security, Activity History & User Management](#310-security-activity-history--user-management)
 4. [Step-by-Step User Manual](#4-step-by-step-user-manual)
-   - [Guide for Encoders (መዝጋቢዎች)](#guide-for-encoders)
-   - [Guide for Administrators (አስተዳዳሪዎች)](#guide-for-administrators)
-   - [Guide for Super Administrators (ዋና አስተዳዳሪ)](#guide-for-super-administrators)
+   - [Guide for Attendance Encoders (መዝጋቢዎች)](#guide-for-attendance-encoders)
+   - [Guide for System Administrators (አስተዳዳሪዎች)](#guide-for-system-administrators)
 5. [Database Architecture & Entity Relationship](#5-database-architecture--entity-relationship)
 
 ---
@@ -36,34 +35,32 @@ The **Bete Yared Sunday School Management System** is a purpose-built, cloud-rea
 - 👨‍👩‍👧‍👦 **Automated Sibling & Family Grouping**: Automatically identifies and groups siblings across different grades and categories using household parental matching.
 - 🚨 **Automated 3-Consecutive-Absent Alert Engine**: Proactively detects and flags students who missed 3 consecutive sessions in their class with 1-click direct calling buttons.
 - 🔄 **Cross-Category Attendance (Make-up Classes)**: Enables students to attend make-up sessions in other categories without creating double absences or conflicting reports.
-- 🕵️ **Super Admin Confidentiality & Activity Audit Trail**: Complete immutable logging of system activity while keeping privileged administrative roles discrete.
+- 🛡️ **Role Security & Activity History**: Complete immutable logging of system activity to ensure transparency and accountability.
 
 ---
 
 ## 2. Role-Based Access Control (RBAC) Matrix
 
-| Feature / Action | Super Admin | Administrator | Encoder (መዝጋቢ) |
-| :--- | :---: | :---: | :---: |
-| **View Dashboard Analytics** | ✅ Full | ✅ Full | ✅ Summary |
-| **Register & Edit Students** | ✅ Yes | ✅ Yes | ❌ Read-Only |
-| **View Sibling & Family Directory** | ✅ Yes | ✅ Yes | ❌ No |
-| **Bulk Import Students via Excel** | ✅ Yes | ❌ No | ❌ No |
-| **Create Sessions & Recurrence Series** | ✅ Yes | ✅ Yes | ❌ No |
-| **Assign / Re-assign Multiple Encoders** | ✅ Yes | ✅ Yes | ❌ No |
-| **Edit Upcoming Sessions** | ✅ Yes | ✅ Yes | ❌ No |
-| **Edit Past Sessions** | ❌ Locked | ❌ Locked | ❌ Locked |
-| **Continue / Copy Sessions** | ✅ Yes | ✅ Yes | ❌ No |
-| **Delete Empty Sessions** | ✅ Yes | ✅ Yes | ❌ No |
-| **Delete Sessions with Recorded Attendance** | ✅ Yes (Override) | ❌ Blocked | ❌ Blocked |
-| **Record Assigned Session Attendance** | ✅ Yes | ✅ Yes | ✅ Assigned Only |
-| **Save Temporary Drafts** | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Finalize & Lock Attendance** | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Edit Finalized / Locked Attendance** | ✅ Yes | ✅ Yes | ❌ Locked |
-| **Add Cross-Category Student to Session** | ✅ Yes | ✅ Yes | ✅ Yes |
-| **View & Act on 3-Absent Alerts** | ✅ Yes | ✅ Yes | ❌ No |
-| **View Category Matrix & Export** | ✅ Yes | ✅ Yes | ❌ No |
-| **User Management & Password Resets** | ✅ Yes | ✅ Yes (Encoders) | ❌ No |
-| **View Audit Trail Activity Logs** | ✅ Yes (Exclusive) | ❌ Hidden | ❌ Hidden |
+| Feature / Action | Administrator (አስተዳዳሪ) | Attendance Encoder (መዝጋቢ) |
+| :--- | :---: | :---: |
+| **View Dashboard Analytics** | ✅ Full Analytics | ✅ Summary View |
+| **Register & Edit Students** | ✅ Yes | ❌ Read-Only |
+| **View Sibling & Family Directory** | ✅ Yes | ❌ No |
+| **Bulk Import Students via Excel** | ✅ Yes | ❌ No |
+| **Create Sessions & Recurrence Series** | ✅ Yes | ❌ No |
+| **Assign / Re-assign Multiple Encoders** | ✅ Yes | ❌ No |
+| **Edit Upcoming Sessions** | ✅ Yes (Upcoming Only) | ❌ No |
+| **Edit Past Sessions** | ❌ Locked for Historical Integrity | ❌ Locked |
+| **Continue / Copy Sessions** | ✅ Yes | ❌ No |
+| **Delete Empty Sessions** | ✅ Yes | ❌ No |
+| **Record Assigned Session Attendance** | ✅ Yes | ✅ Assigned Sessions Only |
+| **Save Temporary Drafts** | ✅ Yes | ✅ Yes |
+| **Finalize & Lock Attendance** | ✅ Yes | ✅ Yes |
+| **Edit Finalized / Locked Attendance** | ✅ Yes | ❌ Locked (Contact Admin) |
+| **Add Cross-Category Student to Session** | ✅ Yes | ✅ Yes |
+| **View & Act on 3-Absent Alerts** | ✅ Yes | ❌ No |
+| **View Category Matrix & Export to Excel** | ✅ Yes | ❌ No |
+| **User Management & Password Resets** | ✅ Yes | ❌ No |
 
 ---
 
@@ -95,7 +92,7 @@ The **Bete Yared Sunday School Management System** is a purpose-built, cloud-rea
 
 ### 3.5 Multi-Encoder Assignment & Session Editing
 - **Multiple Encoders per Session**: Admins can assign one or more specific encoder accounts to each session.
-- **Confidential & Scoped Access**: Encoders only see sessions assigned to them.
+- **Scoped Access**: Encoders only see sessions assigned to them.
 - **Upcoming Session Editing**: Admins can adjust title, date, time, category, notes, and re-assign encoders for any upcoming session (`session_date >= today`).
 - **Past Session Protection**: Past sessions cannot have their schedule altered, preserving historical audit accuracy.
 
@@ -127,15 +124,15 @@ The **Bete Yared Sunday School Management System** is a purpose-built, cloud-rea
 - **Future Date Handling**: Future sessions that have not yet occurred are represented cleanly without triggering false absences.
 - **1-Click Excel Export**: Exports styled, filtered matrices directly to Excel (`.xlsx`) for parish leadership reports.
 
-### 3.10 Security, Audit Trail & User Management
+### 3.10 Security, Activity History & User Management
 - **Password Management**: Users can update their own passwords with minimum 6-character complexity; Admins can reset forgotten credentials.
-- **Audit Logs (Super Admin Only)**: Immutable chronological log tracking all logins, student creations/edits/deletions, session updates, attendance submissions, and user modifications with IP addresses and timestamps.
+- **Activity History**: Chronological log tracking system actions (logins, student modifications, session updates, and attendance submissions) for complete operational integrity.
 
 ---
 
 ## 4. Step-by-Step User Manual
 
-### Guide for Encoders (መዝጋቢዎች)
+### Guide for Attendance Encoders (መዝጋቢዎች)
 1. **Sign In**: Log in with your assigned username and password.
 2. **Access Assigned Sessions**: In the **Sessions** tab, you will see the sessions assigned to you with an *"Assigned to You"* badge.
 3. **Record Attendance**:
@@ -150,7 +147,7 @@ The **Bete Yared Sunday School Management System** is a purpose-built, cloud-rea
 
 ---
 
-### Guide for Administrators (አስተዳዳሪዎች)
+### Guide for System Administrators (አስተዳዳሪዎች)
 1. **Student Registration**:
    - Go to **Students** &rarr; click **"+ Register New Student"**.
    - Fill in personal, parental, and contact details & select Category.
@@ -159,23 +156,16 @@ The **Bete Yared Sunday School Management System** is a purpose-built, cloud-rea
    - Enter course title, date, start & end time (view Ethiopian time preview), and select category.
    - In **Assigned Encoders**, check the encoders responsible for taking attendance.
    - Choose recurrence (e.g. *Weekly for 12 weeks*) if creating a series.
-3. **Editing & Re-assigning**:
+3. **Editing & Re-assigning Encoders**:
    - Click the **Edit (<i class="fa-solid fa-pen-to-square"></i>)** button on any upcoming session to change time, title, or encoder assignments.
 4. **Follow-up on Absences**:
    - Go to **3-Absent Alerts** to review students needing pastoral follow-up and call them directly using the quick-dial buttons.
 5. **Generate Reports**:
    - Open **Category Matrix & Export** to inspect term attendance rates and export Excel files.
-
----
-
-### Guide for Super Administrators (ዋና አስተዳዳሪ)
-1. **Bulk Import Students**:
-   - Navigate to **Category Matrix & Export** &rarr; **"Import from Excel/CSV"**.
-   - Download the template, populate records, upload, and review the validation preview before confirming.
-2. **User Account Administration**:
-   - Go to **User Management** to create new Admin and Encoder accounts or reset passwords.
-3. **Audit Trail Inspection**:
-   - Open **Audit Logs** to view system actions, administrative changes, and login activities.
+6. **Bulk Import Students**:
+   - Navigate to **Category Matrix & Export** &rarr; **"Import from Excel/CSV"** to import batches of students.
+7. **User Account Administration**:
+   - Go to **User Management** to create encoder accounts or manage user credentials.
 
 ---
 
@@ -196,7 +186,7 @@ erDiagram
         string username UK
         string password_hash
         string full_name
-        string role "super_admin | admin | encoder"
+        string role "admin | encoder"
         timestamp created_at
     }
 
