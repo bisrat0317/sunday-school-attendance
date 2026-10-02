@@ -594,10 +594,23 @@ async function openAttendanceModal(sessionId) {
 
     // Initialize in-memory attendance record states
     data.students.forEach(s => {
-      activeAttendanceRecords[s.student_id] = {
-        status: s.attendance_status || 'present', // Default to present for convenience
-        remarks: s.remarks || ''
-      };
+      const hasCrossAttendance = s.other_session_id && (s.other_status === 'present' || s.other_status === 'permission');
+      if (hasCrossAttendance) {
+        activeAttendanceRecords[s.student_id] = {
+          status: s.other_status || 'present',
+          remarks: s.remarks || `Attended in ${s.other_category || ''} (${s.other_course_title || ''})`,
+          is_locked_cross: true,
+          other_session_id: s.other_session_id,
+          other_category: s.other_category,
+          other_course_title: s.other_course_title,
+          other_status: s.other_status
+        };
+      } else {
+        activeAttendanceRecords[s.student_id] = {
+          status: s.attendance_status || 'present', // Default to present for convenience
+          remarks: s.remarks || ''
+        };
+      }
       if (data.session.category !== 'All' && s.category && s.category !== data.session.category) {
         s.is_cross_category = true;
       }
@@ -629,23 +642,24 @@ function renderAttendanceStudentList() {
 
   filtered.forEach(s => {
     const currentRec = activeAttendanceRecords[s.student_id] || { status: 'present', remarks: '' };
-    const rowClass = `attendance-row marked-${currentRec.status}`;
+    const hasCrossAttendance = currentRec.is_locked_cross || (s.other_session_id && (s.other_status === 'present' || s.other_status === 'permission'));
+    const rowClass = hasCrossAttendance ? `attendance-row marked-present cross-attended-locked` : `attendance-row marked-${currentRec.status}`;
     const isCrossCategory = s.is_cross_category || (activeSessionData.session && activeSessionData.session.category !== 'All' && s.category && s.category !== activeSessionData.session.category);
 
-    container.innerHTML += `
-      <div class="${rowClass}" id="attRow_${s.student_id}">
-        <div class="attendance-student-details">
-          <h5>
-            ${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}
-            ${isCrossCategory ? `
-              <span class="tag" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.12rem 0.4rem; margin-left: 0.35rem;" title="${t('crossCategoryBadge')}: ${escapeHtml(s.category)}">
-                <i class="fa-solid fa-arrow-right-arrow-left"></i> ${escapeHtml(s.category)} (${t('crossCategoryBadge')})
-              </span>
-            ` : ''}
-          </h5>
-          <p><i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone || '-')} | ${t('motherName')}: ${escapeHtml(s.mother_name || '-')}</p>
+    let actionsHtml = '';
+    if (hasCrossAttendance) {
+      const otherCat = s.other_category || currentRec.other_category || '';
+      const otherCourse = s.other_course_title || currentRec.other_course_title || '';
+      actionsHtml = `
+        <div class="attendance-btn-group" style="align-items: center; justify-content: flex-end;">
+          <div class="tag" style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; font-size: 0.8rem; padding: 0.4rem 0.75rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" title="${t('learnInOtherClassNotice')}">
+            <i class="fa-solid fa-graduation-cap" style="color: #059669; font-size: 0.95rem;"></i>
+            <span>${t('attendedInOtherClass')}: <strong style="color: #047857;">${escapeHtml(otherCat)}</strong> ${otherCourse ? `<span style="font-weight: 400; opacity: 0.9;">(${escapeHtml(otherCourse)})</span>` : ''}</span>
+          </div>
         </div>
-
+      `;
+    } else {
+      actionsHtml = `
         <div class="attendance-btn-group">
           <button type="button" class="btn-toggle-att btn-present ${currentRec.status === 'present' ? 'selected' : ''}" 
                   onclick="selectAttendanceStatus(${s.student_id}, 'present')">
@@ -660,6 +674,29 @@ function renderAttendanceStudentList() {
             <i class="fa-solid fa-clock"></i> ${t('statusPermission')}
           </button>
         </div>
+      `;
+    }
+
+    container.innerHTML += `
+      <div class="${rowClass}" id="attRow_${s.student_id}">
+        <div class="attendance-student-details">
+          <h5>
+            ${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}
+            ${isCrossCategory ? `
+              <span class="tag" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.12rem 0.4rem; margin-left: 0.35rem;" title="${t('crossCategoryBadge')}: ${escapeHtml(s.category)}">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> ${escapeHtml(s.category)} (${t('crossCategoryBadge')})
+              </span>
+            ` : ''}
+            ${hasCrossAttendance ? `
+              <span class="tag" style="background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.72rem; padding: 0.12rem 0.4rem; margin-left: 0.35rem;">
+                <i class="fa-solid fa-link"></i> ${t('attendedInOtherClass')}
+              </span>
+            ` : ''}
+          </h5>
+          <p><i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone || '-')} | ${t('motherName')}: ${escapeHtml(s.mother_name || '-')}</p>
+        </div>
+
+        ${actionsHtml}
       </div>
     `;
   });
@@ -793,6 +830,11 @@ function addCrossCategoryStudentToSession(studentId) {
 }
 
 function selectAttendanceStatus(studentId, status) {
+  if (activeAttendanceRecords[studentId]?.is_locked_cross) {
+    showToast(t('learnInOtherClassNotice'), 'info');
+    return;
+  }
+
   if (!activeAttendanceRecords[studentId]) {
     activeAttendanceRecords[studentId] = { status: 'present', remarks: '' };
   }
@@ -803,15 +845,17 @@ function selectAttendanceStatus(studentId, status) {
     row.className = `attendance-row marked-${status}`;
     const btns = row.querySelectorAll('.btn-toggle-att');
     btns.forEach(b => b.classList.remove('selected'));
-    if (status === 'present') row.querySelector('.btn-present').classList.add('selected');
-    if (status === 'absent') row.querySelector('.btn-absent').classList.add('selected');
-    if (status === 'permission') row.querySelector('.btn-permission').classList.add('selected');
+    if (status === 'present') row.querySelector('.btn-present')?.classList.add('selected');
+    if (status === 'absent') row.querySelector('.btn-absent')?.classList.add('selected');
+    if (status === 'permission') row.querySelector('.btn-permission')?.classList.add('selected');
   }
 }
 
 function markAllPresent() {
   activeSessionData.students.forEach(s => {
-    selectAttendanceStatus(s.student_id, 'present');
+    if (!activeAttendanceRecords[s.student_id]?.is_locked_cross) {
+      selectAttendanceStatus(s.student_id, 'present');
+    }
   });
   showToast(t('markAllPresent'), 'success');
 }
@@ -1946,7 +1990,7 @@ async function submitBulkImport() {
 
 
 // Category Matrix & Excel Export Logic
-function getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic) {
+function getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic, attByDateAndStudent = {}) {
   const todayStr = new Date().toISOString().split('T')[0];
   const sessDay = sess.session_date ? new Date(sess.session_date).toISOString().split('T')[0] : '';
   const regDay = s.created_at ? new Date(s.created_at).toISOString().split('T')[0] : '';
@@ -1956,28 +2000,60 @@ function getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmhari
     return { val: '-', color: '#94a3b8', isCountable: false, status: 'before_reg' };
   }
 
-  // 2. If student has an explicit attendance record for this session
+  // 2. If student has an explicit direct attendance record for this session
   if (att) {
     if (att.status === 'present') {
       return { val: '✓', color: 'var(--success)', isCountable: true, status: 'present' };
-    } else if (att.status === 'absent') {
-      return { val: '✗', color: 'var(--danger)', isCountable: true, status: 'absent' };
     } else if (att.status === 'permission') {
       return { val: isAmharic ? 'ፈ' : 'P', color: 'var(--warning)', isCountable: true, status: 'permission' };
     }
+    // If direct record was absent, check cross-category attendance before deciding
   }
 
-  // 3. If session date is in the future (after today) -> '-' (Upcoming session, not yet held)
+  // 3. If student attended or had permission in another cross-category session on this date
+  if (sessDay && attByDateAndStudent[`${s.id}_${sessDay}`]) {
+    const crossAtt = attByDateAndStudent[`${s.id}_${sessDay}`];
+    if (crossAtt.status === 'present') {
+      return { 
+        val: '✓', 
+        color: '#059669', 
+        isCountable: true, 
+        status: 'present',
+        isCross: true,
+        crossCategory: crossAtt.session_category,
+        crossCourse: crossAtt.course_title,
+        tooltip: `${isAmharic ? 'በሌላ ክፍል ተምሯል' : 'Attended in other class'}: ${crossAtt.session_category || ''} (${crossAtt.course_title || ''})`
+      };
+    } else if (crossAtt.status === 'permission') {
+      return { 
+        val: isAmharic ? 'ፈ' : 'P', 
+        color: 'var(--warning)', 
+        isCountable: true, 
+        status: 'permission',
+        isCross: true,
+        crossCategory: crossAtt.session_category,
+        crossCourse: crossAtt.course_title,
+        tooltip: `${isAmharic ? 'ፈቃድ በሌላ ክፍል' : 'Permission in other class'}: ${crossAtt.session_category || ''}`
+      };
+    }
+  }
+
+  // If student was directly marked absent in this session and no cross attendance on this date
+  if (att && att.status === 'absent') {
+    return { val: '✗', color: 'var(--danger)', isCountable: true, status: 'absent' };
+  }
+
+  // 4. If session date is in the future (after today) -> '-' (Upcoming session, not yet held)
   if (sessDay && sessDay > todayStr) {
     return { val: '-', color: '#94a3b8', isCountable: false, status: 'future' };
   }
 
-  // 4. If session is past/today, but NO ONE has recorded attendance yet -> '-' (Unrecorded session)
+  // 5. If session is past/today, but NO ONE has recorded attendance yet -> '-' (Unrecorded session)
   if (!sessionHasAttendanceMap[sess.id]) {
     return { val: '-', color: '#94a3b8', isCountable: false, status: 'unrecorded' };
   }
 
-  // 5. If attendance was taken for this past session, but this active student was absent/not recorded -> Absent '✗'
+  // 6. If attendance was taken for this past session, but this active student was absent/not recorded -> Absent '✗'
   return { val: '✗', color: 'var(--danger)', isCountable: true, status: 'absent' };
 }
 
@@ -2000,11 +2076,19 @@ async function loadCategoryMatrix() {
     const isAmharic = currentLang === 'am';
 
     const attMap = {};
+    const attByDateAndStudent = {};
     const sessionHasAttendanceMap = {};
     if (attendance) {
       attendance.forEach(a => {
         attMap[`${a.session_id}_${a.student_id}`] = a;
         sessionHasAttendanceMap[a.session_id] = true;
+
+        const dateKey = a.session_date ? new Date(a.session_date).toISOString().split('T')[0] : '';
+        if (dateKey && (a.status === 'present' || a.status === 'permission')) {
+          if (!attByDateAndStudent[`${a.student_id}_${dateKey}`] || a.status === 'present') {
+            attByDateAndStudent[`${a.student_id}_${dateKey}`] = a;
+          }
+        }
       });
     }
 
@@ -2032,8 +2116,10 @@ async function loadCategoryMatrix() {
 
       sessions.forEach(sess => {
         const att = attMap[`${sess.id}_${s.id}`];
-        const cell = getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic);
-        html += `<td style="text-align: center; font-weight: bold; color: ${cell.color}; font-size: 1.1rem;">${cell.val}</td>`;
+        const cell = getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic, attByDateAndStudent);
+        html += `<td style="text-align: center; font-weight: bold; color: ${cell.color}; font-size: 1.1rem;" title="${escapeHtml(cell.tooltip || '')}">
+          ${cell.val}${cell.isCross ? `<span style="font-size: 0.65rem; color: #0284c7; vertical-align: super; margin-left: 2px;" title="${escapeHtml(cell.tooltip || '')}">★</span>` : ''}
+        </td>`;
       });
 
       html += `</tr>`;
@@ -2067,11 +2153,19 @@ async function exportCategoryMatrixToExcel() {
 
     const { students, sessions, attendance } = data;
     const attMap = {};
+    const attByDateAndStudent = {};
     const sessionHasAttendanceMap = {};
     if (attendance) {
       attendance.forEach(a => {
         attMap[`${a.session_id}_${a.student_id}`] = a;
         sessionHasAttendanceMap[a.session_id] = true;
+
+        const dateKey = a.session_date ? new Date(a.session_date).toISOString().split('T')[0] : '';
+        if (dateKey && (a.status === 'present' || a.status === 'permission')) {
+          if (!attByDateAndStudent[`${a.student_id}_${dateKey}`] || a.status === 'present') {
+            attByDateAndStudent[`${a.student_id}_${dateKey}`] = a;
+          }
+        }
       });
     }
 
@@ -2092,7 +2186,7 @@ async function exportCategoryMatrixToExcel() {
       sessions.forEach(sess => {
         const colHeader = `${formatDate(sess.session_date)} (${sess.course_title})`;
         const att = attMap[`${sess.id}_${s.id}`];
-        const cell = getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic);
+        const cell = getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic, attByDateAndStudent);
 
         row[colHeader] = cell.val;
 

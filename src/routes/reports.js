@@ -81,8 +81,9 @@ router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
 // GET /api/reports/three-absents - Students with 3 consecutive straight absences
 router.get('/three-absents', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    // For each active student, examine their most recent 3 attendance records.
-    // If the count of recent records is >= 3 AND all 3 have status = 'absent', flag them.
+    // For each active student, examine their daily attendance status across all sessions for their most recent 3 session dates.
+    // If a student was marked present in any session on a date (e.g. cross-category session), their daily status is 'present'.
+    // If all 3 most recent session dates have daily status = 'absent', flag them.
     const [flaggedStudents] = await pool.query(`
       SELECT 
         s.id AS student_id,
@@ -98,26 +99,38 @@ router.get('/three-absents', authenticateToken, requireAdmin, async (req, res) =
         last_present.last_present_date
       FROM students s
       INNER JOIN (
-        -- Get students whose last 3 attendance records are all 'absent'
+        -- Get students whose last 3 distinct session dates all have daily status = 'absent'
         SELECT 
           att_ranked.student_id,
           COUNT(*) AS absent_count,
           MAX(att_ranked.session_date) AS last_absent_date
         FROM (
           SELECT 
-            a.student_id,
-            a.status,
-            sess.session_date,
-            ROW_NUMBER() OVER (PARTITION BY a.student_id ORDER BY a.id DESC) as rn
-          FROM attendance a
-          JOIN sessions sess ON a.session_id = sess.id
+            daily.student_id,
+            daily.session_date,
+            daily.daily_status,
+            ROW_NUMBER() OVER (PARTITION BY daily.student_id ORDER BY daily.session_date DESC, daily.max_id DESC) as rn
+          FROM (
+            SELECT 
+              a.student_id,
+              sess.session_date,
+              MAX(a.id) AS max_id,
+              CASE 
+                WHEN COUNT(CASE WHEN a.status = 'present' THEN 1 END) > 0 THEN 'present'
+                WHEN COUNT(CASE WHEN a.status = 'permission' THEN 1 END) > 0 THEN 'permission'
+                ELSE 'absent'
+              END AS daily_status
+            FROM attendance a
+            JOIN sessions sess ON a.session_id = sess.id
+            GROUP BY a.student_id, sess.session_date
+          ) daily
         ) att_ranked
-        WHERE att_ranked.rn <= 3 AND att_ranked.status = 'absent'
+        WHERE att_ranked.rn <= 3 AND att_ranked.daily_status = 'absent'
         GROUP BY att_ranked.student_id
         HAVING COUNT(*) >= 3
       ) recent ON s.id = recent.student_id
       LEFT JOIN (
-        -- Find their last known 'present' session date
+        -- Find their last known 'present' session date across all sessions
         SELECT 
           a.student_id,
           MAX(sess.session_date) AS last_present_date
@@ -185,7 +198,18 @@ router.get('/master-attendance-matrix', authenticateToken, async (req, res) => {
     const [categories] = await pool.query("SELECT DISTINCT category FROM students WHERE status = 'active' ORDER BY category ASC");
     const [students] = await pool.query("SELECT id, first_name, father_name, mother_name, phone, category FROM students WHERE status = 'active' ORDER BY first_name ASC, father_name ASC");
     const [sessions] = await pool.query('SELECT id, course_title, session_date, session_time, category FROM sessions ORDER BY session_date ASC, session_time ASC');
-    const [attendance] = await pool.query('SELECT session_id, student_id, status, remarks FROM attendance');
+    const [attendance] = await pool.query(`
+      SELECT 
+        a.session_id, 
+        a.student_id, 
+        a.status, 
+        a.remarks,
+        sess.session_date,
+        sess.category AS session_category,
+        sess.course_title
+      FROM attendance a
+      JOIN sessions sess ON a.session_id = sess.id
+    `);
 
     res.json({
       categories: categories.map(c => c.category),
@@ -227,7 +251,18 @@ router.get('/category-matrix', authenticateToken, async (req, res) => {
 
     const [sessions] = await pool.query(sessionQuery, sessionParams);
 
-    const [attendance] = await pool.query('SELECT session_id, student_id, status, remarks FROM attendance');
+    const [attendance] = await pool.query(`
+      SELECT 
+        a.session_id, 
+        a.student_id, 
+        a.status, 
+        a.remarks,
+        sess.session_date,
+        sess.category AS session_category,
+        sess.course_title
+      FROM attendance a
+      JOIN sessions sess ON a.session_id = sess.id
+    `);
 
     res.json({
       category: targetCategory,

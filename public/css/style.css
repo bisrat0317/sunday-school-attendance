@@ -402,6 +402,10 @@ tr:hover td {
 .attendance-row.marked-present { border-left: 5px solid var(--success); }
 .attendance-row.marked-absent { border-left: 5px solid var(--danger); }
 .attendance-row.marked-permission { border-left: 5px solid var(--warning); }
+.attendance-row.cross-attended-locked {
+  border-left: 5px solid #059669;
+  background: linear-gradient(to right, #f0fdf4 0%, #ffffff 40%);
+}
 
 .attendance-student-details h5 {
   font-size: 0.98rem;

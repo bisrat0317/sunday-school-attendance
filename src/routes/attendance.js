@@ -17,6 +17,7 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
     const session = sessions[0];
 
     // 2. Fetch all active students belonging to this category (or all active students if session.category === 'All')
+    // Also join other sessions held on the same session_date where the student was marked present or permission
     let studentQuery = `
       SELECT 
         s.id AS student_id,
@@ -30,12 +31,30 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
         a.id AS attendance_id,
         a.status AS attendance_status,
         a.remarks,
-        a.timestamp AS marked_at
+        a.timestamp AS marked_at,
+        other_att.other_session_id,
+        other_att.other_status,
+        other_att.other_course_title,
+        other_att.other_category
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id AND a.session_id = ?
+      LEFT JOIN (
+        SELECT DISTINCT ON (a2.student_id)
+          a2.student_id,
+          a2.session_id AS other_session_id,
+          a2.status AS other_status,
+          sess2.course_title AS other_course_title,
+          sess2.category AS other_category
+        FROM attendance a2
+        JOIN sessions sess2 ON a2.session_id = sess2.id
+        WHERE sess2.session_date = ?
+          AND sess2.id != ?
+          AND a2.status IN ('present', 'permission')
+        ORDER BY a2.student_id, a2.id DESC
+      ) other_att ON s.id = other_att.student_id
       WHERE s.status = 'active'
     `;
-    const params = [sessionId];
+    const params = [sessionId, session.session_date, sessionId];
 
     if (session.category !== 'All') {
       studentQuery += ' AND (s.category = ? OR a.id IS NOT NULL)';
