@@ -747,20 +747,39 @@ async function loadStudents() {
     students.forEach(s => {
       const isInactive = s.status === 'inactive';
 
+      // Check missing/empty profile fields
+      const missingFields = [];
+      if (!s.phone || s.phone.trim() === '') missingFields.push(t('phone'));
+      if (!s.category || s.category.trim() === '' || s.category === 'All') missingFields.push(t('category'));
+      if (!s.age || s.age === 0 || s.age === null) missingFields.push(t('age'));
+      if (!s.profession || s.profession.trim() === '') missingFields.push(t('profession'));
+      const isIncomplete = missingFields.length > 0;
+
       // Desktop Table Row
       tbody.innerHTML += `
         <tr style="${isInactive ? 'opacity: 0.6;' : ''}">
           <td>
             <strong>${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</strong>
             ${s.christian_name ? `<br><small style="color: var(--primary); font-weight: 600; font-size: 0.8rem;"><i class="fa-solid fa-cross"></i> ${escapeHtml(s.christian_name)}</small>` : ''}
+            ${isIncomplete ? `
+              <div style="margin-top: 4px;">
+                <span class="tag" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="${t('missingFields')}: ${missingFields.join(', ')}">
+                  <i class="fa-solid fa-triangle-exclamation"></i> ${t('incompleteProfile')}: ${missingFields.join(', ')}
+                </span>
+              </div>
+            ` : ''}
           </td>
-          <td>${escapeHtml(s.mother_name)}</td>
-          <td><span class="tag tag-category">${escapeHtml(s.category)}</span></td>
-          <td>${s.age}</td>
+          <td>${escapeHtml(s.mother_name || '-')}</td>
           <td>
-            <a href="tel:${escapeHtml(s.phone)}" style="color: var(--primary); text-decoration: none; font-weight: 600;">
-              <i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone)}
-            </a>
+            ${s.category ? `<span class="tag tag-category">${escapeHtml(s.category)}</span>` : `<span style="color: #b45309; font-size: 0.85rem;"><i class="fa-solid fa-circle-exclamation"></i> -</span>`}
+          </td>
+          <td>${s.age ? s.age : `<span style="color: #b45309; font-size: 0.85rem;">-</span>`}</td>
+          <td>
+            ${s.phone ? `
+              <a href="tel:${escapeHtml(s.phone)}" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                <i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone)}
+              </a>
+            ` : `<span style="color: #b45309; font-size: 0.8rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${t('missingFields')}</span>`}
           </td>
           <td>
             <span class="tag ${s.status === 'active' ? 'tag-present' : 'tag-absent'}">
@@ -794,16 +813,29 @@ async function loadStudents() {
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-dark);">${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</h4>
                 ${s.christian_name ? `<p style="font-size: 0.82rem; color: var(--primary); font-weight: 600; margin-top: 2px;"><i class="fa-solid fa-cross"></i> ${escapeHtml(s.christian_name)}</p>` : ''}
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
-                  ${t('motherName')}: <strong>${escapeHtml(s.mother_name)}</strong> | ${t('age')}: ${s.age}
+                  ${t('motherName')}: <strong>${escapeHtml(s.mother_name || '-')}</strong> | ${t('age')}: ${s.age || '-'}
                 </p>
+                ${isIncomplete ? `
+                  <div style="margin-top: 4px;">
+                    <span class="tag" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="${t('missingFields')}: ${missingFields.join(', ')}">
+                      <i class="fa-solid fa-triangle-exclamation"></i> ${t('incompleteProfile')}: ${missingFields.join(', ')}
+                    </span>
+                  </div>
+                ` : ''}
               </div>
-              <span class="tag tag-category">${escapeHtml(s.category)}</span>
+              <span class="tag tag-category">${escapeHtml(s.category || '-')}</span>
             </div>
 
             <div style="margin-bottom: 0.75rem;">
-              <a href="tel:${escapeHtml(s.phone)}" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center; font-weight: 700; color: var(--primary);">
-                <i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone)}
-              </a>
+              ${s.phone ? `
+                <a href="tel:${escapeHtml(s.phone)}" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center; font-weight: 700; color: var(--primary);">
+                  <i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone)}
+                </a>
+              ` : `
+                <div style="background: #fffbeb; border: 1px solid #fde68a; color: #b45309; font-size: 0.8rem; padding: 0.35rem; border-radius: 6px; text-align: center;">
+                  <i class="fa-solid fa-triangle-exclamation"></i> ${t('missingFields')} ${t('phone')}
+                </div>
+              `}
               ${s.emergency_contact ? `
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: center;">
                   ${t('emergencyContact')}: <a href="tel:${escapeHtml(s.emergency_contact)}" style="color: var(--secondary);">${escapeHtml(s.emergency_contact)}</a>
@@ -922,7 +954,7 @@ async function handleSaveStudent(e) {
     father_name: document.getElementById('studentFatherName').value.trim(),
     mother_name: document.getElementById('studentMotherName').value.trim(),
     christian_name: document.getElementById('studentChristianName').value.trim(),
-    age: document.getElementById('studentAge').value,
+    age: document.getElementById('studentAge').value ? parseInt(document.getElementById('studentAge').value, 10) : null,
     phone: document.getElementById('studentPhone').value.trim(),
     emergency_contact: document.getElementById('studentEmergency').value.trim(),
     category: document.getElementById('studentCategory').value,
@@ -949,22 +981,40 @@ async function viewStudentProfile(id) {
     if (!data) return;
 
     const s = data.student;
+
+    const missingFields = [];
+    if (!s.phone || s.phone.trim() === '') missingFields.push(t('phone'));
+    if (!s.category || s.category.trim() === '' || s.category === 'All') missingFields.push(t('category'));
+    if (!s.age || s.age === 0 || s.age === null) missingFields.push(t('age'));
+    if (!s.profession || s.profession.trim() === '') missingFields.push(t('profession'));
+    const isIncomplete = missingFields.length > 0;
+
     document.getElementById('profileStudentName').innerHTML = `${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)} ${s.christian_name ? `<span style="font-size: 0.9rem; color: var(--primary); font-weight: normal;">(${escapeHtml(s.christian_name)})</span>` : ''}`;
 
     document.getElementById('profileDetailsCard').innerHTML = `
+      ${isIncomplete ? `
+        <div style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 0.65rem 0.85rem; border-radius: 8px; margin-bottom: 0.85rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <i class="fa-solid fa-triangle-exclamation"></i> <strong>${t('incompleteProfile')}:</strong> ${t('missingFields')} (${missingFields.join(', ')})
+          </div>
+          <button class="btn btn-warning btn-sm" onclick="closeModal('modalStudentProfile'); openEditStudentModal(${s.id});">
+            <i class="fa-solid fa-pen"></i> ${t('edit')}
+          </button>
+        </div>
+      ` : ''}
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
         <div><strong>${t('christianName')}:</strong> ${escapeHtml(s.christian_name || 'N/A')}</div>
-        <div><strong>${t('motherName')}:</strong> ${escapeHtml(s.mother_name)}</div>
-        <div><strong>${t('age')}:</strong> ${s.age}</div>
-        <div><strong>${t('category')}:</strong> <span class="tag tag-category">${escapeHtml(s.category)}</span></div>
-        <div><strong>${t('phone')}:</strong> <a href="tel:${escapeHtml(s.phone)}">${escapeHtml(s.phone)}</a></div>
+        <div><strong>${t('motherName')}:</strong> ${escapeHtml(s.mother_name || 'N/A')}</div>
+        <div><strong>${t('age')}:</strong> ${s.age || '<span style="color:#b45309;">N/A</span>'}</div>
+        <div><strong>${t('category')}:</strong> ${s.category ? `<span class="tag tag-category">${escapeHtml(s.category)}</span>` : '<span style="color:#b45309;">N/A</span>'}</div>
+        <div><strong>${t('phone')}:</strong> ${s.phone ? `<a href="tel:${escapeHtml(s.phone)}">${escapeHtml(s.phone)}</a>` : '<span style="color:#b45309;">N/A</span>'}</div>
         <div><strong>${t('emergencyContact')}:</strong> <a href="tel:${escapeHtml(s.emergency_contact)}">${escapeHtml(s.emergency_contact || 'N/A')}</a></div>
         <div><strong>${t('profession')}:</strong> ${escapeHtml(s.profession || 'N/A')}</div>
         <div><strong>${t('previousService')}:</strong> ${escapeHtml(s.previous_service || 'N/A')}</div>
         <div>
           <strong>${t('status')}:</strong> 
           <span class="tag ${s.status === 'active' ? 'tag-present' : 'tag-absent'}">${s.status}</span>
-          ${currentUser.role === 'admin' ? `
+          ${['admin', 'super_admin'].includes(currentUser.role) ? `
             <button class="btn btn-outline btn-sm" style="margin-left: 0.5rem;" onclick="toggleStudentStatus(${s.id}, '${s.status}')">
               ${s.status === 'active' ? t('deactivate') : t('activate')}
             </button>
@@ -1418,11 +1468,16 @@ async function exportStudentsToExcel() {
 }
 
 // ==========================================
-// BULK IMPORT STUDENTS (Excel / CSV)
+// BULK IMPORT STUDENTS (Excel / CSV - Super Admin Only)
 // ==========================================
 let parsedImportStudents = [];
 
 function openImportModal() {
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    showToast(t('superAdminOnly') || 'Super Admin access required for bulk import', 'danger');
+    return;
+  }
+
   const fileInput = document.getElementById('importStudentsFileInput');
   if (fileInput) fileInput.value = '';
   const statusDiv = document.getElementById('importFileStatus');
@@ -1448,40 +1503,16 @@ function downloadStudentImportTemplate() {
 
   const sampleRows = [
     {
-      'First Name (የተማሪ ስም)': 'ዮናስ',
-      'Father Name (የአባት ስም)': 'ተክሌ',
-      'Mother Name (የእናት ስም)': 'ሳራ',
-      'Christian Name (የክርስትና ስም)': 'ገብረ ማርያም',
-      'Age (ዕድሜ)': 12,
-      'Category (ምድብ)': 'Grade 6',
-      'Phone (ስልክ)': '0911000001',
-      'Emergency Contact (አማራጭ ስልክ)': '0911000002',
-      'Profession / Grade (ሙያ / ክፍል)': 'Student - Grade 6',
+      'First Name (የተማሪ ስም)': 'Test',
+      'Father Name (የአባት ስም)': 'Test',
+      'Grandfather / Mother Name (የአያት/እናት ስም)': 'Test',
+      'Christian Name (የክርስትና ስም)': 'Test',
+      'Age (ዕድሜ)': 15,
+      'Category (ምድብ)': 'Grade 8',
+      'Phone (ስልክ)': '0911000000',
+      'Emergency Contact (አማራጭ ስልክ)': '0911000001',
+      'Profession / Grade (ሙያ / ክፍል)': 'Student - Grade 8',
       'Previous Service (ቀደምት አገልግሎት)': 'የዝማሬ ክፍል'
-    },
-    {
-      'First Name (የተማሪ ስም)': 'ማርታ',
-      'Father Name (የአባት ስም)': 'ኃይሉ',
-      'Mother Name (የእናት ስም)': 'እስቴር',
-      'Christian Name (የክርስትና ስም)': 'ወለተ ጊዮርጊስ',
-      'Age (ዕድሜ)': 21,
-      'Category (ምድብ)': 'Youth',
-      'Phone (ስልክ)': '0922000001',
-      'Emergency Contact (አማራጭ ስልክ)': '0922000002',
-      'Profession / Grade (ሙያ / ክፍል)': 'Student - Undergraduate',
-      'Previous Service (ቀደምት አገልግሎት)': 'አዲስ'
-    },
-    {
-      'First Name (የተማሪ ስም)': 'ዳዊት',
-      'Father Name (የአባት ስም)': 'ግርማ',
-      'Mother Name (የእናት ስም)': 'አልማዝ',
-      'Christian Name (የክርስትና ስም)': 'ተክለ ሃይማኖት',
-      'Age (ዕድሜ)': 28,
-      'Category (ምድብ)': 'Adult',
-      'Phone (ስልክ)': '0933000001',
-      'Emergency Contact (አማራጭ ስልክ)': '0933000002',
-      'Profession / Grade (ሙያ / ክፍል)': 'Worker',
-      'Previous Service (ቀደምት አገልግሎት)': 'የስርዓተ ቤተክርስቲያን ክፍል'
     }
   ];
 
@@ -1496,7 +1527,7 @@ function normalizeHeaderKey(key) {
   const k = String(key || '').toLowerCase().trim();
   if (k.includes('first') || k.includes('የተማሪ') || k === 'name' || k === 'ስም') return 'first_name';
   if (k.includes('father') || k.includes('አባት')) return 'father_name';
-  if (k.includes('mother') || k.includes('እናት')) return 'mother_name';
+  if (k.includes('mother') || k.includes('እናት') || k.includes('grandfather') || k.includes('አያት')) return 'mother_name';
   if (k.includes('christian') || k.includes('ክርስትና') || k.includes('baptismal')) return 'christian_name';
   if (k.includes('age') || k.includes('ዕድሜ') || k.includes('እድሜ')) return 'age';
   if (k.includes('category') || k.includes('ምድብ') || k.includes('ክፍል/ምድብ')) return 'category';
@@ -1511,7 +1542,7 @@ function normalizeHeaderKey(key) {
 }
 
 function normalizeCategoryValue(raw) {
-  if (!raw) return 'Youth';
+  if (!raw) return '';
   const r = String(raw).trim();
   const lower = r.toLowerCase();
   
@@ -1570,6 +1601,7 @@ async function handleImportFileSelect(e) {
 
       parsedImportStudents = [];
       tbody.innerHTML = '';
+      let skippedTestRows = 0;
 
       rawRows.forEach((row) => {
         const studentObj = {
@@ -1577,12 +1609,13 @@ async function handleImportFileSelect(e) {
           father_name: '',
           mother_name: '',
           christian_name: '',
-          age: 18,
-          category: 'Youth',
+          age: '',
+          category: '',
           phone: '',
           emergency_contact: '',
-          profession: 'Student - Grade 1',
-          previous_service: ''
+          profession: '',
+          previous_service: '',
+          status: 'active'
         };
 
         Object.keys(row).forEach(header => {
@@ -1592,29 +1625,50 @@ async function handleImportFileSelect(e) {
           }
         });
 
-        studentObj.category = normalizeCategoryValue(studentObj.category);
-        studentObj.age = parseInt(studentObj.age, 10) || 18;
+        // Skip test / sample rows (so template cannot be imported)
+        const lowerFirst = studentObj.first_name.toLowerCase();
+        const lowerFather = studentObj.father_name.toLowerCase();
+        const isTestRow = ['test', 'sample', 'የሙከራ', 'ሙከራ'].includes(lowerFirst) ||
+                          ['test', 'sample', 'የሙከራ', 'ሙከራ'].includes(lowerFather) ||
+                          (lowerFirst.includes('test') && lowerFather.includes('test'));
 
-        // Ensure we at least have a first name and father name
+        if (isTestRow) {
+          skippedTestRows++;
+          return;
+        }
+
+        if (studentObj.category) {
+          studentObj.category = normalizeCategoryValue(studentObj.category);
+        }
+
+        if (studentObj.age) {
+          const parsedAge = parseInt(studentObj.age, 10);
+          studentObj.age = !isNaN(parsedAge) && parsedAge > 0 ? parsedAge : '';
+        }
+
+        // Only require First Name and Father Name to import
         if (studentObj.first_name && studentObj.father_name) {
-          if (!studentObj.phone) {
-            studentObj.phone = '0900000000'; // fallback if empty
-          }
-          if (!studentObj.mother_name) {
-            studentObj.mother_name = '-';
-          }
           parsedImportStudents.push(studentObj);
+
+          const missingInRow = [];
+          if (!studentObj.phone) missingInRow.push(t('phone'));
+          if (!studentObj.category) missingInRow.push(t('category'));
+          if (!studentObj.age) missingInRow.push(t('age'));
+          if (!studentObj.profession) missingInRow.push(t('profession'));
 
           tbody.innerHTML += `
             <tr>
               <td>${parsedImportStudents.length}</td>
-              <td><strong>${escapeHtml(studentObj.first_name)}</strong></td>
+              <td>
+                <strong>${escapeHtml(studentObj.first_name)}</strong>
+                ${missingInRow.length > 0 ? `<br><small style="color: #b45309;"><i class="fa-solid fa-triangle-exclamation"></i> ${t('missingFields')}: ${missingInRow.join(', ')}</small>` : ''}
+              </td>
               <td>${escapeHtml(studentObj.father_name)}</td>
-              <td>${escapeHtml(studentObj.mother_name)}</td>
+              <td>${escapeHtml(studentObj.mother_name || '-')}</td>
               <td>${escapeHtml(studentObj.christian_name || '-')}</td>
-              <td><span class="tag tag-category">${escapeHtml(studentObj.category)}</span></td>
-              <td>${studentObj.age}</td>
-              <td>${escapeHtml(studentObj.phone)}</td>
+              <td>${studentObj.category ? `<span class="tag tag-category">${escapeHtml(studentObj.category)}</span>` : '<span style="color: #b45309;">-</span>'}</td>
+              <td>${studentObj.age || '<span style="color: #b45309;">-</span>'}</td>
+              <td>${studentObj.phone ? escapeHtml(studentObj.phone) : '<span style="color: #b45309;">-</span>'}</td>
               <td><small>${escapeHtml(studentObj.profession || '-')}</small></td>
             </tr>
           `;
@@ -1624,13 +1678,13 @@ async function handleImportFileSelect(e) {
       if (parsedImportStudents.length === 0) {
         statusDiv.style.background = '#fef2f2';
         statusDiv.style.color = '#991b1b';
-        statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Could not identify valid student rows. Make sure column headers include First Name, Father Name, etc.`;
+        statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> No valid student rows to import.${skippedTestRows > 0 ? ` (Skipped ${skippedTestRows} test/sample rows)` : ''}`;
         previewContainer.style.display = 'none';
         submitBtn.style.display = 'none';
       } else {
         statusDiv.style.background = '#f0fdf4';
         statusDiv.style.color = '#166534';
-        statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> Found <strong>${parsedImportStudents.length}</strong> valid student records ready to import.`;
+        statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> Found <strong>${parsedImportStudents.length}</strong> student record(s) ready to import.${skippedTestRows > 0 ? ` <span style="color: var(--text-muted); font-size: 0.8rem;">(${skippedTestRows} test row(s) skipped)</span>` : ''}`;
         previewContainer.style.display = 'block';
         submitBtn.style.display = 'inline-flex';
       }

@@ -318,7 +318,7 @@
             <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት
                 ተማሪዎች</span></h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="btn btn-secondary" onclick="openImportModal()">
+              <button class="btn btn-secondary super-admin-only" onclick="openImportModal()">
                 <i class="fa-solid fa-file-import"></i> <span data-i18n="importExcel">በ-Excel አስገባ (Import)</span>
               </button>
               <button class="btn btn-success admin-only" onclick="exportStudentsToExcel()">
@@ -921,8 +921,8 @@
       <div class="modal-body">
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
           <div>
-            <strong style="color: #1e40af;"><i class="fa-solid fa-file-excel"></i> የExcel ቅጽ (Sample Template)</strong>
-            <p style="font-size: 0.85rem; color: #1e3a8a; margin-top: 2px;">Download the official formatted template, fill in student rows, and upload it below.</p>
+            <strong style="color: #1e40af;"><i class="fa-solid fa-file-excel"></i> <span data-i18n="downloadTemplate">የExcel ቅጽ (Sample Template)</span></strong>
+            <p style="font-size: 0.82rem; color: #1e3a8a; margin-top: 2px;" data-i18n="templateFilterNote">ማሳሰቢያ፡ በቅጹ ላይ 'Test' ተብለው የተሞሉ የሙከራ ረድፎች ወደ ሲስተሙ አይገቡም።</p>
           </div>
           <button type="button" class="btn btn-outline" style="background: #fff; color: var(--primary); font-weight: 600;" onclick="downloadStudentImportTemplate()">
             <i class="fa-solid fa-download"></i> <span data-i18n="downloadTemplate">የExcel ቅጽ አውርድ</span>

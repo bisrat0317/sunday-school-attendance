@@ -31,14 +31,14 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         first_name VARCHAR(100) NOT NULL,
         father_name VARCHAR(100) NOT NULL,
-        mother_name VARCHAR(100) NOT NULL,
+        mother_name VARCHAR(100) DEFAULT '',
         christian_name VARCHAR(100) DEFAULT '',
-        age INT NOT NULL,
-        phone VARCHAR(25) NOT NULL,
+        age INT DEFAULT NULL,
+        phone VARCHAR(25) DEFAULT '',
         emergency_contact VARCHAR(50) DEFAULT '',
         profession VARCHAR(100) DEFAULT '',
         previous_service VARCHAR(150) DEFAULT '',
-        category VARCHAR(50) NOT NULL,
+        category VARCHAR(50) DEFAULT '',
         status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
@@ -46,8 +46,15 @@ async function initDatabase() {
 
     try {
       await pool.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS christian_name VARCHAR(100) DEFAULT '';`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN mother_name DROP NOT NULL;`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN mother_name SET DEFAULT '';`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN age DROP NOT NULL;`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN phone DROP NOT NULL;`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN phone SET DEFAULT '';`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN category DROP NOT NULL;`);
+      await pool.query(`ALTER TABLE students ALTER COLUMN category SET DEFAULT '';`);
     } catch (err) {
-      console.log('Students christian_name column migration notice:', err.message);
+      console.log('Students column constraints migration notice:', err.message);
     }
 
     // 3. Sessions Table

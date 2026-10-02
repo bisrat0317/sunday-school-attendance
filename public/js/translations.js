@@ -161,6 +161,10 @@ const translations = {
     uploadAndImport: "Upload & Save Students",
     importSuccess: "Students imported successfully!",
     importErrors: "Import Notes / Skipped Rows",
+    incompleteProfile: "Incomplete Info",
+    missingFields: "Missing",
+    superAdminOnly: "Only Super Admin can perform bulk import.",
+    templateFilterNote: "Notice: Sample rows containing 'Test' in the template will be automatically skipped and not imported.",
 
     // Password Management
     changePassword: "Change Password",
@@ -339,6 +343,10 @@ const translations = {
     uploadAndImport: "ተማሪዎቹን መዝግብና አስገባ",
     importSuccess: "ተማሪዎች በተሳካ ሁኔታ ተመዝግበዋል!",
     importErrors: "ያልገቡ ወይም ስህተት የተገኘባቸው ተማሪዎች",
+    incompleteProfile: "ያልተሟላ መረጃ",
+    missingFields: "የጎደሉ",
+    superAdminOnly: "በጅምላ ማስገባት የሚችሉት ዋና አስተዳዳሪ (Super Admin) ብቻ ናቸው።",
+    templateFilterNote: "ማሳሰቢያ፡ በቅጹ ላይ 'Test' ተብለው የተሞሉ የሙከራ ረድፎች ወደ ሲስተሙ አይገቡም።",
 
     // Password Management
     changePassword: "የይለፍ ቃል ቀይር",

@@ -156,8 +156,8 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/students/bulk-import - Bulk import students (Excel/CSV)
-router.post('/bulk-import', authenticateToken, async (req, res) => {
+// POST /api/students/bulk-import - Bulk import students (Excel/CSV - Super Admin Only)
+router.post('/bulk-import', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { students } = req.body;
 
   if (!students || !Array.isArray(students) || students.length === 0) {
@@ -182,25 +182,45 @@ router.post('/bulk-import', authenticateToken, async (req, res) => {
       const s = students[i];
       const firstName = (s.first_name || '').trim();
       const fatherName = (s.father_name || '').trim();
+
+      // Skip test/template dummy rows so template cannot be imported accidentally
+      const lowerFirst = firstName.toLowerCase();
+      const lowerFather = fatherName.toLowerCase();
+      const isTestRow = ['test', 'sample', 'የሙከራ', 'ሙከራ'].includes(lowerFirst) ||
+                        ['test', 'sample', 'የሙከራ', 'ሙከራ'].includes(lowerFather) ||
+                        (lowerFirst.includes('test') && lowerFather.includes('test'));
+
+      if (isTestRow) {
+        continue;
+      }
+
+      if (!firstName || !fatherName) {
+        errors.push(`Row #${i + 1}: First Name and Father's Name are required.`);
+        continue;
+      }
+
       const motherName = (s.mother_name || '').trim();
       const christianName = (s.christian_name || '').trim();
       const phone = (s.phone || '').trim();
-      const category = (s.category || 'Youth').trim();
-      const age = parseInt(s.age, 10) || 0;
+      const category = (s.category || '').trim();
+      
+      let age = null;
+      if (s.age !== undefined && s.age !== null && String(s.age).trim() !== '') {
+        const parsedAge = parseInt(s.age, 10);
+        if (!isNaN(parsedAge) && parsedAge > 0) {
+          age = parsedAge;
+        }
+      }
+
       const emergency = (s.emergency_contact || '').trim();
       const profession = (s.profession || '').trim();
       const prevService = (s.previous_service || '').trim();
       const status = s.status === 'inactive' ? 'inactive' : 'active';
 
-      if (!firstName || !fatherName || !phone) {
-        errors.push(`Row #${i + 1} (${firstName || 'Unknown'}): First Name, Father Name, and Phone are required.`);
-        continue;
-      }
-
       await conn.query(insertSql, [
         firstName,
         fatherName,
-        motherName || '-',
+        motherName,
         christianName,
         age,
         phone,
