@@ -119,8 +119,11 @@ const translations = {
 
     // Profession / Education
     profStudent: "Student (ተማሪ)",
-    profWorker: "Worker / Employed (ሠራተኛ)",
+    profWorker: "Employee",
     profOther: "Other (ሌላ)",
+    allProfessions: "All Professions",
+    allEducationLevels: "All Education Levels",
+    filterIncomplete: "Incomplete Profile",
     eduLevel: "Education Level / Grade",
     eduPre: "Pre-school / Kindergarten (ቅድመ መደበኛ)",
     eduGrade1: "Grade 1 (1ኛ ክፍል)",
@@ -301,8 +304,11 @@ const translations = {
 
     // Profession / Education
     profStudent: "ተማሪ (Student)",
-    profWorker: "ሠራተኛ / ተቀጣሪ (Worker)",
+    profWorker: "ተቀጣሪ (Employee)",
     profOther: "ሌላ (Other)",
+    allProfessions: "ሁሉም ሙያ/ሁኔታ",
+    allEducationLevels: "ሁሉም የትምህርት ደረጃ",
+    filterIncomplete: "መረጃ ያልተሟላላቸው",
     eduLevel: "የትምህርት ደረጃ / ክፍል",
     eduPre: "ቅድመ መደበኛ (Pre-school / Kindergarten)",
     eduGrade1: "1ኛ ክፍል (Grade 1)",

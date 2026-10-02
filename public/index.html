@@ -171,11 +171,11 @@
         <form id="formLogin" onsubmit="handleLogin(event)">
           <div class="form-group">
             <label class="form-label" data-i18n="username">የተጠቃሚ ስም</label>
-            <input type="text" id="loginUsername" class="form-control" required placeholder="admin / encoder" autofocus>
+            <input type="text" id="loginUsername" class="form-control" required autofocus>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="password">የይለፍ ቃል</label>
-            <input type="password" id="loginPassword" class="form-control" required placeholder="••••••••">
+            <input type="password" id="loginPassword" class="form-control" required>
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;"
             id="btnLoginSubmit">
@@ -332,11 +332,11 @@
           </div>
 
           <!-- Filters -->
-          <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
-            <input type="text" id="searchStudentInput" class="form-control" style="flex: 2; min-width: 200px;"
+          <div style="display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <input type="text" id="searchStudentInput" class="form-control" style="flex: 2; min-width: 180px;"
               placeholder="ተማሪ በስም ወይም በስልክ ፈልግ..." data-i18n-ph="searchStudent" oninput="debounceLoadStudents()">
 
-            <select id="filterStudentCategory" class="form-control" style="flex: 1; min-width: 140px;"
+            <select id="filterStudentCategory" class="form-control" style="flex: 1; min-width: 130px;"
               onchange="loadStudents()">
               <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
               <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
@@ -355,6 +355,35 @@
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+            </select>
+
+            <select id="filterStudentProfession" class="form-control" style="flex: 1; min-width: 130px;"
+              onchange="handleProfessionFilterChange()">
+              <option value="All" data-i18n="allProfessions">ሁሉም ሙያ/ሁኔታ</option>
+              <option value="Student" data-i18n="profStudent">ተማሪ (Student)</option>
+              <option value="Worker" data-i18n="profWorker">ተቀጣሪ (Employee)</option>
+              <option value="Other" data-i18n="profOther">ሌላ (Other)</option>
+              <option value="Incomplete" data-i18n="filterIncomplete">መረጃ ያልተሟላላቸው</option>
+            </select>
+
+            <select id="filterStudentEducation" class="form-control" style="flex: 1; min-width: 140px;"
+              onchange="loadStudents()">
+              <option value="All" data-i18n="allEducationLevels">ሁሉም የትምህርት ደረጃ</option>
+              <option value="Pre-school" data-i18n="eduPre">ቅድመ መደበኛ (Pre-school)</option>
+              <option value="Grade 1" data-i18n="eduGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="eduGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="eduGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="eduGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="eduGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="eduGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="eduGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="eduGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="eduGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="eduGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="eduGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="eduGrade12">12ኛ ክፍል (Grade 12)</option>
+              <option value="Undergraduate" data-i18n="eduUndergrad">የመጀመሪያ ዲግሪ (Undergraduate)</option>
+              <option value="Postgraduate" data-i18n="eduPostgrad">ማስተርስ/ዶክትሬት (Postgraduate)</option>
             </select>
 
             <select id="filterStudentStatus" class="form-control" style="flex: 1; min-width: 120px;"
@@ -583,39 +612,39 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" data-i18n="firstName">የተማሪው ስም *</label>
-              <input type="text" id="studentFirstName" class="form-control" required placeholder="ዳዊት">
+              <input type="text" id="studentFirstName" class="form-control" required>
             </div>
             <div class="form-group">
               <label class="form-label" data-i18n="fatherName">የአባት ስም *</label>
-              <input type="text" id="studentFatherName" class="form-control" required placeholder="ዮሐንስ">
+              <input type="text" id="studentFatherName" class="form-control" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" data-i18n="motherName">የእናት ስም *</label>
-              <input type="text" id="studentMotherName" class="form-control" required placeholder="ማርታ">
+              <input type="text" id="studentMotherName" class="form-control" required>
             </div>
             <div class="form-group">
               <label class="form-label" data-i18n="christianName">የክርስትና ስም</label>
-              <input type="text" id="studentChristianName" class="form-control" placeholder="ገብረ ሥላሴ / ወለተ ማርያም">
+              <input type="text" id="studentChristianName" class="form-control">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" data-i18n="age">ዕድሜ *</label>
-              <input type="number" id="studentAge" class="form-control" required min="1" max="100" placeholder="18">
+              <input type="number" id="studentAge" class="form-control" required min="1" max="100">
             </div>
             <div class="form-group">
               <label class="form-label" data-i18n="phone">ስልክ ቁጥር *</label>
-              <input type="tel" id="studentPhone" class="form-control" required placeholder="0911223344">
+              <input type="tel" id="studentPhone" class="form-control" required>
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label" data-i18n="emergencyContact">የአደጋ ጊዜ / አማራጭ ስልክ</label>
-            <input type="tel" id="studentEmergency" class="form-control" placeholder="0922334455 (የወላጅ)">
+            <input type="tel" id="studentEmergency" class="form-control">
           </div>
 
           <div class="form-row">
@@ -644,7 +673,7 @@
               <label class="form-label" data-i18n="profession">ሙያ / ሁኔታ</label>
               <select id="studentProfessionType" class="form-control" onchange="toggleProfessionDetails()">
                 <option value="Student" data-i18n="profStudent" selected>ተማሪ (Student)</option>
-                <option value="Worker" data-i18n="profWorker">ሠራተኛ / ተቀጣሪ (Worker)</option>
+                <option value="Worker" data-i18n="profWorker">ተቀጣሪ (Employee)</option>
                 <option value="Other" data-i18n="profOther">ሌላ (Other)</option>
               </select>
             </div>
@@ -673,13 +702,12 @@
 
           <div class="form-group" id="groupStudentOtherProfession" style="display: none;">
             <label class="form-label" data-i18n="specifyProfession">ሙያውን / የሥራውን ዓይነት ይግለጹ</label>
-            <input type="text" id="studentProfessionCustom" class="form-control" placeholder="መምህር / ነጋዴ / ኢንጂነር / ወዘተ...">
+            <input type="text" id="studentProfessionCustom" class="form-control">
           </div>
 
           <div class="form-group">
             <label class="form-label" data-i18n="previousService">ቀደም ሲል ያገለገሉበት ክፍል</label>
-            <input type="text" id="studentPreviousService" class="form-control"
-              placeholder="የዝማሬ ክፍል / የህፃናት ክፍል / አዲስ">
+            <input type="text" id="studentPreviousService" class="form-control">
           </div>
         </div>
 
@@ -705,8 +733,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" data-i18n="courseTitle">የትምህርቱ ርዕስ *</label>
-            <input type="text" id="sessionCourseTitle" class="form-control" required
-              placeholder="የኦርቶዶክስ ተዋሕዶ እምነት መሠረታት">
+            <input type="text" id="sessionCourseTitle" class="form-control" required>
           </div>
 
           <div class="form-row">
@@ -756,8 +783,7 @@
 
           <div class="form-group">
             <label class="form-label" data-i18n="description">ማብራሪያ / ማስታወሻ</label>
-            <textarea id="sessionDescription" class="form-control" rows="3"
-              placeholder="ስለ ትምህርቱ ተጨማሪ ማስታወሻ..."></textarea>
+            <textarea id="sessionDescription" class="form-control" rows="3"></textarea>
           </div>
         </div>
 
@@ -820,15 +846,15 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" data-i18n="fullName">ሙሉ ስም *</label>
-            <input type="text" id="userFullName" class="form-control" required placeholder="መርጌታ ዮሐንስ">
+            <input type="text" id="userFullName" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="username">የተጠቃሚ ስም (Username) *</label>
-            <input type="text" id="userUsername" class="form-control" required placeholder="yohannes">
+            <input type="text" id="userUsername" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="password">የይለፍ ቃል *</label>
-            <input type="password" id="userPassword" class="form-control" required placeholder="••••••••">
+            <input type="password" id="userPassword" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="role">የሥራ ድርሻ *</label>
@@ -861,15 +887,15 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" data-i18n="currentPassword">የአሁኑ የይለፍ ቃል *</label>
-            <input type="password" id="changeCurrentPassword" class="form-control" required placeholder="••••••••">
+            <input type="password" id="changeCurrentPassword" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="newPassword">አዲስ የይለፍ ቃል *</label>
-            <input type="password" id="changeNewPassword" class="form-control" required minlength="6" placeholder="••••••••">
+            <input type="password" id="changeNewPassword" class="form-control" required minlength="6">
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="confirmNewPassword">አዲሱን የይለፍ ቃል አረጋግጥ *</label>
-            <input type="password" id="changeConfirmPassword" class="form-control" required minlength="6" placeholder="••••••••">
+            <input type="password" id="changeConfirmPassword" class="form-control" required minlength="6">
           </div>
         </div>
         <div class="modal-footer">
@@ -895,7 +921,7 @@
           <p id="resetTargetUserText" style="margin-bottom: 1rem; font-weight: 600; color: var(--text-main);"></p>
           <div class="form-group">
             <label class="form-label" data-i18n="newPassword">አዲስ የይለፍ ቃል *</label>
-            <input type="password" id="resetUserNewPassword" class="form-control" required minlength="6" placeholder="••••••••">
+            <input type="password" id="resetUserNewPassword" class="form-control" required minlength="6">
           </div>
         </div>
         <div class="modal-footer">

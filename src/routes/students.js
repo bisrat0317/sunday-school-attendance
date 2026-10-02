@@ -3,9 +3,9 @@ const router = express.Router();
 const pool = require('../config/db');
 const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 
-// GET /api/students - List students with optional search, category, status, and pagination
+// GET /api/students - List students with optional search, category, status, profession, education_level, and pagination
 router.get('/', authenticateToken, async (req, res) => {
-  const { category, status, search, page, limit } = req.query;
+  const { category, status, profession, education_level, search, page, limit } = req.query;
 
   try {
     let whereClause = ' WHERE 1=1';
@@ -19,6 +19,23 @@ router.get('/', authenticateToken, async (req, res) => {
     if (status && status !== 'All') {
       whereClause += ' AND s.status = ?';
       params.push(status);
+    }
+
+    if (profession && profession !== 'All') {
+      if (profession === 'Student') {
+        whereClause += " AND s.profession LIKE 'Student%'";
+      } else if (profession === 'Worker' || profession === 'Employee') {
+        whereClause += " AND (s.profession = 'Worker' OR s.profession = 'Employee' OR s.profession = 'Employed')";
+      } else if (profession === 'Other') {
+        whereClause += " AND s.profession != '' AND s.profession NOT LIKE 'Student%' AND s.profession != 'Worker' AND s.profession != 'Employee' AND s.profession != 'Employed'";
+      } else if (profession === 'Incomplete') {
+        whereClause += " AND (s.phone IS NULL OR s.phone = '' OR s.category IS NULL OR s.category = '' OR s.category = 'All' OR s.age IS NULL OR s.age = 0 OR s.profession IS NULL OR s.profession = '')";
+      }
+    }
+
+    if (education_level && education_level !== 'All') {
+      whereClause += ' AND s.profession LIKE ?';
+      params.push(`%${education_level}%`);
     }
 
     if (search && search.trim() !== '') {

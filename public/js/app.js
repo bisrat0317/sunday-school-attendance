@@ -706,6 +706,22 @@ function debounceLoadStudents() {
   searchDebounceTimer = setTimeout(loadStudents, 300);
 }
 
+function handleProfessionFilterChange() {
+  const prof = document.getElementById('filterStudentProfession')?.value;
+  const eduSelect = document.getElementById('filterStudentEducation');
+  if (eduSelect) {
+    if (prof !== 'All' && prof !== 'Student') {
+      eduSelect.value = 'All';
+      eduSelect.disabled = true;
+      eduSelect.style.opacity = '0.5';
+    } else {
+      eduSelect.disabled = false;
+      eduSelect.style.opacity = '1';
+    }
+  }
+  loadStudents();
+}
+
 function toggleProfessionDetails() {
   const profType = document.getElementById('studentProfessionType').value;
   const eduGroup = document.getElementById('groupStudentEducationLevel');
@@ -718,19 +734,21 @@ function toggleProfessionDetails() {
     if (eduGroup) eduGroup.style.display = 'none';
     if (otherGroup) otherGroup.style.display = 'block';
   } else {
-    // Worker / Employed
+    // Employee / Worker
     if (eduGroup) eduGroup.style.display = 'none';
     if (otherGroup) otherGroup.style.display = 'none';
   }
 }
 
 async function loadStudents() {
-  const category = document.getElementById('filterStudentCategory').value;
-  const status = document.getElementById('filterStudentStatus').value;
-  const search = document.getElementById('searchStudentInput').value;
+  const category = document.getElementById('filterStudentCategory')?.value || 'All';
+  const status = document.getElementById('filterStudentStatus')?.value || 'All';
+  const profession = document.getElementById('filterStudentProfession')?.value || 'All';
+  const education = document.getElementById('filterStudentEducation')?.value || 'All';
+  const search = document.getElementById('searchStudentInput')?.value || '';
 
   try {
-    const students = await api(`/api/students?category=${category}&status=${status}&search=${encodeURIComponent(search)}`);
+    const students = await api(`/api/students?category=${category}&status=${status}&profession=${profession}&education_level=${education}&search=${encodeURIComponent(search)}`);
     const tbody = document.getElementById('studentsTableBody');
     const mobileContainer = document.getElementById('studentsCardContainer');
     tbody.innerHTML = '';
@@ -1401,13 +1419,15 @@ async function exportStudentsToExcel() {
     return;
   }
 
-  const category = document.getElementById('filterStudentCategory').value;
-  const status = document.getElementById('filterStudentStatus').value;
-  const search = document.getElementById('searchStudentInput').value;
+  const category = document.getElementById('filterStudentCategory')?.value || 'All';
+  const status = document.getElementById('filterStudentStatus')?.value || 'All';
+  const profession = document.getElementById('filterStudentProfession')?.value || 'All';
+  const education = document.getElementById('filterStudentEducation')?.value || 'All';
+  const search = document.getElementById('searchStudentInput')?.value || '';
   const isAmharic = currentLang === 'am';
 
   try {
-    const students = await api(`/api/students?category=${category}&status=${status}&search=${encodeURIComponent(search)}`);
+    const students = await api(`/api/students?category=${category}&status=${status}&profession=${profession}&education_level=${education}&search=${encodeURIComponent(search)}`);
     if (!students || students.length === 0) {
       showToast('No student records found to export', 'warning');
       return;
