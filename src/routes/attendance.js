@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
+const { logActivity } = require('../utils/auditLogger');
 
 // GET /api/attendance/session/:sessionId - Get students and their attendance status for a session
 router.get('/session/:sessionId', authenticateToken, async (req, res) => {
@@ -92,6 +93,21 @@ router.post('/session/:sessionId', authenticateToken, async (req, res) => {
     }
 
     await conn.commit();
+
+    // Fetch session details for informative audit log
+    const [sess] = await pool.query('SELECT course_title, category, session_date FROM sessions WHERE id = ?', [sessionId]);
+    const sessTitle = sess[0] ? `"${sess[0].course_title}" (${sess[0].category})` : `Session ID ${sessionId}`;
+    const presentCnt = records.filter(r => r.status === 'present').length;
+    const absentCnt = records.filter(r => r.status === 'absent').length;
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'ATTENDANCE_SAVE',
+      details: `Recorded attendance for ${sessTitle}: ${records.length} students marked (${presentCnt} present, ${absentCnt} absent)`,
+      req
+    });
+
     res.json({ message: 'Attendance records saved successfully' });
   } catch (error) {
     await conn.rollback();

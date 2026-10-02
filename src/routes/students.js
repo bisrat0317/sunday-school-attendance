@@ -2,6 +2,77 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { logActivity } = require('../utils/auditLogger');
+
+// GET /api/students/families/overview - Group students into family clusters
+router.get('/families/overview', authenticateToken, async (req, res) => {
+  try {
+    const [allStudents] = await pool.query(`
+      SELECT s.id, s.first_name, s.father_name, s.mother_name, s.christian_name, s.age, s.category, s.status, s.phone, s.emergency_contact, s.profession
+      FROM students s
+      ORDER BY s.father_name ASC, s.first_name ASC
+    `);
+
+    // Group into family clusters
+    const familyMap = new Map();
+
+    allStudents.forEach(st => {
+      const f = (st.father_name || '').trim();
+      const m = (st.mother_name || '').trim();
+      const em = (st.emergency_contact || '').trim();
+      
+      let key = null;
+      if (f && m) {
+        key = `parents:${f.toLowerCase()}::${m.toLowerCase()}`;
+      } else if (em && em.length >= 8) {
+        key = `em:${em}`;
+      } else if (f) {
+        key = `father:${f.toLowerCase()}`;
+      } else {
+        key = `single:${st.id}`;
+      }
+
+      if (!familyMap.has(key)) {
+        familyMap.set(key, {
+          family_key: key,
+          father_name: f,
+          mother_name: m,
+          phone: st.phone || '',
+          emergency_contact: em,
+          students: []
+        });
+      }
+
+      const fam = familyMap.get(key);
+      fam.students.push(st);
+      if (!fam.phone && st.phone) fam.phone = st.phone;
+      if (!fam.emergency_contact && em) fam.emergency_contact = em;
+      if (!fam.mother_name && m) fam.mother_name = m;
+    });
+
+    const families = Array.from(familyMap.values()).map(fam => ({
+      ...fam,
+      students_count: fam.students.length
+    }));
+
+    // Sort: multi-child families first, then alphabetically by father name
+    families.sort((a, b) => {
+      if (b.students_count !== a.students_count) {
+        return b.students_count - a.students_count;
+      }
+      return (a.father_name || '').localeCompare(b.father_name || '');
+    });
+
+    res.json({
+      total_families: families.length,
+      multi_child_families: families.filter(f => f.students_count > 1).length,
+      families
+    });
+  } catch (error) {
+    console.error('Fetch families error:', error);
+    res.status(500).json({ message: 'Error retrieving family groups' });
+  }
+});
 
 // GET /api/students - List students with optional search, category, status, profession, education_level, and pagination
 router.get('/', authenticateToken, async (req, res) => {
@@ -58,6 +129,40 @@ router.get('/', authenticateToken, async (req, res) => {
       ORDER BY s.first_name ASC
     `;
 
+    // Query all students father/mother/emergency contact for sibling count mapping
+    const [allSummary] = await pool.query('SELECT id, father_name, mother_name, emergency_contact FROM students');
+    const parentMap = new Map();
+    const emContactMap = new Map();
+
+    allSummary.forEach(st => {
+      const f = (st.father_name || '').trim().toLowerCase();
+      const m = (st.mother_name || '').trim().toLowerCase();
+      if (f && m) {
+        const k = `${f}::${m}`;
+        parentMap.set(k, (parentMap.get(k) || 0) + 1);
+      }
+      const em = (st.emergency_contact || '').trim();
+      if (em && em.length >= 8) {
+        emContactMap.set(em, (emContactMap.get(em) || 0) + 1);
+      }
+    });
+
+    function annotateSiblings(list) {
+      list.forEach(st => {
+        const f = (st.father_name || '').trim().toLowerCase();
+        const m = (st.mother_name || '').trim().toLowerCase();
+        const em = (st.emergency_contact || '').trim();
+        let count = 0;
+        if (f && m && parentMap.has(`${f}::${m}`)) {
+          count = Math.max(count, parentMap.get(`${f}::${m}`) - 1);
+        }
+        if (em && em.length >= 8 && emContactMap.has(em)) {
+          count = Math.max(count, emContactMap.get(em) - 1);
+        }
+        st.sibling_count = count;
+      });
+    }
+
     if (limit && !isNaN(parseInt(limit, 10))) {
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.max(1, Math.min(200, parseInt(limit, 10)));
@@ -68,6 +173,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
       query += ` LIMIT ${limitNum} OFFSET ${offset}`;
       const [students] = await pool.query(query, params);
+      annotateSiblings(students);
 
       return res.json({
         students,
@@ -79,6 +185,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 
     const [students] = await pool.query(query, params);
+    annotateSiblings(students);
     res.json(students);
   } catch (error) {
     console.error('Fetch students error:', error);
@@ -86,7 +193,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/students/:id - Get student details & full attendance timeline
+// GET /api/students/:id - Get student details, full attendance timeline, and siblings
 router.get('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
@@ -95,6 +202,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
     if (students.length === 0) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    const s = students[0];
 
     // Get attendance history
     const [history] = await pool.query(`
@@ -113,9 +222,35 @@ router.get('/:id', authenticateToken, async (req, res) => {
       ORDER BY s.session_date DESC, s.session_time DESC
     `, [id]);
 
+    // Find siblings belonging to the same family
+    let siblings = [];
+    const conditions = [];
+    const siblingParams = [id];
+
+    if (s.father_name && s.mother_name && s.mother_name.trim() !== '') {
+      conditions.push(`(LOWER(TRIM(father_name)) = LOWER(TRIM(?)) AND LOWER(TRIM(mother_name)) = LOWER(TRIM(?)))`);
+      siblingParams.push(s.father_name.trim(), s.mother_name.trim());
+    }
+
+    if (s.emergency_contact && s.emergency_contact.trim().length >= 8) {
+      conditions.push(`emergency_contact = ?`);
+      siblingParams.push(s.emergency_contact.trim());
+    }
+
+    if (conditions.length > 0) {
+      const [siblingResult] = await pool.query(`
+        SELECT id, first_name, father_name, mother_name, christian_name, age, category, status, phone, emergency_contact, profession
+        FROM students
+        WHERE id != ? AND (${conditions.join(' OR ')})
+        ORDER BY first_name ASC
+      `, siblingParams);
+      siblings = siblingResult;
+    }
+
     res.json({
-      student: students[0],
-      history
+      student: s,
+      history,
+      siblings
     });
   } catch (error) {
     console.error('Fetch student details error:', error);
@@ -162,6 +297,14 @@ router.post('/', authenticateToken, async (req, res) => {
       (previous_service || '').trim(),
       category.trim()
     ]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'STUDENT_CREATE',
+      details: `Registered new student: ${first_name.trim()} ${father_name.trim()} (${category.trim()})`,
+      req
+    });
 
     res.status(201).json({
       message: 'Student registered successfully',
@@ -252,6 +395,14 @@ router.post('/bulk-import', authenticateToken, requireSuperAdmin, async (req, re
 
     await conn.commit();
 
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'BULK_IMPORT',
+      details: `Bulk imported ${importedCount} student(s) from Excel/CSV`,
+      req
+    });
+
     res.json({
       message: `Successfully imported ${importedCount} student(s).`,
       importedCount,
@@ -304,6 +455,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
       id
     ]);
 
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'STUDENT_UPDATE',
+      details: `Updated student ID ${id}: ${first_name} ${father_name}`,
+      req
+    });
+
     res.json({ message: 'Student updated successfully' });
   } catch (error) {
     console.error('Update student error:', error);
@@ -322,6 +481,15 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
 
   try {
     await pool.query('UPDATE students SET status = ? WHERE id = ?', [status, id]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'STUDENT_STATUS',
+      details: `Changed student ID ${id} status to ${status}`,
+      req
+    });
+
     res.json({ message: `Student status set to ${status}` });
   } catch (error) {
     console.error('Status change error:', error);
@@ -333,7 +501,19 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   try {
+    const [existing] = await pool.query('SELECT first_name, father_name FROM students WHERE id = ?', [id]);
+    const name = existing[0] ? `${existing[0].first_name} ${existing[0].father_name}` : `ID ${id}`;
+
     await pool.query('DELETE FROM students WHERE id = ?', [id]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'STUDENT_DELETE',
+      details: `Deleted student: ${name}`,
+      req
+    });
+
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
     console.error('Delete student error:', error);

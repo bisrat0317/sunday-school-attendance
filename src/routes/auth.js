@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
+const { logActivity } = require('../utils/auditLogger');
 
 // Rate limiter for login: max 10 attempts per 15 minutes per IP
 const loginLimiter = rateLimit({
@@ -30,6 +31,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     );
 
     if (users.length === 0) {
+      logActivity({ username: username.trim(), action: 'LOGIN_FAILED', details: 'Invalid username attempt', req });
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
@@ -37,6 +39,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!passwordMatch) {
+      logActivity({ userId: user.id, username: user.username, action: 'LOGIN_FAILED', details: 'Wrong password attempt', req });
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
@@ -45,6 +48,14 @@ router.post('/login', loginLimiter, async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    logActivity({
+      userId: user.id,
+      username: user.username,
+      action: 'LOGIN',
+      details: `User ${user.full_name} (${user.role}) logged in successfully`,
+      req
+    });
 
     res.json({
       token,
@@ -92,6 +103,14 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 
     const newHash = await bcrypt.hash(newPassword, 10);
     await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.id]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'CHANGE_PASSWORD',
+      details: 'Changed account password',
+      req
+    });
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {

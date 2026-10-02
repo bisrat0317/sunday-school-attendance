@@ -11,6 +11,7 @@ const sessionRoutes = require('./routes/sessions');
 const attendanceRoutes = require('./routes/attendance');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
+const auditLogRoutes = require('./routes/auditLogs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 // Catch-all fallback for single-page app frontend routing
 app.use((req, res) => {

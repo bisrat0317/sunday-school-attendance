@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { logActivity } = require('../utils/auditLogger');
 
 // GET /api/sessions - List sessions with attendance summary (with optional pagination)
 router.get('/', authenticateToken, async (req, res) => {
@@ -172,6 +173,14 @@ router.post('/', authenticateToken, async (req, res) => {
       req.user.id
     ]);
 
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'SESSION_CREATE',
+      details: `Created session "${course_title.trim()}" for ${sCategory} on ${sDate} (${sTime})`,
+      req
+    });
+
     res.status(201).json({
       message: 'Session created successfully',
       sessionId: result.insertId
@@ -187,7 +196,19 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
+    const [existing] = await pool.query('SELECT course_title, session_date, category FROM sessions WHERE id = ?', [id]);
+    const details = existing[0] ? `Deleted session: "${existing[0].course_title}" (${existing[0].category}, ${existing[0].session_date})` : `Deleted session ID ${id}`;
+
     await pool.query('DELETE FROM sessions WHERE id = ?', [id]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'SESSION_DELETE',
+      details,
+      req
+    });
+
     res.json({ message: 'Session deleted successfully' });
   } catch (error) {
     console.error('Delete session error:', error);

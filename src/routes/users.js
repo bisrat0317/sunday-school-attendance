@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
+const { logActivity } = require('../utils/auditLogger');
 
 // GET /api/users - List system users (Super Admin only)
 router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
@@ -41,6 +42,14 @@ router.post('/', authenticateToken, requireSuperAdmin, async (req, res) => {
       [username.trim(), passwordHash, full_name.trim(), role]
     );
 
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'USER_CREATE',
+      details: `Created new user account: ${username.trim()} (${full_name.trim()}, role: ${role})`,
+      req
+    });
+
     res.status(201).json({
       message: 'User created successfully',
       userId: result.insertId
@@ -60,7 +69,19 @@ router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => 
   }
 
   try {
+    const [existing] = await pool.query('SELECT username, full_name FROM users WHERE id = ?', [id]);
+    const details = existing[0] ? `Deleted user: ${existing[0].username} (${existing[0].full_name})` : `Deleted user ID ${id}`;
+
     await pool.query('DELETE FROM users WHERE id = ?', [id]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'USER_DELETE',
+      details,
+      req
+    });
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
@@ -78,8 +99,20 @@ router.patch('/:id/reset-password', authenticateToken, requireSuperAdmin, async 
   }
 
   try {
+    const [existing] = await pool.query('SELECT username, full_name FROM users WHERE id = ?', [id]);
+    const targetInfo = existing[0] ? `${existing[0].username} (${existing[0].full_name})` : `ID ${id}`;
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'USER_RESET_PASSWORD',
+      details: `Reset password for user: ${targetInfo}`,
+      req
+    });
+
     res.json({ message: 'User password reset successfully' });
   } catch (error) {
     console.error('Reset user password error:', error);

@@ -258,7 +258,7 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'auditLogs') && !isAdmin) {
     tabName = 'sessions';
   }
   if (tabName === 'users' && !isSuperAdmin) {
@@ -287,10 +287,12 @@ function switchTab(tabName) {
   if (tabName === 'dashboard' && isAdmin) loadDashboard();
   if (tabName === 'sessions') loadSessions();
   if (tabName === 'students') loadStudents();
+  if (tabName === 'families') loadFamilies();
   if (tabName === 'categoryMatrix' && isAdmin) loadCategoryMatrix();
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
   if (tabName === 'users' && isSuperAdmin) loadUsers();
+  if (tabName === 'auditLogs' && isAdmin) loadAuditLogs();
 }
 
 function refreshActiveTabData() {
@@ -300,10 +302,12 @@ function refreshActiveTabData() {
   if (tabId === 'tabDashboard') loadDashboard();
   else if (tabId === 'tabSessions') loadSessions();
   else if (tabId === 'tabStudents') loadStudents();
+  else if (tabId === 'tabFamilies') loadFamilies();
   else if (tabId === 'tabCategoryMatrix') loadCategoryMatrix();
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
   else if (tabId === 'tabUsers') loadUsers();
+  else if (tabId === 'tabAuditLogs') loadAuditLogs();
 }
 
 // ==========================================
@@ -764,6 +768,7 @@ async function loadStudents() {
 
     students.forEach(s => {
       const isInactive = s.status === 'inactive';
+      const siblingCount = parseInt(s.sibling_count, 10) || 0;
 
       // Check missing/empty profile fields
       const missingFields = [];
@@ -779,6 +784,13 @@ async function loadStudents() {
           <td>
             <strong>${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</strong>
             ${s.christian_name ? `<br><small style="color: var(--primary); font-weight: 600; font-size: 0.8rem;"><i class="fa-solid fa-cross"></i> ${escapeHtml(s.christian_name)}</small>` : ''}
+            ${siblingCount > 0 ? `
+              <div style="margin-top: 4px;">
+                <span class="tag" style="background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer;" onclick="viewStudentProfile(${s.id})" title="${siblingCount} ${t('siblings')}">
+                  <i class="fa-solid fa-people-roof"></i> ${siblingCount} ${t('siblings')}
+                </span>
+              </div>
+            ` : ''}
             ${isIncomplete ? `
               <div style="margin-top: 4px;">
                 <span class="tag" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="${t('missingFields')}: ${missingFields.join(', ')}">
@@ -833,6 +845,13 @@ async function loadStudents() {
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
                   ${t('motherName')}: <strong>${escapeHtml(s.mother_name || '-')}</strong> | ${t('age')}: ${s.age || '-'}
                 </p>
+                ${siblingCount > 0 ? `
+                  <div style="margin-top: 4px;">
+                    <span class="tag" style="background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer;" onclick="viewStudentProfile(${s.id})">
+                      <i class="fa-solid fa-people-roof"></i> ${siblingCount} ${t('siblings')}
+                    </span>
+                  </div>
+                ` : ''}
                 ${isIncomplete ? `
                   <div style="margin-top: 4px;">
                     <span class="tag" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="${t('missingFields')}: ${missingFields.join(', ')}">
@@ -1040,6 +1059,36 @@ async function viewStudentProfile(id) {
         </div>
       </div>
     `;
+
+    // Render Sibling & Family Information
+    const sibCard = document.getElementById('profileSiblingsCard');
+    const sibContent = document.getElementById('profileSiblingsContent');
+    if (sibCard && sibContent) {
+      if (data.siblings && data.siblings.length > 0) {
+        sibCard.style.display = 'block';
+        sibContent.innerHTML = '';
+        data.siblings.forEach(sib => {
+          sibContent.innerHTML += `
+            <div style="background: #fff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 0.6rem 0.85rem; flex: 1; min-width: 200px; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+              <div>
+                <strong style="color: #1e1b4b; font-size: 0.9rem;">${escapeHtml(sib.first_name)} ${escapeHtml(sib.father_name)}</strong>
+                ${sib.christian_name ? `<div style="font-size: 0.78rem; color: var(--primary);"><i class="fa-solid fa-cross"></i> ${escapeHtml(sib.christian_name)}</div>` : ''}
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                  <span class="tag tag-category" style="font-size: 0.7rem; padding: 0.1rem 0.35rem;">${escapeHtml(sib.category || '-')}</span>
+                  ${sib.age ? ` | ${t('age')}: ${sib.age}` : ''}
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" style="color: #4338ca; border-color: #c7d2fe;" onclick="viewStudentProfile(${sib.id})" title="${t('viewProfile')}">
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          `;
+        });
+      } else {
+        sibCard.style.display = 'none';
+        sibContent.innerHTML = '';
+      }
+    }
 
     const histTbody = document.getElementById('profileHistoryTableBody');
     histTbody.innerHTML = '';
@@ -1931,6 +1980,249 @@ async function exportCategoryMatrixToExcel() {
     showToast('Category attendance matrix exported to Excel!', 'success');
   } catch (err) {
     console.error(err);
+  }
+}
+
+// ==========================================
+// 8. FAMILY & SIBLINGS DIRECTORY LOGIC
+// ==========================================
+let cachedFamiliesList = [];
+
+async function loadFamilies() {
+  try {
+    const data = await api('/api/students/families/overview');
+    if (!data) return;
+
+    document.getElementById('familyTotalCount').textContent = data.total_families || 0;
+    document.getElementById('familyMultiCount').textContent = data.multi_child_families || 0;
+
+    cachedFamiliesList = data.families || [];
+    filterFamiliesList();
+  } catch (err) {
+    console.error('Error loading families:', err);
+  }
+}
+
+function filterFamiliesList() {
+  const search = (document.getElementById('familySearchInput')?.value || '').toLowerCase().trim();
+  const filterType = document.getElementById('familyFilterType')?.value || 'All';
+  const container = document.getElementById('familiesContainer');
+  if (!container) return;
+
+  let list = cachedFamiliesList;
+
+  if (filterType === 'Multi') {
+    list = list.filter(f => f.students_count > 1);
+  } else if (filterType === 'Single') {
+    list = list.filter(f => f.students_count === 1);
+  }
+
+  if (search) {
+    list = list.filter(f => {
+      const fatherMatch = (f.father_name || '').toLowerCase().includes(search);
+      const motherMatch = (f.mother_name || '').toLowerCase().includes(search);
+      const phoneMatch = (f.phone || '').includes(search) || (f.emergency_contact || '').includes(search);
+      const studentMatch = f.students.some(s => 
+        (s.first_name || '').toLowerCase().includes(search) || 
+        (s.christian_name || '').toLowerCase().includes(search)
+      );
+      return fatherMatch || motherMatch || phoneMatch || studentMatch;
+    });
+  }
+
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 2.5rem 1rem;">
+      <i class="fa-solid fa-people-roof" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.75rem; display: block;"></i>
+      ${t('noInactive')}
+    </div>`;
+    return;
+  }
+
+  list.forEach(fam => {
+    const isMulti = fam.students_count > 1;
+    const fatherDisplay = fam.father_name || '-';
+    const motherDisplay = fam.mother_name || '-';
+    const primaryPhone = fam.phone || fam.emergency_contact;
+
+    let studentsHtml = '';
+    fam.students.forEach(st => {
+      const isInactive = st.status === 'inactive';
+      studentsHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.6rem; background: #fff; border: 1px solid #f1f5f9; border-radius: 6px; margin-bottom: 0.4rem; ${isInactive ? 'opacity: 0.6;' : ''}">
+          <div>
+            <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-dark); cursor: pointer;" onclick="viewStudentProfile(${st.id})">
+              ${escapeHtml(st.first_name)}
+            </span>
+            ${st.christian_name ? `<small style="color: var(--primary); margin-left: 4px;">(${escapeHtml(st.christian_name)})</small>` : ''}
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              <span class="tag tag-category" style="font-size: 0.68rem; padding: 0.08rem 0.35rem;">${escapeHtml(st.category || '-')}</span>
+              ${st.age ? ` | ${t('age')}: ${st.age}` : ''}
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="viewStudentProfile(${st.id})" title="${t('viewProfile')}">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+        </div>
+      `;
+    });
+
+    container.innerHTML += `
+      <div class="card" style="margin-bottom: 0; border: 1px solid ${isMulti ? '#c7d2fe' : 'var(--border)'}; background: ${isMulti ? '#fafbff' : '#fff'}; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+            <div>
+              <h4 style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">
+                <i class="fa-solid fa-house-user" style="color: var(--primary); margin-right: 4px;"></i>
+                ${escapeHtml(fatherDisplay)}
+              </h4>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                ${t('motherName')}: <strong>${escapeHtml(motherDisplay)}</strong>
+              </p>
+            </div>
+            <span class="tag" style="background: ${isMulti ? '#e0e7ff' : '#f1f5f9'}; color: ${isMulti ? '#3730a3' : '#475569'}; font-weight: 700; font-size: 0.8rem;">
+              <i class="fa-solid fa-children"></i> ${fam.students_count} ${t('children')}
+            </span>
+          </div>
+
+          ${primaryPhone ? `
+            <div style="margin-bottom: 0.75rem;">
+              <a href="tel:${escapeHtml(primaryPhone)}" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center; font-weight: 600; color: var(--primary); font-size: 0.82rem;">
+                <i class="fa-solid fa-phone"></i> ${escapeHtml(primaryPhone)}
+              </a>
+            </div>
+          ` : ''}
+
+          <div style="border-top: 1px solid #f1f5f9; padding-top: 0.6rem;">
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">
+              <i class="fa-solid fa-users"></i> ${t('children')} (${fam.students_count}):
+            </div>
+            ${studentsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// ==========================================
+// 9. AUDIT LOGS & ACTIVITY TRAIL LOGIC
+// ==========================================
+let auditDebounceTimer = null;
+
+function debounceLoadAuditLogs() {
+  clearTimeout(auditDebounceTimer);
+  auditDebounceTimer = setTimeout(loadAuditLogs, 300);
+}
+
+function getActionBadge(action) {
+  const map = {
+    'LOGIN': { label: t('actionLogin'), color: '#0284c7', bg: '#e0f2fe' },
+    'LOGIN_FAILED': { label: t('actionLoginFailed'), color: '#dc2626', bg: '#fee2e2' },
+    'STUDENT_CREATE': { label: t('actionStudentCreate'), color: '#16a34a', bg: '#dcfce7' },
+    'STUDENT_UPDATE': { label: t('actionStudentUpdate'), color: '#ca8a04', bg: '#fef9c3' },
+    'STUDENT_DELETE': { label: t('actionStudentDelete'), color: '#dc2626', bg: '#fee2e2' },
+    'STUDENT_STATUS': { label: t('actionStudentStatus'), color: '#9333ea', bg: '#f3e8ff' },
+    'BULK_IMPORT': { label: t('actionBulkImport'), color: '#0d9488', bg: '#ccfbf1' },
+    'ATTENDANCE_SAVE': { label: t('actionAttendanceSave'), color: '#2563eb', bg: '#dbeafe' },
+    'SESSION_CREATE': { label: t('actionSessionCreate'), color: '#16a34a', bg: '#dcfce7' },
+    'SESSION_DELETE': { label: t('actionSessionDelete'), color: '#dc2626', bg: '#fee2e2' },
+    'USER_CREATE': { label: t('actionUserCreate'), color: '#4f46e5', bg: '#e0e7ff' },
+    'USER_DELETE': { label: t('actionUserDelete'), color: '#dc2626', bg: '#fee2e2' },
+    'USER_RESET_PASSWORD': { label: t('actionUserResetPassword'), color: '#ea580c', bg: '#ffedd5' },
+    'CHANGE_PASSWORD': { label: t('actionChangePassword'), color: '#ea580c', bg: '#ffedd5' }
+  };
+
+  const item = map[action] || { label: action, color: '#475569', bg: '#f1f5f9' };
+  return `<span class="tag" style="background: ${item.bg}; color: ${item.color}; font-weight: 700; font-size: 0.75rem; border: 1px solid ${item.color}33;">${item.label}</span>`;
+}
+
+function formatAuditTimestamp(isoString) {
+  if (!isoString) return '-';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+
+  const datePart = formatDate(isoString);
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const time24 = `${hours}:${minutes}`;
+  const ethTime = formatSingleEthiopianTime(time24);
+
+  return `${datePart} - ${ethTime}`;
+}
+
+async function loadAuditLogs() {
+  const action = document.getElementById('filterAuditAction')?.value || 'All';
+  const search = document.getElementById('searchAuditInput')?.value || '';
+
+  try {
+    const data = await api(`/api/audit-logs?action=${action}&search=${encodeURIComponent(search)}&limit=100`);
+    const tbody = document.getElementById('auditLogsTableBody');
+    const mobileContainer = document.getElementById('auditLogsCardContainer');
+    const countEl = document.getElementById('auditLogsCount');
+
+    if (tbody) tbody.innerHTML = '';
+    if (mobileContainer) mobileContainer.innerHTML = '';
+
+    if (!data || !data.logs || data.logs.length === 0) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">${t('noAuditLogs')}</td></tr>`;
+      if (mobileContainer) mobileContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">${t('noAuditLogs')}</div>`;
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+
+    if (countEl) {
+      countEl.textContent = `${t('totalStudents')}: ${data.total} ${t('actions')}`;
+    }
+
+    data.logs.forEach(log => {
+      const timeDisplay = formatAuditTimestamp(log.created_at);
+      const badgeHtml = getActionBadge(log.action);
+      const userDisplay = escapeHtml(log.username || 'System');
+      const ipDisplay = escapeHtml(log.ip_address || '-');
+      const detailsDisplay = escapeHtml(log.details || '-');
+
+      // Table row
+      if (tbody) {
+        tbody.innerHTML += `
+          <tr>
+            <td style="white-space: nowrap; font-size: 0.85rem; color: #475569;">
+              <i class="fa-solid fa-clock" style="color: #94a3b8; margin-right: 4px;"></i> ${timeDisplay}
+            </td>
+            <td>
+              <strong>${userDisplay}</strong>
+            </td>
+            <td>${badgeHtml}</td>
+            <td style="font-size: 0.88rem; color: var(--text-dark);">${detailsDisplay}</td>
+            <td style="font-family: monospace; font-size: 0.8rem; color: #64748b;">${ipDisplay}</td>
+          </tr>
+        `;
+      }
+
+      // Mobile card
+      if (mobileContainer) {
+        mobileContainer.innerHTML += `
+          <div class="card" style="margin-bottom: 0.6rem; padding: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <span style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">
+                <i class="fa-solid fa-user-circle" style="color: var(--primary);"></i> ${userDisplay}
+              </span>
+              ${badgeHtml}
+            </div>
+            <div style="font-size: 0.85rem; color: #334155; margin-bottom: 0.4rem;">
+              ${detailsDisplay}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 0.4rem;">
+              <span><i class="fa-solid fa-clock"></i> ${timeDisplay}</span>
+              <span><i class="fa-solid fa-network-wired"></i> ${ipDisplay}</span>
+            </div>
+          </div>
+        `;
+      }
+    });
+  } catch (err) {
+    console.error('Error loading audit logs:', err);
   }
 }
 

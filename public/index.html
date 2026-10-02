@@ -57,6 +57,10 @@
           <div class="nav-icon-bubble"><i class="fa-solid fa-graduation-cap"></i></div>
           <span data-i18n="navStudents">ተማሪዎች</span>
         </button>
+        <button class="drawer-nav-item" id="drawerTabFamilies" onclick="switchTab('families')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-people-roof"></i></div>
+          <span data-i18n="navFamilies">ቤተሰቦች</span>
+        </button>
         <button class="drawer-nav-item admin-only" id="drawerTabCategoryMatrix" onclick="switchTab('categoryMatrix')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-table-cells"></i></div>
           <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
@@ -73,6 +77,10 @@
         <button class="drawer-nav-item super-admin-only" id="drawerTabUsers" onclick="switchTab('users')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-users-gear"></i></div>
           <span data-i18n="navUsers">ተጠቃሚዎች</span>
+        </button>
+        <button class="drawer-nav-item admin-only" id="drawerTabAuditLogs" onclick="switchTab('auditLogs')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <span data-i18n="navAuditLogs">የእንቅስቃሴ መዝገብ</span>
         </button>
       </nav>
     </div>
@@ -140,6 +148,9 @@
       <button class="nav-tab" id="tabBtnStudents" onclick="switchTab('students')">
         <i class="fa-solid fa-graduation-cap"></i> <span data-i18n="navStudents">ተማሪዎች</span>
       </button>
+      <button class="nav-tab" id="tabBtnFamilies" onclick="switchTab('families')">
+        <i class="fa-solid fa-people-roof"></i> <span data-i18n="navFamilies">ቤተሰቦች</span>
+      </button>
       <button class="nav-tab admin-only" id="tabBtnCategoryMatrix" onclick="switchTab('categoryMatrix')">
         <i class="fa-solid fa-table-cells"></i> <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
       </button>
@@ -152,6 +163,9 @@
       </button>
       <button class="nav-tab super-admin-only" id="tabBtnUsers" onclick="switchTab('users')">
         <i class="fa-solid fa-users-gear"></i> <span data-i18n="navUsers">ተጠቃሚዎች</span>
+      </button>
+      <button class="nav-tab admin-only" id="tabBtnAuditLogs" onclick="switchTab('auditLogs')">
+        <i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="navAuditLogs">የእንቅስቃሴ መዝገብ</span>
       </button>
     </div>
   </nav>
@@ -499,6 +513,56 @@
         </div>
       </section>
 
+      <!-- TAB: FAMILIES & SIBLINGS DIRECTORY -->
+      <section id="tabFamilies" class="tab-pane" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><i class="fa-solid fa-people-roof"></i> <span data-i18n="familyOverviewTitle">የሰንበት ት/ቤት ቤተሰቦች</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="familyOverviewSubtitle">በሰንበት ት/ቤቱ የተመዘገቡ ቤተሰቦች እና ወንድም-እህትማማቾች ዝርዝር</p>
+            </div>
+            <button class="btn btn-outline" onclick="loadFamilies()">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <!-- Stats Summary for Families -->
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 1.25rem;">
+            <div class="stat-box">
+              <div class="stat-icon" style="color: var(--primary);"><i class="fa-solid fa-house-chimney-user"></i></div>
+              <div>
+                <div class="stat-number" id="familyTotalCount">0</div>
+                <div class="stat-label" data-i18n="totalFamilies">አጠቃላይ ቤተሰቦች</div>
+              </div>
+            </div>
+            <div class="stat-box success">
+              <div class="stat-icon" style="color: var(--success);"><i class="fa-solid fa-children"></i></div>
+              <div>
+                <div class="stat-number" id="familyMultiCount">0</div>
+                <div class="stat-label" data-i18n="multiChildFamilies">ብዙ ልጆች ያሏቸው ቤተሰቦች</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div style="display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <input type="text" id="familySearchInput" class="form-control" style="flex: 2; min-width: 200px;"
+              placeholder="ቤተሰብ በስም፣ በልጆች ወይም በስልክ ፈልግ..." data-i18n-ph="searchStudent" oninput="filterFamiliesList()">
+            
+            <select id="familyFilterType" class="form-control" style="flex: 1; min-width: 160px;" onchange="filterFamiliesList()">
+              <option value="All">ሁሉም ቤተሰቦች (All Families)</option>
+              <option value="Multi">2 እና ከዚያ በላይ ልጆች ያሏቸው (2+ Siblings)</option>
+              <option value="Single">አንድ ልጅ ብቻ (1 Child)</option>
+            </select>
+          </div>
+
+          <!-- Families Container -->
+          <div id="familiesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </section>
+
       <!-- TAB: CATEGORY ATTENDANCE MATRIX & EXPORT -->
       <section id="tabCategoryMatrix" class="tab-pane" style="display: none;">
         <div class="card">
@@ -548,6 +612,70 @@
           <div class="table-responsive" id="categoryMatrixTableContainer">
             <!-- Rendered via JS -->
           </div>
+        </div>
+      </section>
+
+      <!-- TAB: AUDIT TRAIL / ACTIVITY LOGS (Admin Only) -->
+      <section id="tabAuditLogs" class="tab-pane admin-only" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="auditLogsTitle">የስርዓቱ የእንቅስቃሴ መዝገብ</span></h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" data-i18n="auditLogsSubtitle">በስርዓቱ ውስጥ የተከናወኑ የአስተዳደር እና የምዝገባ ድርጊቶች ዝርዝር</p>
+            </div>
+            <button class="btn btn-outline" onclick="loadAuditLogs()">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div style="display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <input type="text" id="searchAuditInput" class="form-control" style="flex: 2; min-width: 180px;"
+              placeholder="በተጠቃሚ ስም ወይም ዝርዝር ፈልግ..." oninput="debounceLoadAuditLogs()">
+
+            <select id="filterAuditAction" class="form-control" style="flex: 1; min-width: 160px;" onchange="loadAuditLogs()">
+              <option value="All" data-i18n="allActions">ሁሉም ድርጊቶች</option>
+              <option value="LOGIN" data-i18n="actionLogin">መግባት (Login)</option>
+              <option value="LOGIN_FAILED" data-i18n="actionLoginFailed">ያልተሳካ ሙከራ (Failed Login)</option>
+              <option value="STUDENT_CREATE" data-i18n="actionStudentCreate">ተማሪ ተመዘገበ (Student Created)</option>
+              <option value="STUDENT_UPDATE" data-i18n="actionStudentUpdate">ተማሪ ተሻሻለ (Student Updated)</option>
+              <option value="STUDENT_DELETE" data-i18n="actionStudentDelete">ተማሪ ተሰረዘ (Student Deleted)</option>
+              <option value="STUDENT_STATUS" data-i18n="actionStudentStatus">ሁኔታ ተቀየረ (Status Changed)</option>
+              <option value="BULK_IMPORT" data-i18n="actionBulkImport">በጅምላ ገባ (Bulk Import)</option>
+              <option value="ATTENDANCE_SAVE" data-i18n="actionAttendanceSave">መገኘት ተመዘገበ (Attendance Saved)</option>
+              <option value="SESSION_CREATE" data-i18n="actionSessionCreate">ክፍለ-ጊዜ ተፈጠረ (Session Created)</option>
+              <option value="SESSION_DELETE" data-i18n="actionSessionDelete">ክፍለ-ጊዜ ተሰረዘ (Session Deleted)</option>
+              <option value="USER_CREATE" data-i18n="actionUserCreate">ተጠቃሚ ተፈጠረ (User Created)</option>
+              <option value="USER_DELETE" data-i18n="actionUserDelete">ተጠቃሚ ተሰረዘ (User Deleted)</option>
+              <option value="USER_RESET_PASSWORD" data-i18n="actionUserResetPassword">የይለፍ ቃል ተቀየረለት (Reset Password)</option>
+              <option value="CHANGE_PASSWORD" data-i18n="actionChangePassword">የይለፍ ቃል ተቀየረ (Change Password)</option>
+            </select>
+          </div>
+
+          <!-- Desktop Table -->
+          <div class="table-responsive desktop-only">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="timestamp">ቀን እና ሰዓት</th>
+                  <th data-i18n="user">ተጠቃሚ</th>
+                  <th data-i18n="action">ድርጊት</th>
+                  <th data-i18n="details">ዝርዝር መግለጫ</th>
+                  <th data-i18n="ipAddress">አይፒ አድራሻ</th>
+                </tr>
+              </thead>
+              <tbody id="auditLogsTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile Cards Container -->
+          <div id="auditLogsCardContainer" class="mobile-card-list">
+            <!-- Rendered via JS -->
+          </div>
+
+          <div id="auditLogsCount" style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); text-align: right;"></div>
         </div>
       </section>
 
@@ -809,6 +937,15 @@
         <div id="profileDetailsCard"
           style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
           <!-- Rendered via JS -->
+        </div>
+
+        <div id="profileSiblingsCard" style="display: none; background: #eef2ff; border: 1px solid #c7d2fe; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+          <h4 style="margin-bottom: 0.6rem; color: #3730a3; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-people-roof"></i> <span data-i18n="siblingInfo">የቤተሰብ እና የወንድም-እህት መረጃ</span>
+          </h4>
+          <div id="profileSiblingsContent" style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <!-- Rendered via JS -->
+          </div>
         </div>
 
         <h4 style="margin-bottom: 0.75rem; color: var(--primary);"><i class="fa-solid fa-history"></i> የመገኘት ታሪክ
