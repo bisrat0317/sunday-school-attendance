@@ -698,9 +698,9 @@
       <div class="modal-body">
         <!-- Top bar with Quick Search & "Mark All Present" -->
         <div
-          style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
           <input type="text" id="attSearchInput" class="form-control" style="max-width: 320px;"
-            placeholder="ተማሪ በስም ፈልግ..." oninput="filterAttendanceList()">
+            placeholder="በዚህ ምድብ ውስጥ ያለ ተማሪ ፈልግ..." data-i18n-ph="searchStudent" oninput="filterAttendanceList()">
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button class="btn btn-warning" onclick="exportSessionAttendanceToExcel()">
               <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
@@ -708,6 +708,28 @@
             <button class="btn btn-success" onclick="markAllPresent()">
               <i class="fa-solid fa-check-double"></i> <span data-i18n="markAllPresent">ሁሉንም ተገኝቷል በል</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Cross-category student search widget -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.88rem; font-weight: 600; color: #166534; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-user-plus"></i> <span data-i18n="addCrossCategoryStudent">+ ከሌላ ምድብ ተማሪ ጨምር (የማካካሻ / ልዩ መገኘት)</span>
+            </div>
+            <button type="button" id="btnToggleCrossCat" class="btn btn-outline btn-sm" style="color: #15803d; border-color: #86efac; background: #fff; font-weight: 600;" onclick="toggleCrossCategorySearch()">
+              <i class="fa-solid fa-magnifying-glass-plus"></i> <span data-i18n="searchOtherCategories">ተማሪ ፈልግና ጨምር</span>
+            </button>
+          </div>
+
+          <div id="crossCategorySearchPanel" style="display: none; margin-top: 0.65rem; border-top: 1px solid #dcfce7; padding-top: 0.65rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <input type="text" id="crossCategorySearchInput" class="form-control" style="flex: 1; min-width: 200px;" placeholder="የተማሪውን ስም ወይም ስልክ ፈልግ..." oninput="debounceSearchCrossCategoryStudents()">
+              <button type="button" class="btn btn-outline btn-sm" onclick="toggleCrossCategorySearch()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="crossCategorySearchResults" style="max-height: 180px; overflow-y: auto; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+              <!-- Dynamic Results via JS -->
+            </div>
           </div>
         </div>
 

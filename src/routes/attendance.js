@@ -38,7 +38,7 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
     const params = [sessionId];
 
     if (session.category !== 'All') {
-      studentQuery += ' AND s.category = ?';
+      studentQuery += ' AND (s.category = ? OR a.id IS NOT NULL)';
       params.push(session.category);
     }
 

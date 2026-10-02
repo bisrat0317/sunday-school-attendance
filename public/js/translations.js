@@ -73,6 +73,13 @@ const translations = {
     contact: "Contact",
     status: "Status",
     remarks: "Remarks / Notes",
+    addCrossCategoryStudent: "+ Add Student from Other Category (Make-up / Cross-Attendance)",
+    searchOtherCategories: "Search & Add Student",
+    crossCategoryBadge: "Cross-Category",
+    studentAlreadyInSheet: "This student is already in the attendance sheet.",
+    crossCategoryAdded: "Cross-category student added to sheet!",
+    noMatchingStudentsFound: "No matching students found in other categories.",
+    upcomingSession: "Upcoming / Future Session (Not yet held)",
 
     // Students
     studentsTitle: "Sunday School Students",
@@ -300,6 +307,13 @@ const translations = {
     contact: "ስልክ",
     status: "ሁኔታ",
     remarks: "አስተያየት",
+    addCrossCategoryStudent: "+ ከሌላ ምድብ ተማሪ ጨምር (የማካካሻ / ልዩ መገኘት)",
+    searchOtherCategories: "ተማሪ ፈልግና ጨምር",
+    crossCategoryBadge: "ከሌላ ምድብ",
+    studentAlreadyInSheet: "ተማሪው ቀድሞውኑ በመዝገቡ ላይ ይገኛል።",
+    crossCategoryAdded: "ተማሪው በመገኘት መዝገቡ ላይ በተሳካ ሁኔታ ተጨምሯል!",
+    noMatchingStudentsFound: "በሌሎች ምድቦች የሚዛመድ ተማሪ አልተገኘም።",
+    upcomingSession: "የወደፊት / ያልተካሄደ ክፍለ-ጊዜ",
 
     // Students
     studentsTitle: "የሰንበት ት/ቤት ተማሪዎች",

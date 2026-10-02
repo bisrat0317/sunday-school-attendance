@@ -573,6 +573,14 @@ async function openAttendanceModal(sessionId) {
   activeSessionId = sessionId;
   activeAttendanceRecords = {};
 
+  // Reset cross-category search box
+  const crossPanel = document.getElementById('crossCategorySearchPanel');
+  if (crossPanel) crossPanel.style.display = 'none';
+  const crossInput = document.getElementById('crossCategorySearchInput');
+  if (crossInput) crossInput.value = '';
+  const crossResults = document.getElementById('crossCategorySearchResults');
+  if (crossResults) crossResults.innerHTML = '';
+
   try {
     const data = await api(`/api/attendance/session/${sessionId}`);
     if (!data) return;
@@ -583,7 +591,6 @@ async function openAttendanceModal(sessionId) {
     document.getElementById('attModalSessionTitle').textContent = `${data.session.course_title} (${data.session.category})`;
     document.getElementById('attModalSessionSubtitle').textContent = `${formatDate(data.session.session_date)} | ${dualTime}`;
     document.getElementById('attSearchInput').value = '';
-    document.getElementById('attSearchInput').value = '';
 
     // Initialize in-memory attendance record states
     data.students.forEach(s => {
@@ -591,6 +598,9 @@ async function openAttendanceModal(sessionId) {
         status: s.attendance_status || 'present', // Default to present for convenience
         remarks: s.remarks || ''
       };
+      if (data.session.category !== 'All' && s.category && s.category !== data.session.category) {
+        s.is_cross_category = true;
+      }
     });
 
     renderAttendanceStudentList();
@@ -608,23 +618,32 @@ function renderAttendanceStudentList() {
     if (!filterText) return true;
     const name = `${s.first_name} ${s.father_name}`.toLowerCase();
     const phone = (s.phone || '').toLowerCase();
-    return name.includes(filterText) || phone.includes(filterText);
+    const cat = (s.category || '').toLowerCase();
+    return name.includes(filterText) || phone.includes(filterText) || cat.includes(filterText);
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No students found for this category.</div>`;
+    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No students found in this sheet.</div>`;
     return;
   }
 
   filtered.forEach(s => {
     const currentRec = activeAttendanceRecords[s.student_id] || { status: 'present', remarks: '' };
     const rowClass = `attendance-row marked-${currentRec.status}`;
+    const isCrossCategory = s.is_cross_category || (activeSessionData.session && activeSessionData.session.category !== 'All' && s.category && s.category !== activeSessionData.session.category);
 
     container.innerHTML += `
       <div class="${rowClass}" id="attRow_${s.student_id}">
         <div class="attendance-student-details">
-          <h5>${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</h5>
-          <p><i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone)} | ${t('motherName')}: ${escapeHtml(s.mother_name)}</p>
+          <h5>
+            ${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}
+            ${isCrossCategory ? `
+              <span class="tag" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.72rem; padding: 0.12rem 0.4rem; margin-left: 0.35rem;" title="${t('crossCategoryBadge')}: ${escapeHtml(s.category)}">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> ${escapeHtml(s.category)} (${t('crossCategoryBadge')})
+              </span>
+            ` : ''}
+          </h5>
+          <p><i class="fa-solid fa-phone"></i> ${escapeHtml(s.phone || '-')} | ${t('motherName')}: ${escapeHtml(s.mother_name || '-')}</p>
         </div>
 
         <div class="attendance-btn-group">
@@ -644,6 +663,122 @@ function renderAttendanceStudentList() {
       </div>
     `;
   });
+}
+
+// Cross-Category Student Search & Add Controllers
+function toggleCrossCategorySearch() {
+  const panel = document.getElementById('crossCategorySearchPanel');
+  const input = document.getElementById('crossCategorySearchInput');
+  const results = document.getElementById('crossCategorySearchResults');
+  if (!panel) return;
+
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    panel.style.display = 'block';
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    if (results) results.innerHTML = '';
+  } else {
+    panel.style.display = 'none';
+    if (results) results.innerHTML = '';
+  }
+}
+
+let crossCatDebounceTimer = null;
+
+function debounceSearchCrossCategoryStudents() {
+  clearTimeout(crossCatDebounceTimer);
+  crossCatDebounceTimer = setTimeout(searchCrossCategoryStudents, 250);
+}
+
+async function searchCrossCategoryStudents() {
+  const input = document.getElementById('crossCategorySearchInput');
+  const resultsContainer = document.getElementById('crossCategorySearchResults');
+  if (!input || !resultsContainer) return;
+
+  const query = input.value.trim();
+  if (query.length < 1) {
+    resultsContainer.innerHTML = '';
+    return;
+  }
+
+  resultsContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.4rem;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}</div>`;
+
+  try {
+    const students = await api(`/api/students?status=active&search=${encodeURIComponent(query)}&limit=15`);
+    if (!students || students.length === 0) {
+      resultsContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.4rem;">${t('noMatchingStudentsFound')}</div>`;
+      return;
+    }
+
+    const currentStudentIds = new Set((activeSessionData.students || []).map(s => s.student_id || s.id));
+
+    resultsContainer.innerHTML = '';
+    students.forEach(st => {
+      const alreadyInSheet = currentStudentIds.has(st.id);
+      resultsContainer.innerHTML += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.65rem; background: #fff; border: 1px solid #dcfce7; border-radius: 6px;">
+          <div>
+            <strong style="font-size: 0.88rem; color: var(--text-dark);">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</strong>
+            ${st.christian_name ? `<small style="color: var(--primary);"> (${escapeHtml(st.christian_name)})</small>` : ''}
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              <span class="tag tag-category" style="font-size: 0.68rem; padding: 0.08rem 0.35rem;">${escapeHtml(st.category || '-')}</span>
+              ${st.phone ? ` | <i class="fa-solid fa-phone"></i> ${escapeHtml(st.phone)}` : ''}
+            </div>
+          </div>
+          ${alreadyInSheet ? `
+            <span class="tag tag-present" style="font-size: 0.72rem;"><i class="fa-solid fa-check"></i> Already in sheet</span>
+          ` : `
+            <button type="button" class="btn btn-success btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.78rem;" onclick='addCrossCategoryStudentToSession(${JSON.stringify(st).replace(/'/g, "&#39;")})'>
+              <i class="fa-solid fa-plus"></i> ${t('save')}
+            </button>
+          `}
+        </div>
+      `;
+    });
+  } catch (err) {
+    resultsContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--danger); padding:0.4rem;">Error searching students</div>`;
+  }
+}
+
+function addCrossCategoryStudentToSession(student) {
+  if (!activeSessionData || !activeSessionData.students) return;
+
+  const currentStudentIds = new Set(activeSessionData.students.map(s => s.student_id || s.id));
+  if (currentStudentIds.has(student.id)) {
+    showToast(t('studentAlreadyInSheet'), 'info');
+    return;
+  }
+
+  const newStudentEntry = {
+    student_id: student.id,
+    id: student.id,
+    first_name: student.first_name,
+    father_name: student.father_name,
+    mother_name: student.mother_name,
+    phone: student.phone,
+    category: student.category,
+    attendance_status: 'present',
+    is_cross_category: true
+  };
+
+  activeSessionData.students.unshift(newStudentEntry);
+  activeAttendanceRecords[student.id] = {
+    status: 'present',
+    remarks: `Cross-category (${student.category})`
+  };
+
+  renderAttendanceStudentList();
+  showToast(t('crossCategoryAdded'), 'success');
+
+  // Reset search panel
+  const panel = document.getElementById('crossCategorySearchPanel');
+  if (panel) panel.style.display = 'none';
+  const results = document.getElementById('crossCategorySearchResults');
+  if (results) results.innerHTML = '';
+  const input = document.getElementById('crossCategorySearchInput');
+  if (input) input.value = '';
 }
 
 function selectAttendanceStatus(studentId, status) {
@@ -1800,15 +1935,39 @@ async function submitBulkImport() {
 
 
 // Category Matrix & Excel Export Logic
-function isSessionBeforeRegistration(sessionDateStr, studentCreatedAtStr) {
-  if (!sessionDateStr || !studentCreatedAtStr) return false;
-  try {
-    const sessDay = new Date(sessionDateStr).toISOString().split('T')[0];
-    const regDay = new Date(studentCreatedAtStr).toISOString().split('T')[0];
-    return sessDay < regDay;
-  } catch (e) {
-    return false;
+function getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const sessDay = sess.session_date ? new Date(sess.session_date).toISOString().split('T')[0] : '';
+  const regDay = s.created_at ? new Date(s.created_at).toISOString().split('T')[0] : '';
+
+  // 1. If student was registered AFTER this session date -> '-' (Not enrolled yet)
+  if (sessDay && regDay && sessDay < regDay) {
+    return { val: '-', color: '#94a3b8', isCountable: false, status: 'before_reg' };
   }
+
+  // 2. If student has an explicit attendance record for this session
+  if (att) {
+    if (att.status === 'present') {
+      return { val: '✓', color: 'var(--success)', isCountable: true, status: 'present' };
+    } else if (att.status === 'absent') {
+      return { val: '✗', color: 'var(--danger)', isCountable: true, status: 'absent' };
+    } else if (att.status === 'permission') {
+      return { val: isAmharic ? 'ፈ' : 'P', color: 'var(--warning)', isCountable: true, status: 'permission' };
+    }
+  }
+
+  // 3. If session date is in the future (after today) -> '-' (Upcoming session, not yet held)
+  if (sessDay && sessDay > todayStr) {
+    return { val: '-', color: '#94a3b8', isCountable: false, status: 'future' };
+  }
+
+  // 4. If session is past/today, but NO ONE has recorded attendance yet -> '-' (Unrecorded session)
+  if (!sessionHasAttendanceMap[sess.id]) {
+    return { val: '-', color: '#94a3b8', isCountable: false, status: 'unrecorded' };
+  }
+
+  // 5. If attendance was taken for this past session, but this active student was absent/not recorded -> Absent '✗'
+  return { val: '✗', color: 'var(--danger)', isCountable: true, status: 'absent' };
 }
 
 async function loadCategoryMatrix() {
@@ -1830,9 +1989,11 @@ async function loadCategoryMatrix() {
     const isAmharic = currentLang === 'am';
 
     const attMap = {};
+    const sessionHasAttendanceMap = {};
     if (attendance) {
       attendance.forEach(a => {
         attMap[`${a.session_id}_${a.student_id}`] = a;
+        sessionHasAttendanceMap[a.session_id] = true;
       });
     }
 
@@ -1860,26 +2021,8 @@ async function loadCategoryMatrix() {
 
       sessions.forEach(sess => {
         const att = attMap[`${sess.id}_${s.id}`];
-        let val = '-';
-        let color = '#94a3b8';
-
-        if (att) {
-          if (att.status === 'present') {
-            val = '✓';
-            color = 'var(--success)';
-          } else if (att.status === 'absent') {
-            val = '✗';
-            color = 'var(--danger)';
-          } else if (att.status === 'permission') {
-            val = isAmharic ? 'ፈ' : 'P';
-            color = 'var(--warning)';
-          }
-        } else if (!isSessionBeforeRegistration(sess.session_date, s.created_at)) {
-          val = '✗';
-          color = 'var(--danger)';
-        }
-
-        html += `<td style="text-align: center; font-weight: bold; color: ${color}; font-size: 1.1rem;">${val}</td>`;
+        const cell = getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic);
+        html += `<td style="text-align: center; font-weight: bold; color: ${cell.color}; font-size: 1.1rem;">${cell.val}</td>`;
       });
 
       html += `</tr>`;
@@ -1913,9 +2056,11 @@ async function exportCategoryMatrixToExcel() {
 
     const { students, sessions, attendance } = data;
     const attMap = {};
+    const sessionHasAttendanceMap = {};
     if (attendance) {
       attendance.forEach(a => {
         attMap[`${a.session_id}_${a.student_id}`] = a;
+        sessionHasAttendanceMap[a.session_id] = true;
       });
     }
 
@@ -1936,23 +2081,14 @@ async function exportCategoryMatrixToExcel() {
       sessions.forEach(sess => {
         const colHeader = `${formatDate(sess.session_date)} (${sess.course_title})`;
         const att = attMap[`${sess.id}_${s.id}`];
+        const cell = getMatrixAttendanceCell(sess, s, att, sessionHasAttendanceMap, isAmharic);
 
-        if (att) {
-          if (att.status === 'present') {
-            row[colHeader] = '✓';
-            presentCount++;
-          } else if (att.status === 'absent') {
-            row[colHeader] = '✗';
-            absentCount++;
-          } else if (att.status === 'permission') {
-            row[colHeader] = isAmharic ? 'ፈ' : 'P';
-            permissionCount++;
-          }
-        } else if (isSessionBeforeRegistration(sess.session_date, s.created_at)) {
-          row[colHeader] = '-';
-        } else {
-          row[colHeader] = '✗';
-          absentCount++;
+        row[colHeader] = cell.val;
+
+        if (cell.isCountable) {
+          if (cell.status === 'present') presentCount++;
+          else if (cell.status === 'absent') absentCount++;
+          else if (cell.status === 'permission') permissionCount++;
         }
       });
 
@@ -1960,9 +2096,9 @@ async function exportCategoryMatrixToExcel() {
       row[isAmharic ? 'የቀረበት ብዛት' : 'Total Absent'] = absentCount;
       row[isAmharic ? 'በፈቃድ የቀረ' : 'Total Permission'] = permissionCount;
 
-      const totalApplicableSessions = sessions.filter(sess => !isSessionBeforeRegistration(sess.session_date, s.created_at)).length;
-      const rate = totalApplicableSessions > 0 ? Math.round((presentCount / totalApplicableSessions) * 100) : 0;
-      row[isAmharic ? 'የመገኘት %' : 'Attendance %'] = `${rate}%`;
+      const totalCountable = presentCount + absentCount + permissionCount;
+      const rate = totalCountable > 0 ? `${Math.round((presentCount / totalCountable) * 100)}%` : '-';
+      row[isAmharic ? 'የመገኘት %' : 'Attendance %'] = rate;
 
       return row;
     });
