@@ -1112,6 +1112,97 @@
     </div>
   </div>
 
+  <!-- 3c. MODAL: EDIT SESSION / MANAGE ENCODERS -->
+  <div id="modalEditSession" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="editSessionTitle">ክፍለ-ጊዜ እና መዝጋቢዎችን አስተካክል</h3>
+        <button type="button" class="modal-close" onclick="closeModal('modalEditSession')">&times;</button>
+      </div>
+      <form id="formEditSession" onsubmit="handleEditSessionSubmit(event)">
+        <input type="hidden" id="editSessionId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" data-i18n="courseTitle">የትምህርቱ ርዕስ *</label>
+            <input type="text" id="editSessionCourseTitle" class="form-control" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="sessionDate">ቀን *</label>
+              <input type="date" id="editSessionDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">መጀመሪያ ሰዓት (Start) *</label>
+              <input type="time" id="editSessionStartTime" class="form-control" required oninput="updateEditDualTimePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ማብቂያ ሰዓት (End) *</label>
+              <input type="time" id="editSessionEndTime" class="form-control" required oninput="updateEditDualTimePreview()">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.85rem; color: #1e40af;">
+            <i class="fa-solid fa-clock"></i> <strong>የኢትዮጵያ ሰዓት (Ethiopian Time):</strong>
+            <div id="editDualTimePreview" style="font-weight: 700; font-size: 0.95rem; color: #1e3a8a; margin-top: 2px;">
+              ከጠዋቱ 3:00 - 5:00 ሰዓት
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="category">ምድብ *</label>
+            <select id="editSessionCategory" class="form-control" required>
+              <option value="All" data-i18n="catAll">ለሁሉም (All)</option>
+              <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
+              <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+              <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
+              <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+            </select>
+          </div>
+
+          <!-- Assigned Encoders (Multiple selection) -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label class="form-label" style="margin-bottom: 0;" data-i18n="assignedEncoders">የተመደቡ መዝጋቢዎች (Assigned Encoders)</label>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;" onclick="selectAllEditSessionEncoders(true)" data-i18n="selectAll">ሁሉንም ምረጥ</button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;" onclick="selectAllEditSessionEncoders(false)" data-i18n="clearAll">አጽዳ</button>
+              </div>
+            </div>
+            <div id="editSessionEncodersList" style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #fafafa; display: flex; flex-direction: column; gap: 0.4rem;">
+              <!-- Dynamically populated checkboxes -->
+            </div>
+            <div style="margin-top: 3px; font-size: 0.75rem; color: var(--text-muted);" id="editSessionEncodersCount">0 መዝጋቢ(ዎች) ተመርጠዋል</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="description">ማብራሪያ / ማስታወሻ</label>
+            <textarea id="editSessionDescription" class="form-control" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalEditSession')" data-i18n="cancel">ተመለስ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitEditSession">
+            <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveChanges">ለውጦችን መዝግብ</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 4. MODAL: STUDENT PROFILE & HISTORY -->
   <div id="modalStudentProfile" class="modal-overlay" style="display: none;">
     <div class="modal-content large">

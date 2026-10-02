@@ -469,6 +469,152 @@ router.post('/:id/continue', authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
+// PUT /api/sessions/:id - Update session details and re-assign/add/change encoders (Admin & Super Admin only)
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const {
+    course_title,
+    session_date,
+    session_time,
+    start_time,
+    end_time,
+    category,
+    description,
+    assigned_encoder_ids,
+    assigned_encoder_id
+  } = req.body;
+
+  if (!course_title || !session_date || (!session_time && !start_time) || !category) {
+    return res.status(400).json({
+      message: 'Required fields: course_title, session_date, category, start_time/end_time'
+    });
+  }
+
+  const sDate = session_date.trim();
+  const sCategory = category.trim();
+  let sStart = (start_time || '').trim();
+  let sEnd = (end_time || '').trim();
+  let sTime = (session_time || '').trim();
+
+  // Normalize encoder IDs
+  let encoderIds = [];
+  if (Array.isArray(assigned_encoder_ids)) {
+    encoderIds = assigned_encoder_ids.map(Number).filter(n => !isNaN(n) && n > 0);
+  } else if (assigned_encoder_id) {
+    const parsed = parseInt(assigned_encoder_id, 10);
+    if (!isNaN(parsed) && parsed > 0) encoderIds.push(parsed);
+  }
+  encoderIds = Array.from(new Set(encoderIds));
+  const primaryEncoderId = encoderIds.length > 0 ? encoderIds[0] : null;
+
+  if (!sStart || !sEnd) {
+    const parts = sTime.split('-');
+    if (parts.length === 2) {
+      sStart = parts[0].trim();
+      sEnd = parts[1].trim();
+    } else {
+      sStart = sTime || '09:00';
+      sEnd = sTime || '11:00';
+    }
+  }
+
+  if (sStart.length === 4 && sStart.includes(':')) sStart = '0' + sStart;
+  if (sEnd.length === 4 && sEnd.includes(':')) sEnd = '0' + sEnd;
+
+  if (!sTime) {
+    sTime = `${sStart} - ${sEnd}`;
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [existingSessions] = await conn.query('SELECT * FROM sessions WHERE id = ?', [id]);
+    if (existingSessions.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Check time collision with OTHER sessions (exclude this session id)
+    const [overlap] = await conn.query(`
+      SELECT id, course_title, category, session_time, start_time, end_time FROM sessions 
+      WHERE id != ?
+        AND session_date = ? 
+        AND (category = ? OR category = 'All' OR ? = 'All')
+        AND COALESCE(start_time, session_time) < ? 
+        AND COALESCE(end_time, session_time) > ?
+      LIMIT 1
+    `, [id, sDate, sCategory, sCategory, sEnd, sStart]);
+
+    if (overlap.length > 0) {
+      await conn.rollback();
+      const exTitle = overlap[0].course_title;
+      const exCat = overlap[0].category;
+      const exTime = overlap[0].session_time || `${overlap[0].start_time} - ${overlap[0].end_time}`;
+      return res.status(400).json({
+        message: `Time Overlap Error: Another session for category "${exCat}" already exists on ${sDate} from ${exTime} ("${exTitle}"). Overlapping time slots are not allowed.`
+      });
+    }
+
+    // Update sessions table
+    await conn.query(`
+      UPDATE sessions
+      SET course_title = ?,
+          session_date = ?,
+          session_time = ?,
+          start_time = ?,
+          end_time = ?,
+          category = ?,
+          description = ?,
+          assigned_encoder_id = ?
+      WHERE id = ?
+    `, [
+      course_title.trim(),
+      sDate,
+      sTime,
+      sStart,
+      sEnd,
+      sCategory,
+      (description || '').trim(),
+      primaryEncoderId,
+      id
+    ]);
+
+    // Replace session_encoders
+    await conn.query('DELETE FROM session_encoders WHERE session_id = ?', [id]);
+    for (const encId of encoderIds) {
+      await conn.query(`
+        INSERT INTO session_encoders (session_id, user_id)
+        VALUES (?, ?)
+        ON CONFLICT (session_id, user_id) DO NOTHING
+      `, [id, encId]);
+    }
+
+    await conn.commit();
+
+    const encodersNote = encoderIds.length > 0 ? ` [Assigned ${encoderIds.length} Encoder(s)]` : ' [No Encoders Assigned]';
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'SESSION_UPDATE',
+      details: `Updated session "${course_title.trim()}" (${sCategory}, ${sDate}, ${sTime})${encodersNote}`,
+      req
+    });
+
+    res.json({
+      message: 'Session updated successfully',
+      sessionId: parseInt(id, 10)
+    });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Update session error:', error);
+    res.status(500).json({ message: error.message || 'Error updating session' });
+  } finally {
+    conn.release();
+  }
+});
+
 // DELETE /api/sessions/:id - Delete session (Admin & Super Admin only; cannot delete if session has attendance unless Super Admin)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;

@@ -512,7 +512,13 @@ async function loadSessions() {
       }
 
       let continueBtnHtml = '';
+      let editBtnHtml = '';
       if (isAdmin) {
+        editBtnHtml = `
+          <button class="btn btn-outline btn-sm" style="color: #0284c7; border-color: #bae6fd;" onclick="openEditSessionModal(${s.id})" title="${t('editSession') || 'Edit Session / Manage Encoders'}">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+        `;
         continueBtnHtml = `
           <button class="btn btn-outline btn-sm" style="color: var(--primary); border-color: #93c5fd;" onclick="openContinueSessionModal(${s.id})" title="${t('continueSession')}">
             <i class="fa-solid fa-copy"></i>
@@ -543,6 +549,7 @@ async function loadSessions() {
               <button class="btn ${isFuture ? 'btn-outline' : 'btn-primary'} btn-sm" onclick="openAttendanceModal(${s.id})">
                 <i class="fa-solid ${isFuture ? 'fa-calendar-day' : 'fa-clipboard-user'}"></i> ${isFuture ? t('upcomingSession') : t('takeAttendance')}
               </button>
+              ${editBtnHtml}
               ${continueBtnHtml}
               ${deleteBtnHtml}
             </div>
@@ -578,6 +585,7 @@ async function loadSessions() {
               <button class="btn ${isFuture ? 'btn-outline' : 'btn-primary'} btn-sm" style="flex: 1; justify-content: center;" onclick="openAttendanceModal(${s.id})">
                 <i class="fa-solid ${isFuture ? 'fa-calendar-day' : 'fa-clipboard-user'}"></i> ${isFuture ? t('upcomingSession') : t('takeAttendance')}
               </button>
+              ${editBtnHtml}
               ${continueBtnHtml}
               ${deleteBtnHtml}
             </div>
@@ -648,6 +656,13 @@ function selectAllContinueEncoders(selectAll) {
   if (!container) return;
   container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAll);
   updateEncoderSelectedCount('continueEncodersList', 'continueEncodersCount');
+}
+
+function selectAllEditSessionEncoders(selectAll) {
+  const container = document.getElementById('editSessionEncodersList');
+  if (!container) return;
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAll);
+  updateEncoderSelectedCount('editSessionEncodersList', 'editSessionEncodersCount');
 }
 
 function getSelectedEncoderIds(containerId) {
@@ -1007,6 +1022,98 @@ async function handleContinueSessionSubmit(e) {
     });
     closeModal('modalContinueSession');
     showToast(res.message || 'Session continued successfully!', 'success');
+    loadSessions();
+  } catch (err) { }
+}
+
+// Edit Session Modal & Encoders Assignment
+function updateEditDualTimePreview() {
+  const start = document.getElementById('editSessionStartTime')?.value || '';
+  const end = document.getElementById('editSessionEndTime')?.value || '';
+  const preview = document.getElementById('editDualTimePreview');
+  if (preview) {
+    preview.textContent = getDualTimeDisplay('', start, end);
+  }
+}
+
+async function openEditSessionModal(sessionId) {
+  try {
+    const session = await api(`/api/sessions/${sessionId}`);
+    if (!session) return;
+
+    document.getElementById('editSessionId').value = session.id;
+    document.getElementById('editSessionCourseTitle').value = session.course_title || '';
+
+    const sessDateStr = session.session_date ? session.session_date.split('T')[0] : '';
+    document.getElementById('editSessionDate').value = sessDateStr;
+
+    // Normalize start/end times
+    let startTime = session.start_time || '';
+    let endTime = session.end_time || '';
+    if (!startTime || !endTime) {
+      if (session.session_time && session.session_time.includes('-')) {
+        const parts = session.session_time.split('-');
+        startTime = parts[0].trim();
+        endTime = parts[1].trim();
+      } else {
+        startTime = '09:00';
+        endTime = '11:00';
+      }
+    }
+    if (startTime.length === 4 && startTime.includes(':')) startTime = '0' + startTime;
+    if (endTime.length === 4 && endTime.includes(':')) endTime = '0' + endTime;
+
+    document.getElementById('editSessionStartTime').value = startTime;
+    document.getElementById('editSessionEndTime').value = endTime;
+    document.getElementById('editSessionCategory').value = session.category || 'Youth';
+    document.getElementById('editSessionDescription').value = session.description || '';
+
+    updateEditDualTimePreview();
+
+    await fetchEncodersList();
+
+    // Determine pre-selected encoders
+    let preselectedIds = [];
+    if (Array.isArray(session.assigned_encoders) && session.assigned_encoders.length > 0) {
+      preselectedIds = session.assigned_encoders.map(e => e.id);
+    } else if (session.assigned_encoder_id) {
+      preselectedIds = [session.assigned_encoder_id];
+    }
+
+    renderEncoderChecklist('editSessionEncodersList', 'editSessionEncodersCount', preselectedIds);
+
+    openModal('modalEditSession');
+  } catch (err) {
+    console.error('Failed to open edit session modal:', err);
+  }
+}
+
+async function handleEditSessionSubmit(e) {
+  e.preventDefault();
+  const sessionId = document.getElementById('editSessionId').value;
+  const startTime = document.getElementById('editSessionStartTime').value;
+  const endTime = document.getElementById('editSessionEndTime').value;
+  const dualTimeStr = getDualTimeDisplay('', startTime, endTime);
+  const assignedEncoderIds = getSelectedEncoderIds('editSessionEncodersList');
+
+  const body = {
+    course_title: document.getElementById('editSessionCourseTitle').value,
+    session_date: document.getElementById('editSessionDate').value,
+    start_time: startTime,
+    end_time: endTime,
+    session_time: dualTimeStr,
+    category: document.getElementById('editSessionCategory').value,
+    description: document.getElementById('editSessionDescription').value,
+    assigned_encoder_ids: assignedEncoderIds
+  };
+
+  try {
+    const res = await api(`/api/sessions/${sessionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    });
+    closeModal('modalEditSession');
+    showToast(res.message || t('sessionUpdatedSuccess') || 'Session updated successfully!', 'success');
     loadSessions();
   } catch (err) { }
 }

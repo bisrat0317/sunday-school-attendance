@@ -126,6 +126,10 @@ const translations = {
     addDate: "+ Add Date",
     duplicateSession: "Duplicate Session",
     sessionsCreated: "Session(s) created successfully!",
+    editSession: "Edit Session / Manage Encoders",
+    editSessionTitle: "Edit Session & Manage Encoders",
+    sessionUpdatedSuccess: "Session updated successfully!",
+    saveChanges: "Save Changes",
 
     // Students
     studentsTitle: "Sunday School Students",
@@ -252,6 +256,7 @@ const translations = {
     actionBulkImport: "Bulk Import",
     actionAttendanceSave: "Attendance Recorded",
     actionSessionCreate: "Session Created",
+    actionSessionUpdate: "Session Updated",
     actionSessionDelete: "Session Deleted",
     actionUserCreate: "User Created",
     actionUserDelete: "User Deleted",
@@ -406,6 +411,10 @@ const translations = {
     addDate: "+ ቀን ጨምር",
     duplicateSession: "ክፍለ-ጊዜ ቅዳ",
     sessionsCreated: "ክፍለ-ጊዜ(ያት) በተሳካ ሁኔታ ተፈጥረዋል!",
+    editSession: "ክፍለ-ጊዜ እና መዝጋቢዎችን አስተካክል",
+    editSessionTitle: "ክፍለ-ጊዜ እና መዝጋቢዎችን አስተካክል",
+    sessionUpdatedSuccess: "ክፍለ-ጊዜው በተሳካ ሁኔታ ተሻሽሏል!",
+    saveChanges: "ለውጦችን መዝግብ",
 
     // Students
     studentsTitle: "የሰንበት ት/ቤት ተማሪዎች",
@@ -532,6 +541,7 @@ const translations = {
     actionBulkImport: "በጅምላ ገባ",
     actionAttendanceSave: "መገኘት ተመዘገበ",
     actionSessionCreate: "ክፍለ-ጊዜ ተፈጠረ",
+    actionSessionUpdate: "ክፍለ-ጊዜ ተሻሻለ",
     actionSessionDelete: "ክፍለ-ጊዜ ተሰረዘ",
     actionUserCreate: "ተጠቃሚ ተፈጠረ",
     actionUserDelete: "ተጠቃሚ ተሰረዘ",
