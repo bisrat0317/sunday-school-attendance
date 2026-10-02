@@ -78,7 +78,7 @@
           <div class="nav-icon-bubble"><i class="fa-solid fa-users-gear"></i></div>
           <span data-i18n="navUsers">ተጠቃሚዎች</span>
         </button>
-        <button class="drawer-nav-item admin-only" id="drawerTabAuditLogs" onclick="switchTab('auditLogs')">
+        <button class="drawer-nav-item super-admin-only" id="drawerTabAuditLogs" onclick="switchTab('auditLogs')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-clock-rotate-left"></i></div>
           <span data-i18n="navAuditLogs">የእንቅስቃሴ መዝገብ</span>
         </button>
@@ -164,7 +164,7 @@
       <button class="nav-tab super-admin-only" id="tabBtnUsers" onclick="switchTab('users')">
         <i class="fa-solid fa-users-gear"></i> <span data-i18n="navUsers">ተጠቃሚዎች</span>
       </button>
-      <button class="nav-tab admin-only" id="tabBtnAuditLogs" onclick="switchTab('auditLogs')">
+      <button class="nav-tab super-admin-only" id="tabBtnAuditLogs" onclick="switchTab('auditLogs')">
         <i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="navAuditLogs">የእንቅስቃሴ መዝገብ</span>
       </button>
     </div>
@@ -272,7 +272,7 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="sessionsTitle">የትምህርት ክፍለ-ጊዜያት</span></h3>
-            <button class="btn btn-primary" onclick="openCreateSessionModal()">
+            <button class="btn btn-primary admin-only" onclick="openCreateSessionModal()">
               <i class="fa-solid fa-plus"></i> <span data-i18n="createSession">+ አዲስ ክፍለ-ጊዜ ፍጠር</span>
             </button>
           </div>
@@ -615,8 +615,8 @@
         </div>
       </section>
 
-      <!-- TAB: AUDIT TRAIL / ACTIVITY LOGS (Admin Only) -->
-      <section id="tabAuditLogs" class="tab-pane admin-only" style="display: none;">
+      <!-- TAB: AUDIT TRAIL / ACTIVITY LOGS (Super Admin Only) -->
+      <section id="tabAuditLogs" class="tab-pane super-admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
             <div>
@@ -936,6 +936,13 @@
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="assignedEncoder">የተመደበው መዝጋቢ (Assigned Encoder)</label>
+            <select id="sessionAssignedEncoder" class="form-control">
+              <option value="" data-i18n="selectEncoderOptional">-- መዝጋቢ ምረጥ (አማራጭ) / Select Encoder --</option>
             </select>
           </div>
 

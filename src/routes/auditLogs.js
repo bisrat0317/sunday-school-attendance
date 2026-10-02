@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
 
-// GET /api/audit-logs - List audit logs with filters and pagination (Admin and Super Admin only)
-router.get('/', authenticateToken, requireAdmin, async (req, res) => {
+// GET /api/audit-logs - List audit logs with filters and pagination (Super Admin only)
+router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { action, search, limit, page } = req.query;
 
   try {

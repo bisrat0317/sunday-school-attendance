@@ -12,6 +12,7 @@ router.get('/', authenticateToken, async (req, res) => {
     let baseQuery = `
       FROM sessions s
       LEFT JOIN users u ON s.created_by = u.id
+      LEFT JOIN users enc ON s.assigned_encoder_id = enc.id
       LEFT JOIN (
         SELECT 
           session_id,
@@ -25,6 +26,12 @@ router.get('/', authenticateToken, async (req, res) => {
       WHERE 1=1
     `;
     const params = [];
+
+    // If encoder, only show sessions assigned to this encoder (or unassigned/created by encoder)
+    if (req.user.role === 'encoder') {
+      baseQuery += " AND (s.assigned_encoder_id = ? OR (s.assigned_encoder_id IS NULL AND s.created_by = ?))";
+      params.push(req.user.id, req.user.id);
+    }
 
     if (category && category !== 'All') {
       baseQuery += " AND (s.category = ? OR s.category = 'All')";
@@ -41,6 +48,9 @@ router.get('/', authenticateToken, async (req, res) => {
         s.end_time,
         s.category,
         s.description,
+        s.assigned_encoder_id,
+        enc.full_name AS assigned_encoder_name,
+        enc.username AS assigned_encoder_username,
         COALESCE(s.attendance_status, CASE WHEN COALESCE(att.total_marked, 0) > 0 THEN 'finalized' ELSE 'unrecorded' END) AS attendance_status,
         s.created_by,
         s.created_at,
@@ -87,9 +97,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
   try {
     const [sessions] = await pool.query(`
-      SELECT s.*, u.full_name AS created_by_name
+      SELECT s.*, u.full_name AS created_by_name, enc.full_name AS assigned_encoder_name
       FROM sessions s
       LEFT JOIN users u ON s.created_by = u.id
+      LEFT JOIN users enc ON s.assigned_encoder_id = enc.id
       WHERE s.id = ?
     `, [id]);
 
@@ -97,16 +108,23 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    res.json(sessions[0]);
+    const session = sessions[0];
+    if (req.user.role === 'encoder') {
+      if (session.assigned_encoder_id && session.assigned_encoder_id !== req.user.id) {
+        return res.status(403).json({ message: 'Access denied. You are not assigned to this session.' });
+      }
+    }
+
+    res.json(session);
   } catch (error) {
     console.error('Fetch single session error:', error);
     res.status(500).json({ message: 'Error retrieving session' });
   }
 });
 
-// POST /api/sessions - Create new session (Encoder & Admin)
-router.post('/', authenticateToken, async (req, res) => {
-  const { course_title, session_date, session_time, start_time, end_time, category, description } = req.body;
+// POST /api/sessions - Create new session (Admin & Super Admin only)
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
+  const { course_title, session_date, session_time, start_time, end_time, category, description, assigned_encoder_id } = req.body;
 
   if (!course_title || !session_date || (!session_time && !start_time) || !category) {
     return res.status(400).json({ 
@@ -119,6 +137,7 @@ router.post('/', authenticateToken, async (req, res) => {
   let sStart = (start_time || '').trim();
   let sEnd = (end_time || '').trim();
   let sTime = (session_time || '').trim();
+  const assignedEncoder = assigned_encoder_id ? parseInt(assigned_encoder_id, 10) : null;
 
   if (!sStart || !sEnd) {
     const parts = sTime.split('-');
@@ -161,8 +180,8 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     const [result] = await pool.query(`
-      INSERT INTO sessions (course_title, session_date, session_time, start_time, end_time, category, description, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+      INSERT INTO sessions (course_title, session_date, session_time, start_time, end_time, category, description, assigned_encoder_id, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `, [
       course_title.trim(),
       sDate,
@@ -171,6 +190,7 @@ router.post('/', authenticateToken, async (req, res) => {
       sEnd,
       sCategory,
       (description || '').trim(),
+      assignedEncoder,
       req.user.id
     ]);
 
@@ -178,7 +198,7 @@ router.post('/', authenticateToken, async (req, res) => {
       userId: req.user.id,
       username: req.user.username,
       action: 'SESSION_CREATE',
-      details: `Created session "${course_title.trim()}" for ${sCategory} on ${sDate} (${sTime})`,
+      details: `Created session "${course_title.trim()}" for ${sCategory} on ${sDate} (${sTime})${assignedEncoder ? ` [Assigned Encoder ID: ${assignedEncoder}]` : ''}`,
       req
     });
 
@@ -192,7 +212,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/sessions/:id - Delete session (Admin & Super Admin only; only Super Admin can delete if session has attendance)
+// DELETE /api/sessions/:id - Delete session (Admin & Super Admin only; cannot delete if session has attendance unless Super Admin)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
@@ -208,7 +228,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     if (attCount > 0 && req.user.role !== 'super_admin') {
       return res.status(403).json({ 
-        message: 'This session has recorded attendance data. Only Super Admin has permission to delete sessions containing attendance records.' 
+        message: 'This session has recorded attendance data and cannot be deleted.' 
       });
     }
 

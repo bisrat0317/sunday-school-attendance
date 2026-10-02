@@ -258,10 +258,10 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'auditLogs') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive') && !isAdmin) {
     tabName = 'sessions';
   }
-  if (tabName === 'users' && !isSuperAdmin) {
+  if ((tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
     tabName = 'sessions';
   }
 
@@ -292,7 +292,7 @@ function switchTab(tabName) {
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
   if (tabName === 'users' && isSuperAdmin) loadUsers();
-  if (tabName === 'auditLogs' && isAdmin) loadAuditLogs();
+  if (tabName === 'auditLogs' && isSuperAdmin) loadAuditLogs();
 }
 
 function refreshActiveTabData() {
@@ -478,6 +478,19 @@ async function loadSessions() {
         statusBadgeHtml = `<span class="tag" style="background:#dcfce7; color:#166534; border:1px solid #bbf7d0; font-size:0.72rem; padding:0.15rem 0.45rem;" title="${t('statusFinalized')}"><i class="fa-solid fa-circle-check"></i> ${t('finalizedBadge')}</span>`;
       }
 
+      let encoderBadgeHtml = '';
+      if (isAdmin) {
+        if (s.assigned_encoder_name) {
+          encoderBadgeHtml = `<div style="font-size: 0.76rem; color: #475569; margin-top: 3px;"><i class="fa-solid fa-user-pen" style="color: var(--primary);"></i> ${t('assignedTo') || 'Assigned to:'} <strong>${escapeHtml(s.assigned_encoder_name)}</strong></div>`;
+        } else {
+          encoderBadgeHtml = `<div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 3px;"><i class="fa-solid fa-user-slash"></i> <em>${t('unassigned') || 'Unassigned'}</em></div>`;
+        }
+      } else if (currentUser.role === 'encoder') {
+        if (s.assigned_encoder_id === currentUser.id) {
+          encoderBadgeHtml = `<span class="tag" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:0.72rem; padding:0.15rem 0.45rem;"><i class="fa-solid fa-user-check"></i> ${t('assignedToYou') || 'Assigned to You'}</span>`;
+        }
+      }
+
       let deleteBtnHtml = '';
       if (canDelete) {
         deleteBtnHtml = `
@@ -499,7 +512,9 @@ async function loadSessions() {
           <td>
             <strong>${escapeHtml(s.course_title)}</strong>
             ${statusBadgeHtml ? `<span style="margin-left: 0.4rem;">${statusBadgeHtml}</span>` : ''}
+            ${currentUser.role === 'encoder' && encoderBadgeHtml ? `<span style="margin-left: 0.4rem;">${encoderBadgeHtml}</span>` : ''}
             ${s.description ? `<br><small style="color: var(--text-muted);">${escapeHtml(s.description)}</small>` : ''}
+            ${isAdmin && encoderBadgeHtml ? encoderBadgeHtml : ''}
           </td>
           <td>${formatDate(s.session_date)}</td>
           <td><strong style="color: var(--primary);">${escapeHtml(dualTime)}</strong></td>
@@ -528,9 +543,11 @@ async function loadSessions() {
               <div>
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--primary);">${escapeHtml(s.course_title)}</h4>
                 <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | <strong style="color: var(--primary);">${escapeHtml(dualTime)}</strong></p>
+                ${isAdmin && encoderBadgeHtml ? encoderBadgeHtml : ''}
               </div>
-              <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
                 ${statusBadgeHtml}
+                ${currentUser.role === 'encoder' && encoderBadgeHtml ? encoderBadgeHtml : ''}
                 <span class="tag tag-category">${escapeHtml(s.category)}</span>
               </div>
             </div>
@@ -555,12 +572,28 @@ async function loadSessions() {
   } catch (err) { }
 }
 
-function openCreateSessionModal() {
+async function openCreateSessionModal() {
   document.getElementById('formSession').reset();
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('sessionStartTime').value = '09:00';
   document.getElementById('sessionEndTime').value = '11:00';
   updateDualTimePreview();
+
+  const encSelect = document.getElementById('sessionAssignedEncoder');
+  if (encSelect) {
+    encSelect.innerHTML = `<option value="">${t('selectEncoderOptional') || '-- መዝጋቢ ምረጥ (አማራጭ) / Select Encoder --'}</option>`;
+    try {
+      const encoders = await api('/api/users/encoders');
+      if (Array.isArray(encoders)) {
+        encoders.forEach(enc => {
+          encSelect.innerHTML += `<option value="${enc.id}">${escapeHtml(enc.full_name)} (@${escapeHtml(enc.username)})</option>`;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load encoders for assignment:', err);
+    }
+  }
+
   openModal('modalSession');
 }
 
@@ -569,6 +602,7 @@ async function handleCreateSession(e) {
   const startTime = document.getElementById('sessionStartTime').value;
   const endTime = document.getElementById('sessionEndTime').value;
   const dualTimeStr = getDualTimeDisplay('', startTime, endTime);
+  const assignedEncoderId = document.getElementById('sessionAssignedEncoder')?.value || null;
 
   const body = {
     course_title: document.getElementById('sessionCourseTitle').value,
@@ -577,7 +611,8 @@ async function handleCreateSession(e) {
     end_time: endTime,
     session_time: dualTimeStr,
     category: document.getElementById('sessionCategory').value,
-    description: document.getElementById('sessionDescription').value
+    description: document.getElementById('sessionDescription').value,
+    assigned_encoder_id: assignedEncoderId ? parseInt(assignedEncoderId, 10) : null
   };
 
   try {
@@ -1856,7 +1891,7 @@ let parsedImportStudents = [];
 
 function openImportModal() {
   if (!currentUser || currentUser.role !== 'super_admin') {
-    showToast(t('superAdminOnly') || 'Super Admin access required for bulk import', 'danger');
+    showToast(t('superAdminOnly') || 'Administrator access required for bulk import', 'danger');
     return;
   }
 

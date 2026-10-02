@@ -2,8 +2,21 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
-const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const { logActivity } = require('../utils/auditLogger');
+
+// GET /api/users/encoders - List encoder accounts for assigning sessions (Admin and Super Admin only)
+router.get('/encoders', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [encoders] = await pool.query(
+      "SELECT id, username, full_name FROM users WHERE role = 'encoder' ORDER BY full_name ASC, username ASC"
+    );
+    res.json(encoders);
+  } catch (error) {
+    console.error('Fetch encoders error:', error);
+    res.status(500).json({ message: 'Error retrieving encoders' });
+  }
+});
 
 // GET /api/users - List system users (Super Admin only)
 router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {

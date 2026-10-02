@@ -16,6 +16,13 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
     }
     const session = sessions[0];
 
+    // Check encoder assignment
+    if (req.user.role === 'encoder') {
+      if (session.assigned_encoder_id && session.assigned_encoder_id !== req.user.id) {
+        return res.status(403).json({ message: 'Access denied. You are not assigned to this session.' });
+      }
+    }
+
     // 2. Fetch all active students belonging to this category (or all active students if session.category === 'All')
     // Also join other sessions held on the same session_date where the student was marked present or permission
     let studentQuery = `
@@ -110,6 +117,13 @@ router.post('/session/:sessionId', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
     const session = sessions[0];
+
+    // Check encoder assignment
+    if (req.user.role === 'encoder') {
+      if (session.assigned_encoder_id && session.assigned_encoder_id !== req.user.id) {
+        return res.status(403).json({ message: 'Access denied. You are not assigned to this session.' });
+      }
+    }
 
     // 2. Validate session date: Cannot take attendance for future sessions
     const todayStr = new Date().toISOString().split('T')[0];

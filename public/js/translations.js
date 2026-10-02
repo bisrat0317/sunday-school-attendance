@@ -79,7 +79,7 @@ const translations = {
     studentAlreadyInSheet: "This student is already in the attendance sheet.",
     crossCategoryAdded: "Cross-category student added to sheet!",
     noMatchingStudentsFound: "No matching students found in other categories.",
-    upcomingSession: "Upcoming / Future Session (Not yet held)",
+    upcomingSession: "Upcoming",
     attendedInOtherClass: "Attended in Other Class",
     attendedInOtherClassDetail: "Attended in",
     learnInOtherClassNotice: "This student is attending/learning in another class session on this date",
@@ -93,11 +93,16 @@ const translations = {
     statusFinalized: "Finalized",
     attendanceLockedNotice: "Attendance for this session is finalized and locked for encoders. Contact an Administrator to make changes.",
     futureSessionAttendanceBlocked: "Attendance cannot be recorded before the session date (Future Session).",
-    superAdminOnlyDeleteAttendance: "Only Super Admin can delete a session that has attendance records.",
-    onlySuperAdminDeleteAlert: "This session has attendance records. Only Super Admin can delete it.",
+    superAdminOnlyDeleteAttendance: "This session has recorded attendance data and cannot be deleted.",
+    onlySuperAdminDeleteAlert: "This session has recorded attendance data and cannot be deleted.",
     draftBadge: "Draft",
     finalizedBadge: "Finalized",
     upcomingBadge: "Upcoming",
+    assignedEncoder: "Assigned Encoder",
+    selectEncoderOptional: "-- Select Encoder (Optional) --",
+    assignedToYou: "Assigned to You",
+    assignedTo: "Assigned to",
+    unassigned: "Unassigned",
 
     // Students
     studentsTitle: "Sunday School Students",
@@ -191,7 +196,7 @@ const translations = {
     importErrors: "Import Notes / Skipped Rows",
     incompleteProfile: "Incomplete Info",
     missingFields: "Missing",
-    superAdminOnly: "Only Super Admin can perform bulk import.",
+    superAdminOnly: "Only Administrators can perform bulk import.",
     templateFilterNote: "Notice: Sample rows containing 'Test' in the template will be automatically skipped and not imported.",
 
     // Password Management
@@ -331,7 +336,7 @@ const translations = {
     studentAlreadyInSheet: "ተማሪው ቀድሞውኑ በመዝገቡ ላይ ይገኛል።",
     crossCategoryAdded: "ተማሪው በመገኘት መዝገቡ ላይ በተሳካ ሁኔታ ተጨምሯል!",
     noMatchingStudentsFound: "በሌሎች ምድቦች የሚዛመድ ተማሪ አልተገኘም።",
-    upcomingSession: "የወደፊት / ያልተካሄደ ክፍለ-ጊዜ",
+    upcomingSession: "የወደፊት",
     attendedInOtherClass: "በሌላ ክፍል ተምሯል",
     attendedInOtherClassDetail: "የተማረበት ክፍል፡",
     learnInOtherClassNotice: "ተማሪው በዚህ ቀን በሌላ ክፍል ተገኝቶ ተምሯል",
@@ -345,11 +350,16 @@ const translations = {
     statusFinalized: "የጸደቀ (የተቆለፈ)",
     attendanceLockedNotice: "ይህ መገኘት የጸደቀ እና ለመዝጋቢ የተቆለፈ ነው። ማስተካከያ ለማድረግ አስተዳዳሪን ያነጋግሩ።",
     futureSessionAttendanceBlocked: "የወደፊት ክፍለ-ጊዜ መገኘት መመዝገብ አይቻልም (ቀኑ ሲደርስ ይከፈታል)።",
-    superAdminOnlyDeleteAttendance: "መገኘት የተመዘገበበትን ክፍለ-ጊዜ መሰረዝ የሚችሉት ዋና አስተዳዳሪ (Super Admin) ብቻ ናቸው።",
-    onlySuperAdminDeleteAlert: "ይህ ክፍለ-ጊዜ መገኘት ተመዝግቦበታል። መሰረዝ የሚችሉት ዋና አስተዳዳሪ (Super Admin) ብቻ ናቸው።",
+    superAdminOnlyDeleteAttendance: "ይህ ክፍለ-ጊዜ መገኘት የተመዘገበበት በመሆኑ መሰረዝ አይቻልም።",
+    onlySuperAdminDeleteAlert: "ይህ ክፍለ-ጊዜ መገኘት የተመዘገበበት በመሆኑ መሰረዝ አይቻልም።",
     draftBadge: "ረቂቅ",
     finalizedBadge: "የጸደቀ",
     upcomingBadge: "የወደፊት",
+    assignedEncoder: "የተመደበው መዝጋቢ",
+    selectEncoderOptional: "-- መዝጋቢ ምረጥ (አማራጭ) --",
+    assignedToYou: "ለእርስዎ የተመደበ",
+    assignedTo: "የተመደበለት፡",
+    unassigned: "ያልተመደበ",
 
     // Students
     studentsTitle: "የሰንበት ት/ቤት ተማሪዎች",
@@ -443,7 +453,7 @@ const translations = {
     importErrors: "ያልገቡ ወይም ስህተት የተገኘባቸው ተማሪዎች",
     incompleteProfile: "ያልተሟላ መረጃ",
     missingFields: "የጎደሉ",
-    superAdminOnly: "በጅምላ ማስገባት የሚችሉት ዋና አስተዳዳሪ (Super Admin) ብቻ ናቸው።",
+    superAdminOnly: "በጅምላ ማስገባት የሚችሉት አስተዳዳሪዎች ብቻ ናቸው።",
     templateFilterNote: "ማሳሰቢያ፡ በቅጹ ላይ 'Test' ተብለው የተሞሉ የሙከራ ረድፎች ወደ ሲስተሙ አይገቡም።",
 
     // Password Management
