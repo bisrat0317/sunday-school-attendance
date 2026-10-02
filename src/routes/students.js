@@ -23,8 +23,8 @@ router.get('/', authenticateToken, async (req, res) => {
 
     if (search && search.trim() !== '') {
       const searchTerm = `%${search.trim()}%`;
-      whereClause += ' AND (s.first_name ILIKE ? OR s.father_name ILIKE ? OR s.mother_name ILIKE ? OR s.phone LIKE ? OR s.emergency_contact LIKE ?)';
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+      whereClause += ' AND (s.first_name ILIKE ? OR s.father_name ILIKE ? OR s.mother_name ILIKE ? OR s.christian_name ILIKE ? OR s.phone LIKE ? OR s.emergency_contact LIKE ?)';
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     let query = `
@@ -112,6 +112,7 @@ router.post('/', authenticateToken, async (req, res) => {
     first_name,
     father_name,
     mother_name,
+    christian_name,
     age,
     phone,
     emergency_contact,
@@ -129,13 +130,14 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     const [result] = await pool.query(`
       INSERT INTO students (
-        first_name, father_name, mother_name, age, phone, 
+        first_name, father_name, mother_name, christian_name, age, phone, 
         emergency_contact, profession, previous_service, category, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') RETURNING id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') RETURNING id
     `, [
       first_name.trim(),
       father_name.trim(),
       mother_name.trim(),
+      (christian_name || '').trim(),
       parseInt(age, 10) || 0,
       phone.trim(),
       (emergency_contact || '').trim(),
@@ -154,6 +156,79 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/students/bulk-import - Bulk import students (Excel/CSV)
+router.post('/bulk-import', authenticateToken, async (req, res) => {
+  const { students } = req.body;
+
+  if (!students || !Array.isArray(students) || students.length === 0) {
+    return res.status(400).json({ message: 'A non-empty array of students is required' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    let importedCount = 0;
+    const errors = [];
+
+    const insertSql = `
+      INSERT INTO students (
+        first_name, father_name, mother_name, christian_name, age, phone, 
+        emergency_contact, profession, previous_service, category, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    for (let i = 0; i < students.length; i++) {
+      const s = students[i];
+      const firstName = (s.first_name || '').trim();
+      const fatherName = (s.father_name || '').trim();
+      const motherName = (s.mother_name || '').trim();
+      const christianName = (s.christian_name || '').trim();
+      const phone = (s.phone || '').trim();
+      const category = (s.category || 'Youth').trim();
+      const age = parseInt(s.age, 10) || 0;
+      const emergency = (s.emergency_contact || '').trim();
+      const profession = (s.profession || '').trim();
+      const prevService = (s.previous_service || '').trim();
+      const status = s.status === 'inactive' ? 'inactive' : 'active';
+
+      if (!firstName || !fatherName || !phone) {
+        errors.push(`Row #${i + 1} (${firstName || 'Unknown'}): First Name, Father Name, and Phone are required.`);
+        continue;
+      }
+
+      await conn.query(insertSql, [
+        firstName,
+        fatherName,
+        motherName || '-',
+        christianName,
+        age,
+        phone,
+        emergency,
+        profession,
+        prevService,
+        category,
+        status
+      ]);
+      importedCount++;
+    }
+
+    await conn.commit();
+
+    res.json({
+      message: `Successfully imported ${importedCount} student(s).`,
+      importedCount,
+      errors
+    });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Bulk import error:', error);
+    res.status(500).json({ message: `Error during bulk import: ${error.message}` });
+  } finally {
+    conn.release();
+  }
+});
+
 // PUT /api/students/:id - Update student information
 router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
@@ -161,6 +236,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     first_name,
     father_name,
     mother_name,
+    christian_name,
     age,
     phone,
     emergency_contact,
@@ -173,13 +249,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
   try {
     await pool.query(`
       UPDATE students SET 
-        first_name = ?, father_name = ?, mother_name = ?, age = ?, phone = ?,
+        first_name = ?, father_name = ?, mother_name = ?, christian_name = ?, age = ?, phone = ?,
         emergency_contact = ?, profession = ?, previous_service = ?, category = ?, status = ?
       WHERE id = ?
     `, [
       first_name,
       father_name,
       mother_name,
+      christian_name || '',
       parseInt(age, 10) || 0,
       phone,
       emergency_contact || '',

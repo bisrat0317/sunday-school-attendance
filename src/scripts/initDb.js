@@ -32,6 +32,7 @@ async function initDatabase() {
         first_name VARCHAR(100) NOT NULL,
         father_name VARCHAR(100) NOT NULL,
         mother_name VARCHAR(100) NOT NULL,
+        christian_name VARCHAR(100) DEFAULT '',
         age INT NOT NULL,
         phone VARCHAR(25) NOT NULL,
         emergency_contact VARCHAR(50) DEFAULT '',
@@ -42,6 +43,12 @@ async function initDatabase() {
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    try {
+      await pool.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS christian_name VARCHAR(100) DEFAULT '';`);
+    } catch (err) {
+      console.log('Students christian_name column migration notice:', err.message);
+    }
 
     // 3. Sessions Table
     await pool.query(`

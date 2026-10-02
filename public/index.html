@@ -267,6 +267,18 @@
             <select id="filterSessionCategory" class="form-control" style="max-width: 250px;" onchange="loadSessions()">
               <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
               <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
@@ -306,6 +318,9 @@
             <h3 class="card-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="studentsTitle">የሰንበት ት/ቤት
                 ተማሪዎች</span></h3>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" onclick="openImportModal()">
+                <i class="fa-solid fa-file-import"></i> <span data-i18n="importExcel">በ-Excel አስገባ (Import)</span>
+              </button>
               <button class="btn btn-success admin-only" onclick="exportStudentsToExcel()">
                 <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportStudentsList">የተማሪዎች መረጃ በ-Excel
                   አውርድ</span>
@@ -325,6 +340,18 @@
               onchange="loadStudents()">
               <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
               <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
@@ -462,6 +489,18 @@
             <select id="filterCategoryMatrixCategory" class="form-control" style="max-width: 250px;" onchange="loadCategoryMatrix()">
               <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
               <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
               <option value="All" data-i18n="catAll">ለሁሉም (All)</option>
@@ -535,7 +574,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 id="modalStudentTitle" data-i18n="registerStudent">አዲስ ተማሪ መዝግብ</h3>
-        <button class="modal-close" onclick="closeModal('modalStudent')">&times;</button>
+        <button type="button" class="modal-close" onclick="closeModal('modalStudent')">&times;</button>
       </div>
       <form id="formStudent" onsubmit="handleSaveStudent(event)">
         <div class="modal-body">
@@ -558,20 +597,25 @@
               <input type="text" id="studentMotherName" class="form-control" required placeholder="ማርታ">
             </div>
             <div class="form-group">
-              <label class="form-label" data-i18n="age">ዕድሜ *</label>
-              <input type="number" id="studentAge" class="form-control" required min="1" max="100" placeholder="18">
+              <label class="form-label" data-i18n="christianName">የክርስትና ስም</label>
+              <input type="text" id="studentChristianName" class="form-control" placeholder="ገብረ ሥላሴ / ወለተ ማርያም">
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
+              <label class="form-label" data-i18n="age">ዕድሜ *</label>
+              <input type="number" id="studentAge" class="form-control" required min="1" max="100" placeholder="18">
+            </div>
+            <div class="form-group">
               <label class="form-label" data-i18n="phone">ስልክ ቁጥር *</label>
               <input type="tel" id="studentPhone" class="form-control" required placeholder="0911223344">
             </div>
-            <div class="form-group">
-              <label class="form-label" data-i18n="emergencyContact">የአደጋ ጊዜ / አማራጭ ስልክ</label>
-              <input type="tel" id="studentEmergency" class="form-control" placeholder="0922334455 (የወላጅ)">
-            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="emergencyContact">የአደጋ ጊዜ / አማራጭ ስልክ</label>
+            <input type="tel" id="studentEmergency" class="form-control" placeholder="0922334455 (የወላጅ)">
           </div>
 
           <div class="form-row">
@@ -579,15 +623,57 @@
               <label class="form-label" data-i18n="category">ምድብ *</label>
               <select id="studentCategory" class="form-control" required>
                 <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+                <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+                <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+                <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+                <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+                <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+                <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+                <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+                <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+                <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+                <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+                <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+                <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
                 <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
                 <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
                 <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" data-i18n="profession">ሙያ / የትምህርት ደረጃ</label>
-              <input type="text" id="studentProfession" class="form-control" placeholder="ተማሪ / መምህር / ሠራተኛ">
+              <label class="form-label" data-i18n="profession">ሙያ / ሁኔታ</label>
+              <select id="studentProfessionType" class="form-control" onchange="toggleProfessionDetails()">
+                <option value="Student" data-i18n="profStudent" selected>ተማሪ (Student)</option>
+                <option value="Worker" data-i18n="profWorker">ሠራተኛ / ተቀጣሪ (Worker)</option>
+                <option value="Other" data-i18n="profOther">ሌላ (Other)</option>
+              </select>
             </div>
+          </div>
+
+          <div class="form-group" id="groupStudentEducationLevel" style="display: block;">
+            <label class="form-label" data-i18n="eduLevel">የትምህርት ደረጃ / ክፍል</label>
+            <select id="studentEducationLevel" class="form-control">
+              <option value="Pre-school" data-i18n="eduPre">ቅድመ መደበኛ (Pre-school / Kindergarten)</option>
+              <option value="Grade 1" data-i18n="eduGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="eduGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="eduGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="eduGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="eduGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="eduGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="eduGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="eduGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="eduGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="eduGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="eduGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="eduGrade12">12ኛ ክፍል (Grade 12)</option>
+              <option value="Undergraduate" data-i18n="eduUndergrad">የመጀመሪያ ዲግሪ ተማሪ (Undergraduate)</option>
+              <option value="Postgraduate" data-i18n="eduPostgrad">የሁለተኛ ዲግሪ / ማስተርስ / ዶክትሬት (Postgraduate)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="groupStudentOtherProfession" style="display: none;">
+            <label class="form-label" data-i18n="specifyProfession">ሙያውን / የሥራውን ዓይነት ይግለጹ</label>
+            <input type="text" id="studentProfessionCustom" class="form-control" placeholder="መምህር / ነጋዴ / ኢንጂነር / ወዘተ...">
           </div>
 
           <div class="form-group">
@@ -613,7 +699,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="createSession">አዲስ ክፍለ-ጊዜ ፍጠር</h3>
-        <button class="modal-close" onclick="closeModal('modalSession')">&times;</button>
+        <button type="button" class="modal-close" onclick="closeModal('modalSession')">&times;</button>
       </div>
       <form id="formSession" onsubmit="handleCreateSession(event)">
         <div class="modal-body">
@@ -650,6 +736,18 @@
             <select id="sessionCategory" class="form-control" required>
               <option value="All" data-i18n="catAll">ለሁሉም (All)</option>
               <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+              <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
@@ -807,6 +905,66 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 8. MODAL: BULK IMPORT STUDENTS -->
+  <div id="modalImportStudents" class="modal-overlay" style="display: none;">
+    <div class="modal-content large">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="importStudentsTitle">ተማሪዎችን በ-Excel/CSV በጅምላ ማስገቢያ</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Upload student roster from Excel (.xlsx, .xls) or CSV</p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalImportStudents')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <strong style="color: #1e40af;"><i class="fa-solid fa-file-excel"></i> የExcel ቅጽ (Sample Template)</strong>
+            <p style="font-size: 0.85rem; color: #1e3a8a; margin-top: 2px;">Download the official formatted template, fill in student rows, and upload it below.</p>
+          </div>
+          <button type="button" class="btn btn-outline" style="background: #fff; color: var(--primary); font-weight: 600;" onclick="downloadStudentImportTemplate()">
+            <i class="fa-solid fa-download"></i> <span data-i18n="downloadTemplate">የExcel ቅጽ አውርድ</span>
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="chooseExcelFile">የExcel ወይም CSV ፋይል ይምረጡ (.xlsx, .xls, .csv)</label>
+          <input type="file" id="importStudentsFileInput" class="form-control" accept=".xlsx, .xls, .csv" onchange="handleImportFileSelect(event)">
+        </div>
+
+        <div id="importFileStatus" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; font-size: 0.9rem;"></div>
+
+        <!-- Preview Table Container -->
+        <div id="importPreviewContainer" style="display: none;">
+          <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem; color: var(--text-main);" data-i18n="previewRows">የሚገቡ ተማሪዎች ቅድመ-ዕይታ:</h4>
+          <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+            <table id="importPreviewTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="firstName">ስም</th>
+                  <th data-i18n="fatherName">የአባት ስም</th>
+                  <th data-i18n="motherName">የእናት ስም</th>
+                  <th data-i18n="christianName">የክርስትና ስም</th>
+                  <th data-i18n="category">ምድብ</th>
+                  <th data-i18n="age">ዕድሜ</th>
+                  <th data-i18n="phone">ስልክ</th>
+                  <th data-i18n="profession">ሙያ</th>
+                </tr>
+              </thead>
+              <tbody id="importPreviewTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalImportStudents')" data-i18n="cancel">ተመለስ</button>
+        <button type="button" class="btn btn-primary" id="btnSubmitImport" onclick="submitBulkImport()" style="display: none;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="uploadAndImport">ተማሪዎቹን መዝግብና አስገባ</span>
+        </button>
+      </div>
     </div>
   </div>
 

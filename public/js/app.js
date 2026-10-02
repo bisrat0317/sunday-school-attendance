@@ -706,6 +706,24 @@ function debounceLoadStudents() {
   searchDebounceTimer = setTimeout(loadStudents, 300);
 }
 
+function toggleProfessionDetails() {
+  const profType = document.getElementById('studentProfessionType').value;
+  const eduGroup = document.getElementById('groupStudentEducationLevel');
+  const otherGroup = document.getElementById('groupStudentOtherProfession');
+
+  if (profType === 'Student') {
+    if (eduGroup) eduGroup.style.display = 'block';
+    if (otherGroup) otherGroup.style.display = 'none';
+  } else if (profType === 'Other') {
+    if (eduGroup) eduGroup.style.display = 'none';
+    if (otherGroup) otherGroup.style.display = 'block';
+  } else {
+    // Worker / Employed
+    if (eduGroup) eduGroup.style.display = 'none';
+    if (otherGroup) otherGroup.style.display = 'none';
+  }
+}
+
 async function loadStudents() {
   const category = document.getElementById('filterStudentCategory').value;
   const status = document.getElementById('filterStudentStatus').value;
@@ -734,6 +752,7 @@ async function loadStudents() {
         <tr style="${isInactive ? 'opacity: 0.6;' : ''}">
           <td>
             <strong>${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</strong>
+            ${s.christian_name ? `<br><small style="color: var(--primary); font-weight: 600; font-size: 0.8rem;"><i class="fa-solid fa-cross"></i> ${escapeHtml(s.christian_name)}</small>` : ''}
           </td>
           <td>${escapeHtml(s.mother_name)}</td>
           <td><span class="tag tag-category">${escapeHtml(s.category)}</span></td>
@@ -773,6 +792,7 @@ async function loadStudents() {
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
               <div>
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-dark);">${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</h4>
+                ${s.christian_name ? `<p style="font-size: 0.82rem; color: var(--primary); font-weight: 600; margin-top: 2px;"><i class="fa-solid fa-cross"></i> ${escapeHtml(s.christian_name)}</p>` : ''}
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
                   ${t('motherName')}: <strong>${escapeHtml(s.mother_name)}</strong> | ${t('age')}: ${s.age}
                 </p>
@@ -819,6 +839,11 @@ async function loadStudents() {
 function openRegisterStudentModal() {
   document.getElementById('formStudent').reset();
   document.getElementById('studentEditId').value = '';
+  document.getElementById('studentChristianName').value = '';
+  document.getElementById('studentProfessionType').value = 'Student';
+  document.getElementById('studentEducationLevel').value = 'Grade 1';
+  document.getElementById('studentProfessionCustom').value = '';
+  toggleProfessionDetails();
   document.getElementById('modalStudentTitle').textContent = t('registerStudent');
   openModal('modalStudent');
 }
@@ -830,15 +855,47 @@ async function openEditStudentModal(id) {
 
     const s = data.student;
     document.getElementById('studentEditId').value = s.id;
-    document.getElementById('studentFirstName').value = s.first_name;
-    document.getElementById('studentFatherName').value = s.father_name;
-    document.getElementById('studentMotherName').value = s.mother_name;
-    document.getElementById('studentAge').value = s.age;
-    document.getElementById('studentPhone').value = s.phone;
+    document.getElementById('studentFirstName').value = s.first_name || '';
+    document.getElementById('studentFatherName').value = s.father_name || '';
+    document.getElementById('studentMotherName').value = s.mother_name || '';
+    document.getElementById('studentChristianName').value = s.christian_name || '';
+    document.getElementById('studentAge').value = s.age || '';
+    document.getElementById('studentPhone').value = s.phone || '';
     document.getElementById('studentEmergency').value = s.emergency_contact || '';
-    document.getElementById('studentCategory').value = s.category;
-    document.getElementById('studentProfession').value = s.profession || '';
+    document.getElementById('studentCategory').value = s.category || 'Youth';
     document.getElementById('studentPreviousService').value = s.previous_service || '';
+
+    // Handle Profession parsing
+    const rawProf = (s.profession || '').trim();
+    const profTypeSelect = document.getElementById('studentProfessionType');
+    const eduLevelSelect = document.getElementById('studentEducationLevel');
+    const customProfInput = document.getElementById('studentProfessionCustom');
+
+    if (rawProf.startsWith('Student - ')) {
+      profTypeSelect.value = 'Student';
+      const level = rawProf.replace('Student - ', '').trim();
+      eduLevelSelect.value = level;
+      if (!eduLevelSelect.value) {
+        eduLevelSelect.value = 'Grade 1';
+      }
+      customProfInput.value = '';
+    } else if (rawProf === 'Student') {
+      profTypeSelect.value = 'Student';
+      eduLevelSelect.value = 'Grade 1';
+      customProfInput.value = '';
+    } else if (rawProf === 'Worker') {
+      profTypeSelect.value = 'Worker';
+      customProfInput.value = '';
+    } else if (rawProf) {
+      profTypeSelect.value = 'Other';
+      customProfInput.value = rawProf;
+    } else {
+      profTypeSelect.value = 'Student';
+      eduLevelSelect.value = 'Grade 1';
+      customProfInput.value = '';
+    }
+
+    toggleProfessionDetails();
 
     document.getElementById('modalStudentTitle').textContent = t('edit') + ': ' + s.first_name;
     openModal('modalStudent');
@@ -848,16 +905,29 @@ async function openEditStudentModal(id) {
 async function handleSaveStudent(e) {
   e.preventDefault();
   const id = document.getElementById('studentEditId').value;
+  
+  const profType = document.getElementById('studentProfessionType').value;
+  let finalProfession = profType;
+  if (profType === 'Student') {
+    const edu = document.getElementById('studentEducationLevel').value;
+    finalProfession = `Student - ${edu}`;
+  } else if (profType === 'Other') {
+    finalProfession = document.getElementById('studentProfessionCustom').value.trim() || 'Other';
+  } else if (profType === 'Worker') {
+    finalProfession = 'Worker';
+  }
+
   const body = {
-    first_name: document.getElementById('studentFirstName').value,
-    father_name: document.getElementById('studentFatherName').value,
-    mother_name: document.getElementById('studentMotherName').value,
+    first_name: document.getElementById('studentFirstName').value.trim(),
+    father_name: document.getElementById('studentFatherName').value.trim(),
+    mother_name: document.getElementById('studentMotherName').value.trim(),
+    christian_name: document.getElementById('studentChristianName').value.trim(),
     age: document.getElementById('studentAge').value,
-    phone: document.getElementById('studentPhone').value,
-    emergency_contact: document.getElementById('studentEmergency').value,
+    phone: document.getElementById('studentPhone').value.trim(),
+    emergency_contact: document.getElementById('studentEmergency').value.trim(),
     category: document.getElementById('studentCategory').value,
-    profession: document.getElementById('studentProfession').value,
-    previous_service: document.getElementById('studentPreviousService').value
+    profession: finalProfession,
+    previous_service: document.getElementById('studentPreviousService').value.trim()
   };
 
   try {
@@ -879,10 +949,11 @@ async function viewStudentProfile(id) {
     if (!data) return;
 
     const s = data.student;
-    document.getElementById('profileStudentName').textContent = `${s.first_name} ${s.father_name}`;
+    document.getElementById('profileStudentName').innerHTML = `${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)} ${s.christian_name ? `<span style="font-size: 0.9rem; color: var(--primary); font-weight: normal;">(${escapeHtml(s.christian_name)})</span>` : ''}`;
 
     document.getElementById('profileDetailsCard').innerHTML = `
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+        <div><strong>${t('christianName')}:</strong> ${escapeHtml(s.christian_name || 'N/A')}</div>
         <div><strong>${t('motherName')}:</strong> ${escapeHtml(s.mother_name)}</div>
         <div><strong>${t('age')}:</strong> ${s.age}</div>
         <div><strong>${t('category')}:</strong> <span class="tag tag-category">${escapeHtml(s.category)}</span></div>
@@ -1303,6 +1374,7 @@ async function exportStudentsToExcel() {
           'የተማሪው ስም': s.first_name,
           'የአባት ስም': s.father_name,
           'የእናት ስም': s.mother_name,
+          'የክርስትና ስም': s.christian_name || '',
           'ዕድሜ': s.age,
           'ምድብ': s.category,
           'ስልክ ቁጥር': s.phone,
@@ -1320,6 +1392,7 @@ async function exportStudentsToExcel() {
           'First Name': s.first_name,
           'Father Name': s.father_name,
           'Mother Name': s.mother_name,
+          'Christian Name': s.christian_name || '',
           'Age': s.age,
           'Category': s.category,
           'Phone': s.phone,
@@ -1342,6 +1415,263 @@ async function exportStudentsToExcel() {
     XLSX.writeFile(workbook, fileName);
     showToast('Students list exported to Excel!', 'success');
   } catch (err) { }
+}
+
+// ==========================================
+// BULK IMPORT STUDENTS (Excel / CSV)
+// ==========================================
+let parsedImportStudents = [];
+
+function openImportModal() {
+  const fileInput = document.getElementById('importStudentsFileInput');
+  if (fileInput) fileInput.value = '';
+  const statusDiv = document.getElementById('importFileStatus');
+  if (statusDiv) {
+    statusDiv.style.display = 'none';
+    statusDiv.innerHTML = '';
+  }
+  const previewContainer = document.getElementById('importPreviewContainer');
+  if (previewContainer) previewContainer.style.display = 'none';
+  const submitBtn = document.getElementById('btnSubmitImport');
+  if (submitBtn) submitBtn.style.display = 'none';
+  const tbody = document.getElementById('importPreviewTbody');
+  if (tbody) tbody.innerHTML = '';
+  parsedImportStudents = [];
+  openModal('modalImportStudents');
+}
+
+function downloadStudentImportTemplate() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Excel library not loaded yet', 'warning');
+    return;
+  }
+
+  const sampleRows = [
+    {
+      'First Name (የተማሪ ስም)': 'ዮናስ',
+      'Father Name (የአባት ስም)': 'ተክሌ',
+      'Mother Name (የእናት ስም)': 'ሳራ',
+      'Christian Name (የክርስትና ስም)': 'ገብረ ማርያም',
+      'Age (ዕድሜ)': 12,
+      'Category (ምድብ)': 'Grade 6',
+      'Phone (ስልክ)': '0911000001',
+      'Emergency Contact (አማራጭ ስልክ)': '0911000002',
+      'Profession / Grade (ሙያ / ክፍል)': 'Student - Grade 6',
+      'Previous Service (ቀደምት አገልግሎት)': 'የዝማሬ ክፍል'
+    },
+    {
+      'First Name (የተማሪ ስም)': 'ማርታ',
+      'Father Name (የአባት ስም)': 'ኃይሉ',
+      'Mother Name (የእናት ስም)': 'እስቴር',
+      'Christian Name (የክርስትና ስም)': 'ወለተ ጊዮርጊስ',
+      'Age (ዕድሜ)': 21,
+      'Category (ምድብ)': 'Youth',
+      'Phone (ስልክ)': '0922000001',
+      'Emergency Contact (አማራጭ ስልክ)': '0922000002',
+      'Profession / Grade (ሙያ / ክፍል)': 'Student - Undergraduate',
+      'Previous Service (ቀደምት አገልግሎት)': 'አዲስ'
+    },
+    {
+      'First Name (የተማሪ ስም)': 'ዳዊት',
+      'Father Name (የአባት ስም)': 'ግርማ',
+      'Mother Name (የእናት ስም)': 'አልማዝ',
+      'Christian Name (የክርስትና ስም)': 'ተክለ ሃይማኖት',
+      'Age (ዕድሜ)': 28,
+      'Category (ምድብ)': 'Adult',
+      'Phone (ስልክ)': '0933000001',
+      'Emergency Contact (አማራጭ ስልክ)': '0933000002',
+      'Profession / Grade (ሙያ / ክፍል)': 'Worker',
+      'Previous Service (ቀደምት አገልግሎት)': 'የስርዓተ ቤተክርስቲያን ክፍል'
+    }
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Student Template');
+  XLSX.writeFile(wb, 'Sunday_School_Students_Template.xlsx');
+  showToast('Import template downloaded!', 'success');
+}
+
+function normalizeHeaderKey(key) {
+  const k = String(key || '').toLowerCase().trim();
+  if (k.includes('first') || k.includes('የተማሪ') || k === 'name' || k === 'ስም') return 'first_name';
+  if (k.includes('father') || k.includes('አባት')) return 'father_name';
+  if (k.includes('mother') || k.includes('እናት')) return 'mother_name';
+  if (k.includes('christian') || k.includes('ክርስትና') || k.includes('baptismal')) return 'christian_name';
+  if (k.includes('age') || k.includes('ዕድሜ') || k.includes('እድሜ')) return 'age';
+  if (k.includes('category') || k.includes('ምድብ') || k.includes('ክፍል/ምድብ')) return 'category';
+  if (k.includes('phone') || k.includes('ስልክ') || k.includes('tel') || k.includes('mobile')) {
+    if (k.includes('emergency') || k.includes('አማራጭ') || k.includes('አደጋ')) return 'emergency_contact';
+    return 'phone';
+  }
+  if (k.includes('emergency') || k.includes('secondary') || k.includes('አማራጭ') || k.includes('አደጋ')) return 'emergency_contact';
+  if (k.includes('profession') || k.includes('ሙያ') || k.includes('job') || k.includes('occupation') || k.includes('ትምህርት')) return 'profession';
+  if (k.includes('service') || k.includes('አገልግሎት')) return 'previous_service';
+  return null;
+}
+
+function normalizeCategoryValue(raw) {
+  if (!raw) return 'Youth';
+  const r = String(raw).trim();
+  const lower = r.toLowerCase();
+  
+  // Check Grade 1 to 12
+  for (let i = 1; i <= 12; i++) {
+    if (lower === `grade ${i}` || lower === `grade${i}` || lower === `${i}ኛ ክፍል` || lower === `${i}ኛ` || lower === `${i}`) {
+      return `Grade ${i}`;
+    }
+  }
+
+  if (lower.includes('child') || lower.includes('ህፃናት')) return 'Child';
+  if (lower.includes('teen') || lower.includes('አዳጊ')) return 'Teens';
+  if (lower.includes('adult') || lower.includes('አዋቂ')) return 'Adult';
+  if (lower.includes('all') || lower.includes('ሁሉም')) return 'All';
+  if (lower.includes('youth') || lower.includes('ወጣት')) return 'Youth';
+
+  return r;
+}
+
+async function handleImportFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    showToast('Excel library not loaded yet', 'warning');
+    return;
+  }
+
+  const statusDiv = document.getElementById('importFileStatus');
+  const previewContainer = document.getElementById('importPreviewContainer');
+  const submitBtn = document.getElementById('btnSubmitImport');
+  const tbody = document.getElementById('importPreviewTbody');
+
+  statusDiv.style.display = 'block';
+  statusDiv.style.background = '#f8fafc';
+  statusDiv.style.color = 'var(--text-dark)';
+  statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Reading file: <strong>${escapeHtml(file.name)}</strong>...`;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = evt.target.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const firstSheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[firstSheetName];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        statusDiv.style.background = '#fef2f2';
+        statusDiv.style.color = '#991b1b';
+        statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> No data rows found in the selected file.`;
+        previewContainer.style.display = 'none';
+        submitBtn.style.display = 'none';
+        return;
+      }
+
+      parsedImportStudents = [];
+      tbody.innerHTML = '';
+
+      rawRows.forEach((row) => {
+        const studentObj = {
+          first_name: '',
+          father_name: '',
+          mother_name: '',
+          christian_name: '',
+          age: 18,
+          category: 'Youth',
+          phone: '',
+          emergency_contact: '',
+          profession: 'Student - Grade 1',
+          previous_service: ''
+        };
+
+        Object.keys(row).forEach(header => {
+          const normKey = normalizeHeaderKey(header);
+          if (normKey) {
+            studentObj[normKey] = String(row[header]).trim();
+          }
+        });
+
+        studentObj.category = normalizeCategoryValue(studentObj.category);
+        studentObj.age = parseInt(studentObj.age, 10) || 18;
+
+        // Ensure we at least have a first name and father name
+        if (studentObj.first_name && studentObj.father_name) {
+          if (!studentObj.phone) {
+            studentObj.phone = '0900000000'; // fallback if empty
+          }
+          if (!studentObj.mother_name) {
+            studentObj.mother_name = '-';
+          }
+          parsedImportStudents.push(studentObj);
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${parsedImportStudents.length}</td>
+              <td><strong>${escapeHtml(studentObj.first_name)}</strong></td>
+              <td>${escapeHtml(studentObj.father_name)}</td>
+              <td>${escapeHtml(studentObj.mother_name)}</td>
+              <td>${escapeHtml(studentObj.christian_name || '-')}</td>
+              <td><span class="tag tag-category">${escapeHtml(studentObj.category)}</span></td>
+              <td>${studentObj.age}</td>
+              <td>${escapeHtml(studentObj.phone)}</td>
+              <td><small>${escapeHtml(studentObj.profession || '-')}</small></td>
+            </tr>
+          `;
+        }
+      });
+
+      if (parsedImportStudents.length === 0) {
+        statusDiv.style.background = '#fef2f2';
+        statusDiv.style.color = '#991b1b';
+        statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Could not identify valid student rows. Make sure column headers include First Name, Father Name, etc.`;
+        previewContainer.style.display = 'none';
+        submitBtn.style.display = 'none';
+      } else {
+        statusDiv.style.background = '#f0fdf4';
+        statusDiv.style.color = '#166534';
+        statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> Found <strong>${parsedImportStudents.length}</strong> valid student records ready to import.`;
+        previewContainer.style.display = 'block';
+        submitBtn.style.display = 'inline-flex';
+      }
+    } catch (err) {
+      statusDiv.style.background = '#fef2f2';
+      statusDiv.style.color = '#991b1b';
+      statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Error parsing file: ${escapeHtml(err.message)}`;
+      previewContainer.style.display = 'none';
+      submitBtn.style.display = 'none';
+    }
+  };
+
+  reader.readAsBinaryString(file);
+}
+
+async function submitBulkImport() {
+  if (!parsedImportStudents || parsedImportStudents.length === 0) {
+    showToast('No students to import', 'warning');
+    return;
+  }
+
+  const submitBtn = document.getElementById('btnSubmitImport');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+
+  try {
+    const result = await api('/api/students/bulk-import', {
+      method: 'POST',
+      body: JSON.stringify({ students: parsedImportStudents })
+    });
+
+    showToast(result.message || `${result.importedCount} students imported successfully!`, 'success');
+    closeModal('modalImportStudents');
+    loadStudents();
+  } catch (err) {
+    // api helper already displays toast
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalText;
+  }
 }
 
 
