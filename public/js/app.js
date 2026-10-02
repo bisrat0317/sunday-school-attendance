@@ -692,6 +692,8 @@ function debounceSearchCrossCategoryStudents() {
   crossCatDebounceTimer = setTimeout(searchCrossCategoryStudents, 250);
 }
 
+let crossCatSearchResultsCache = new Map();
+
 async function searchCrossCategoryStudents() {
   const input = document.getElementById('crossCategorySearchInput');
   const resultsContainer = document.getElementById('crossCategorySearchResults');
@@ -706,16 +708,21 @@ async function searchCrossCategoryStudents() {
   resultsContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.4rem;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}</div>`;
 
   try {
-    const students = await api(`/api/students?status=active&search=${encodeURIComponent(query)}&limit=15`);
-    if (!students || students.length === 0) {
+    const res = await api(`/api/students?status=active&search=${encodeURIComponent(query)}&limit=20`);
+    const studentList = Array.isArray(res) ? res : (res && res.students ? res.students : []);
+
+    if (!studentList || studentList.length === 0) {
       resultsContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.4rem;">${t('noMatchingStudentsFound')}</div>`;
       return;
     }
 
     const currentStudentIds = new Set((activeSessionData.students || []).map(s => s.student_id || s.id));
 
+    crossCatSearchResultsCache.clear();
     resultsContainer.innerHTML = '';
-    students.forEach(st => {
+
+    studentList.forEach(st => {
+      crossCatSearchResultsCache.set(st.id, st);
       const alreadyInSheet = currentStudentIds.has(st.id);
       resultsContainer.innerHTML += `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.65rem; background: #fff; border: 1px solid #dcfce7; border-radius: 6px;">
@@ -730,7 +737,7 @@ async function searchCrossCategoryStudents() {
           ${alreadyInSheet ? `
             <span class="tag tag-present" style="font-size: 0.72rem;"><i class="fa-solid fa-check"></i> Already in sheet</span>
           ` : `
-            <button type="button" class="btn btn-success btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.78rem;" onclick='addCrossCategoryStudentToSession(${JSON.stringify(st).replace(/'/g, "&#39;")})'>
+            <button type="button" class="btn btn-success btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.78rem;" onclick="addCrossCategoryStudentToSession(${st.id})">
               <i class="fa-solid fa-plus"></i> ${t('save')}
             </button>
           `}
@@ -738,12 +745,16 @@ async function searchCrossCategoryStudents() {
       `;
     });
   } catch (err) {
+    console.error('Error searching cross-category students:', err);
     resultsContainer.innerHTML = `<div style="font-size:0.8rem; color:var(--danger); padding:0.4rem;">Error searching students</div>`;
   }
 }
 
-function addCrossCategoryStudentToSession(student) {
+function addCrossCategoryStudentToSession(studentId) {
   if (!activeSessionData || !activeSessionData.students) return;
+
+  const student = crossCatSearchResultsCache.get(studentId);
+  if (!student) return;
 
   const currentStudentIds = new Set(activeSessionData.students.map(s => s.student_id || s.id));
   if (currentStudentIds.has(student.id)) {
