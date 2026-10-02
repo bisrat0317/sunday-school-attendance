@@ -67,7 +67,7 @@ async function initDatabase() {
         start_time VARCHAR(10) DEFAULT '09:00',
         end_time VARCHAR(10) DEFAULT '11:00',
         category VARCHAR(50) NOT NULL,
-        description TEXT,
+        attendance_status VARCHAR(20) DEFAULT 'unrecorded',
         created_by INT REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
@@ -76,6 +76,7 @@ async function initDatabase() {
     try {
       await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS start_time VARCHAR(10) DEFAULT '09:00';`);
       await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS end_time VARCHAR(10) DEFAULT '11:00';`);
+      await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS attendance_status VARCHAR(20) DEFAULT 'unrecorded';`);
     } catch (err) {
       console.log('Sessions migration notice:', err.message);
     }

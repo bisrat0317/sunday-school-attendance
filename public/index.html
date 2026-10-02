@@ -696,6 +696,9 @@
       </div>
 
       <div class="modal-body">
+        <!-- Status Notification Banner (Locked / Future / Draft) -->
+        <div id="attModalAlertBanner" style="display: none; margin-bottom: 0.85rem;"></div>
+
         <!-- Top bar with Quick Search & "Mark All Present" -->
         <div
           style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
@@ -705,14 +708,14 @@
             <button class="btn btn-warning" onclick="exportSessionAttendanceToExcel()">
               <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
             </button>
-            <button class="btn btn-success" onclick="markAllPresent()">
+            <button class="btn btn-success" id="btnMarkAllPresent" onclick="markAllPresent()">
               <i class="fa-solid fa-check-double"></i> <span data-i18n="markAllPresent">ሁሉንም ተገኝቷል በል</span>
             </button>
           </div>
         </div>
 
         <!-- Cross-category student search widget -->
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 1rem;">
+        <div id="crossCategoryContainer" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 1rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <div style="font-size: 0.88rem; font-weight: 600; color: #166534; display: flex; align-items: center; gap: 0.4rem;">
               <i class="fa-solid fa-user-plus"></i> <span data-i18n="addCrossCategoryStudent">+ ከሌላ ምድብ ተማሪ ጨምር (የማካካሻ / ልዩ መገኘት)</span>
@@ -739,11 +742,16 @@
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <button class="btn btn-outline" onclick="closeModal('modalAttendance')" data-i18n="cancel">ተመለስ</button>
-        <button class="btn btn-primary" id="btnSaveAttendance" onclick="saveAttendance()">
-          <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveAttendance">መገኘቱን መዝግብ</span>
-        </button>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary" id="btnSaveDraftAttendance" onclick="saveAttendance(true)">
+            <i class="fa-solid fa-pen-ruler"></i> <span data-i18n="saveDraft">ጊዜያዊ ረቂቅ አስቀምጥ</span>
+          </button>
+          <button class="btn btn-primary" id="btnSaveAttendance" onclick="saveAttendance(false)">
+            <i class="fa-solid fa-circle-check"></i> <span data-i18n="finalizeAttendance">አጽድቀህ መዝግብ</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

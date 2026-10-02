@@ -457,14 +457,48 @@ async function loadSessions() {
       return;
     }
 
+    const isSuperAdmin = currentUser.role === 'super_admin';
+    const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
+    const todayStr = new Date().toISOString().split('T')[0];
+
     sessions.forEach(s => {
       const dualTime = getDualTimeDisplay(s.session_time, s.start_time, s.end_time);
+      const sessDateStr = s.session_date ? new Date(s.session_date).toISOString().split('T')[0] : '';
+      const isFuture = sessDateStr > todayStr;
+      const attStatus = s.attendance_status || (s.total_marked > 0 ? 'finalized' : 'unrecorded');
+      const hasAttendance = s.total_marked > 0;
+      const canDelete = isSuperAdmin || (currentUser.role === 'admin' && !hasAttendance);
+
+      let statusBadgeHtml = '';
+      if (isFuture) {
+        statusBadgeHtml = `<span class="tag" style="background:#f1f5f9; color:#64748b; font-size:0.72rem; padding:0.15rem 0.45rem;" title="${t('futureSessionAttendanceBlocked')}"><i class="fa-solid fa-calendar"></i> ${t('upcomingBadge')}</span>`;
+      } else if (attStatus === 'draft') {
+        statusBadgeHtml = `<span class="tag" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; font-size:0.72rem; padding:0.15rem 0.45rem;" title="${t('statusDraft')}"><i class="fa-solid fa-pen-ruler"></i> ${t('draftBadge')}</span>`;
+      } else if (attStatus === 'finalized' || hasAttendance) {
+        statusBadgeHtml = `<span class="tag" style="background:#dcfce7; color:#166534; border:1px solid #bbf7d0; font-size:0.72rem; padding:0.15rem 0.45rem;" title="${t('statusFinalized')}"><i class="fa-solid fa-circle-check"></i> ${t('finalizedBadge')}</span>`;
+      }
+
+      let deleteBtnHtml = '';
+      if (canDelete) {
+        deleteBtnHtml = `
+          <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5;" onclick="deleteSession(${s.id})" title="${t('delete')}">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+      } else if (currentUser.role === 'admin' && hasAttendance) {
+        deleteBtnHtml = `
+          <button class="btn btn-outline btn-sm" style="color: #94a3b8; cursor: not-allowed; opacity: 0.6;" disabled title="${t('superAdminOnlyDeleteAttendance')}">
+            <i class="fa-solid fa-lock"></i>
+          </button>
+        `;
+      }
 
       // Desktop row
       tbody.innerHTML += `
         <tr>
           <td>
             <strong>${escapeHtml(s.course_title)}</strong>
+            ${statusBadgeHtml ? `<span style="margin-left: 0.4rem;">${statusBadgeHtml}</span>` : ''}
             ${s.description ? `<br><small style="color: var(--text-muted);">${escapeHtml(s.description)}</small>` : ''}
           </td>
           <td>${formatDate(s.session_date)}</td>
@@ -476,15 +510,11 @@ async function loadSessions() {
             <span class="tag tag-permission"><i class="fa-solid fa-clock"></i> ${s.permission_count}</span>
           </td>
           <td>
-            <div style="display: flex; gap: 0.4rem;">
-              <button class="btn btn-primary btn-sm" onclick="openAttendanceModal(${s.id})">
-                <i class="fa-solid fa-clipboard-user"></i> ${t('takeAttendance')}
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <button class="btn ${isFuture ? 'btn-outline' : 'btn-primary'} btn-sm" onclick="openAttendanceModal(${s.id})">
+                <i class="fa-solid ${isFuture ? 'fa-calendar-day' : 'fa-clipboard-user'}"></i> ${isFuture ? t('upcomingSession') : t('takeAttendance')}
               </button>
-              ${currentUser.role === 'admin' ? `
-                <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteSession(${s.id})">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              ` : ''}
+              ${deleteBtnHtml}
             </div>
           </td>
         </tr>
@@ -499,7 +529,10 @@ async function loadSessions() {
                 <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--primary);">${escapeHtml(s.course_title)}</h4>
                 <p style="font-size: 0.8rem; color: var(--text-muted);">${formatDate(s.session_date)} | <strong style="color: var(--primary);">${escapeHtml(dualTime)}</strong></p>
               </div>
-              <span class="tag tag-category">${escapeHtml(s.category)}</span>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                ${statusBadgeHtml}
+                <span class="tag tag-category">${escapeHtml(s.category)}</span>
+              </div>
             </div>
             ${s.description ? `<p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.6rem;">${escapeHtml(s.description)}</p>` : ''}
             
@@ -509,15 +542,11 @@ async function loadSessions() {
               <span class="tag tag-permission"><i class="fa-solid fa-clock"></i> ${s.permission_count}</span>
             </div>
 
-            <div style="display: flex; gap: 0.5rem; border-top: 1px solid #f1f5f9; pt-2;">
-              <button class="btn btn-primary btn-sm" style="flex: 1; justify-content: center;" onclick="openAttendanceModal(${s.id})">
-                <i class="fa-solid fa-clipboard-user"></i> ${t('takeAttendance')}
+            <div style="display: flex; gap: 0.5rem; border-top: 1px solid #f1f5f9; padding-top: 0.5rem; align-items: center;">
+              <button class="btn ${isFuture ? 'btn-outline' : 'btn-primary'} btn-sm" style="flex: 1; justify-content: center;" onclick="openAttendanceModal(${s.id})">
+                <i class="fa-solid ${isFuture ? 'fa-calendar-day' : 'fa-clipboard-user'}"></i> ${isFuture ? t('upcomingSession') : t('takeAttendance')}
               </button>
-              ${currentUser.role === 'admin' ? `
-                <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteSession(${s.id})">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              ` : ''}
+              ${deleteBtnHtml}
             </div>
           </div>
         `;
@@ -592,6 +621,67 @@ async function openAttendanceModal(sessionId) {
     document.getElementById('attModalSessionSubtitle').textContent = `${formatDate(data.session.session_date)} | ${dualTime}`;
     document.getElementById('attSearchInput').value = '';
 
+    // Handle status notification banners & action buttons visibility
+    const banner = document.getElementById('attModalAlertBanner');
+    const btnDraft = document.getElementById('btnSaveDraftAttendance');
+    const btnSave = document.getElementById('btnSaveAttendance');
+    const btnMarkAll = document.getElementById('btnMarkAllPresent');
+    const crossContainer = document.getElementById('crossCategoryContainer');
+
+    if (data.is_future) {
+      if (banner) {
+        banner.style.display = 'block';
+        banner.innerHTML = `
+          <div style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-calendar-xmark" style="font-size: 1.1rem; color: #2563eb;"></i> 
+            <span><strong>${t('futureSessionAttendanceBlocked')}</strong></span>
+          </div>
+        `;
+      }
+      if (btnDraft) btnDraft.style.display = 'none';
+      if (btnSave) btnSave.style.display = 'none';
+      if (btnMarkAll) btnMarkAll.style.display = 'none';
+      if (crossContainer) crossContainer.style.display = 'none';
+    } else if (!data.can_edit) {
+      if (banner) {
+        banner.style.display = 'block';
+        banner.innerHTML = `
+          <div style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-lock" style="font-size: 1.1rem; color: #d97706;"></i> 
+            <span><strong>${t('attendanceLockedNotice')}</strong></span>
+          </div>
+        `;
+      }
+      if (btnDraft) btnDraft.style.display = 'none';
+      if (btnSave) btnSave.style.display = 'none';
+      if (btnMarkAll) btnMarkAll.style.display = 'none';
+      if (crossContainer) crossContainer.style.display = 'none';
+    } else {
+      if (data.attendance_status === 'draft') {
+        if (banner) {
+          banner.style.display = 'block';
+          banner.innerHTML = `
+            <div style="background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; border-radius: 8px; padding: 0.55rem 0.85rem; font-size: 0.83rem; display: flex; align-items: center; gap: 0.45rem;">
+              <i class="fa-solid fa-pen-ruler" style="color: #ca8a04;"></i> 
+              <span><strong>${t('statusDraft')}</strong>: ${currentLang === 'am' ? 'ይህ መገኘት በጊዜያዊነት የተቀመጠ ረቂቅ ነው። መዝግበው ሲጨርሱ "አጽድቀህ መዝግብ" የሚለውን ይጫኑ።' : 'This attendance is a saved draft. Click "Finalize & Save" to finalize.'}</span>
+            </div>
+          `;
+        }
+      } else {
+        if (banner) banner.style.display = 'none';
+      }
+      if (btnDraft) {
+        btnDraft.style.display = 'inline-flex';
+        btnDraft.disabled = false;
+      }
+      if (btnSave) {
+        btnSave.style.display = 'inline-flex';
+        btnSave.disabled = false;
+      }
+      if (btnMarkAll) btnMarkAll.style.display = 'inline-flex';
+      if (crossContainer) crossContainer.style.display = 'block';
+    }
+
     // Initialize in-memory attendance record states
     data.students.forEach(s => {
       const hasCrossAttendance = s.other_session_id && (s.other_status === 'present' || s.other_status === 'permission');
@@ -640,6 +730,8 @@ function renderAttendanceStudentList() {
     return;
   }
 
+  const isLockedForEditing = !activeSessionData.can_edit || activeSessionData.is_future;
+
   filtered.forEach(s => {
     const currentRec = activeAttendanceRecords[s.student_id] || { status: 'present', remarks: '' };
     const hasCrossAttendance = currentRec.is_locked_cross || (s.other_session_id && (s.other_status === 'present' || s.other_status === 'permission'));
@@ -656,6 +748,17 @@ function renderAttendanceStudentList() {
             <i class="fa-solid fa-graduation-cap" style="color: #059669; font-size: 0.95rem;"></i>
             <span>${t('attendedInOtherClass')}: <strong style="color: #047857;">${escapeHtml(otherCat)}</strong> ${otherCourse ? `<span style="font-weight: 400; opacity: 0.9;">(${escapeHtml(otherCourse)})</span>` : ''}</span>
           </div>
+        </div>
+      `;
+    } else if (isLockedForEditing) {
+      const statusLabels = {
+        present: `<span class="tag tag-present" style="font-size:0.85rem; padding:0.35rem 0.75rem;"><i class="fa-solid fa-check"></i> ${t('statusPresent')}</span>`,
+        absent: `<span class="tag tag-absent" style="font-size:0.85rem; padding:0.35rem 0.75rem;"><i class="fa-solid fa-xmark"></i> ${t('statusAbsent')}</span>`,
+        permission: `<span class="tag tag-permission" style="font-size:0.85rem; padding:0.35rem 0.75rem;"><i class="fa-solid fa-clock"></i> ${t('statusPermission')}</span>`
+      };
+      actionsHtml = `
+        <div class="attendance-btn-group" style="align-items: center; justify-content: flex-end;">
+          ${statusLabels[currentRec.status] || `<span class="tag tag-secondary">-</span>`}
         </div>
       `;
     } else {
@@ -864,31 +967,51 @@ function filterAttendanceList() {
   renderAttendanceStudentList();
 }
 
-async function saveAttendance() {
-  const btn = document.getElementById('btnSaveAttendance');
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('savingAttendance')}`;
+async function saveAttendance(isDraft = false) {
+  const btnDraft = document.getElementById('btnSaveDraftAttendance');
+  const btnSave = document.getElementById('btnSaveAttendance');
 
-  const records = Object.keys(activeAttendanceRecords).map(studentId => ({
-    student_id: parseInt(studentId, 10),
-    status: activeAttendanceRecords[studentId].status,
-    remarks: activeAttendanceRecords[studentId].remarks || ''
-  }));
+  if (isDraft) {
+    if (btnDraft) {
+      btnDraft.disabled = true;
+      btnDraft.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('savingDraft')}`;
+    }
+  } else {
+    if (btnSave) {
+      btnSave.disabled = true;
+      btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('finalizingAttendance')}`;
+    }
+  }
+
+  const records = Object.keys(activeAttendanceRecords).map(studentId => {
+    const rec = activeAttendanceRecords[studentId];
+    return {
+      student_id: parseInt(studentId, 10),
+      status: rec.status,
+      remarks: rec.remarks || ''
+    };
+  });
 
   try {
     await api(`/api/attendance/session/${activeSessionId}`, {
       method: 'POST',
-      body: JSON.stringify({ records })
+      body: JSON.stringify({ records, is_draft: isDraft })
     });
 
     closeModal('modalAttendance');
-    showToast(t('saveAttendance') + ' ✓', 'success');
+    showToast(isDraft ? t('draftSaved') : (t('attendanceFinalized') + ' ✓'), 'success');
     loadSessions();
-    if (currentUser.role === 'admin') load3AbsentAlerts();
+    if (['admin', 'super_admin'].includes(currentUser.role)) load3AbsentAlerts();
   } catch (err) {
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> ${t('saveAttendance')}`;
+    if (btnDraft) {
+      btnDraft.disabled = false;
+      btnDraft.innerHTML = `<i class="fa-solid fa-pen-ruler"></i> ${t('saveDraft')}`;
+    }
+    if (btnSave) {
+      btnSave.disabled = false;
+      btnSave.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${t('finalizeAttendance')}`;
+    }
   }
 }
 

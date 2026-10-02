@@ -41,6 +41,7 @@ router.get('/', authenticateToken, async (req, res) => {
         s.end_time,
         s.category,
         s.description,
+        COALESCE(s.attendance_status, CASE WHEN COALESCE(att.total_marked, 0) > 0 THEN 'finalized' ELSE 'unrecorded' END) AS attendance_status,
         s.created_by,
         s.created_at,
         u.full_name AS created_by_name,
@@ -191,13 +192,27 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/sessions/:id - Delete session (Admin & Super Admin only)
+// DELETE /api/sessions/:id - Delete session (Admin & Super Admin only; only Super Admin can delete if session has attendance)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
     const [existing] = await pool.query('SELECT course_title, session_date, category FROM sessions WHERE id = ?', [id]);
-    const details = existing[0] ? `Deleted session: "${existing[0].course_title}" (${existing[0].category}, ${existing[0].session_date})` : `Deleted session ID ${id}`;
+    if (existing.length === 0) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Check if session has recorded attendance
+    const [[attResult]] = await pool.query('SELECT COUNT(*) AS att_count FROM attendance WHERE session_id = ?', [id]);
+    const attCount = parseInt(attResult?.att_count, 10) || 0;
+
+    if (attCount > 0 && req.user.role !== 'super_admin') {
+      return res.status(403).json({ 
+        message: 'This session has recorded attendance data. Only Super Admin has permission to delete sessions containing attendance records.' 
+      });
+    }
+
+    const details = `Deleted session: "${existing[0].course_title}" (${existing[0].category}, ${existing[0].session_date})${attCount > 0 ? ` with ${attCount} attendance records removed` : ''}`;
 
     await pool.query('DELETE FROM sessions WHERE id = ?', [id]);
 
