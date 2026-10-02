@@ -535,6 +535,25 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
+    const orig = existingSessions[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const sessDateStr = orig.session_date ? new Date(orig.session_date).toISOString().split('T')[0] : '';
+
+    // Restrict editing to upcoming sessions only
+    if (sessDateStr < todayStr) {
+      await conn.rollback();
+      return res.status(400).json({
+        message: 'Only upcoming sessions can be edited. Past sessions cannot be modified.'
+      });
+    }
+
+    if (sDate < todayStr) {
+      await conn.rollback();
+      return res.status(400).json({
+        message: 'Session date cannot be set to a past date.'
+      });
+    }
+
     // Check time collision with OTHER sessions (exclude this session id)
     const [overlap] = await conn.query(`
       SELECT id, course_title, category, session_time, start_time, end_time FROM sessions 

@@ -130,6 +130,8 @@ const translations = {
     editSessionTitle: "Edit Session & Manage Encoders",
     sessionUpdatedSuccess: "Session updated successfully!",
     saveChanges: "Save Changes",
+    onlyUpcomingEditable: "Only upcoming sessions can be edited. Past sessions cannot be modified.",
+    cannotEditPastSession: "Editing is restricted to upcoming sessions only.",
 
     // Students
     studentsTitle: "Sunday School Students",
@@ -415,6 +417,8 @@ const translations = {
     editSessionTitle: "ክፍለ-ጊዜ እና መዝጋቢዎችን አስተካክል",
     sessionUpdatedSuccess: "ክፍለ-ጊዜው በተሳካ ሁኔታ ተሻሽሏል!",
     saveChanges: "ለውጦችን መዝግብ",
+    onlyUpcomingEditable: "ማስተካከል የሚቻለው ለወደፊት ክፍለ-ጊዜያት ብቻ ነው። ያለፉ ክፍለ-ጊዜያትን ማሻሻል አይቻልም።",
+    cannotEditPastSession: "ማስተካከል የሚቻለው ለወደፊት ክፍለ-ጊዜያት ብቻ ነው።",
 
     // Students
     studentsTitle: "የሰንበት ት/ቤት ተማሪዎች",

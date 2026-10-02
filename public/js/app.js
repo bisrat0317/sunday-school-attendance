@@ -511,14 +511,24 @@ async function loadSessions() {
         `;
       }
 
+      const isUpcoming = sessDateStr >= todayStr;
+
       let continueBtnHtml = '';
       let editBtnHtml = '';
       if (isAdmin) {
-        editBtnHtml = `
-          <button class="btn btn-outline btn-sm" style="color: #0284c7; border-color: #bae6fd;" onclick="openEditSessionModal(${s.id})" title="${t('editSession') || 'Edit Session / Manage Encoders'}">
-            <i class="fa-solid fa-pen-to-square"></i>
-          </button>
-        `;
+        if (isUpcoming) {
+          editBtnHtml = `
+            <button class="btn btn-outline btn-sm" style="color: #0284c7; border-color: #bae6fd;" onclick="openEditSessionModal(${s.id})" title="${t('editSession') || 'Edit Session / Manage Encoders'}">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+          `;
+        } else {
+          editBtnHtml = `
+            <button class="btn btn-outline btn-sm" style="color: #94a3b8; border-color: #e2e8f0; opacity: 0.45; cursor: not-allowed;" disabled title="${t('cannotEditPastSession') || 'Editing is restricted to upcoming sessions only.'}">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+          `;
+        }
         continueBtnHtml = `
           <button class="btn btn-outline btn-sm" style="color: var(--primary); border-color: #93c5fd;" onclick="openContinueSessionModal(${s.id})" title="${t('continueSession')}">
             <i class="fa-solid fa-copy"></i>
@@ -1041,11 +1051,19 @@ async function openEditSessionModal(sessionId) {
     const session = await api(`/api/sessions/${sessionId}`);
     if (!session) return;
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    const sessDateStr = session.session_date ? new Date(session.session_date).toISOString().split('T')[0] : '';
+    if (sessDateStr && sessDateStr < todayStr) {
+      showToast(t('onlyUpcomingEditable') || 'Only upcoming sessions can be edited. Past sessions cannot be modified.', 'warning');
+      return;
+    }
+
     document.getElementById('editSessionId').value = session.id;
     document.getElementById('editSessionCourseTitle').value = session.course_title || '';
 
-    const sessDateStr = session.session_date ? session.session_date.split('T')[0] : '';
-    document.getElementById('editSessionDate').value = sessDateStr;
+    const dateInput = document.getElementById('editSessionDate');
+    dateInput.value = sessDateStr;
+    dateInput.min = todayStr;
 
     // Normalize start/end times
     let startTime = session.start_time || '';
@@ -1091,6 +1109,12 @@ async function openEditSessionModal(sessionId) {
 async function handleEditSessionSubmit(e) {
   e.preventDefault();
   const sessionId = document.getElementById('editSessionId').value;
+  const newDate = document.getElementById('editSessionDate').value;
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (newDate && newDate < todayStr) {
+    showToast(t('onlyUpcomingEditable') || 'Session date cannot be set to a past date.', 'warning');
+    return;
+  }
   const startTime = document.getElementById('editSessionStartTime').value;
   const endTime = document.getElementById('editSessionEndTime').value;
   const dualTimeStr = getDualTimeDisplay('', startTime, endTime);
@@ -1098,7 +1122,7 @@ async function handleEditSessionSubmit(e) {
 
   const body = {
     course_title: document.getElementById('editSessionCourseTitle').value,
-    session_date: document.getElementById('editSessionDate').value,
+    session_date: newDate,
     start_time: startTime,
     end_time: endTime,
     session_time: dualTimeStr,
