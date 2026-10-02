@@ -939,11 +939,61 @@
             </select>
           </div>
 
+          <!-- Assigned Encoders (Multiple selection) -->
           <div class="form-group">
-            <label class="form-label" data-i18n="assignedEncoder">የተመደበው መዝጋቢ (Assigned Encoder)</label>
-            <select id="sessionAssignedEncoder" class="form-control">
-              <option value="" data-i18n="selectEncoderOptional">-- መዝጋቢ ምረጥ (አማራጭ) / Select Encoder --</option>
-            </select>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label class="form-label" style="margin-bottom: 0;" data-i18n="assignedEncoders">የተመደቡ መዝጋቢዎች (Assigned Encoders)</label>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;" onclick="selectAllSessionEncoders(true)" data-i18n="selectAll">ሁሉንም ምረጥ</button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;" onclick="selectAllSessionEncoders(false)" data-i18n="clearAll">አጽዳ</button>
+              </div>
+            </div>
+            <div id="sessionEncodersList" style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #fafafa; display: flex; flex-direction: column; gap: 0.4rem;">
+              <!-- Dynamically populated checkboxes -->
+            </div>
+            <div style="margin-top: 3px; font-size: 0.75rem; color: var(--text-muted);" id="sessionEncodersCount">0 መዝጋቢ(ዎች) ተመርጠዋል</div>
+          </div>
+
+          <!-- Recurrence / Repeat / Series Options -->
+          <div class="form-group" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem;">
+            <label class="form-label" style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
+              <i class="fa-solid fa-repeat" style="color: var(--primary);"></i>
+              <strong data-i18n="recurrence">ተደጋጋሚ ክፍለ-ጊዜ (Repeat / Recurrence)</strong>
+            </label>
+            <div class="form-row" style="margin-bottom: 0.5rem;">
+              <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                <select id="sessionRecurrenceType" class="form-control" onchange="toggleSessionRecurrenceOptions()">
+                  <option value="none" data-i18n="recNone">አንድ ጊዜ ብቻ (No repeat)</option>
+                  <option value="weekly" data-i18n="recWeekly">ሳምንታዊ (Weekly on same day)</option>
+                  <option value="monthly" data-i18n="recMonthly">ወርሃዊ (Monthly on same day)</option>
+                  <option value="custom" data-i18n="recCustom">የተመረጡ ቀናት (Custom Dates)</option>
+                </select>
+              </div>
+              <div class="form-group" id="sessionRecurrenceCountGroup" style="margin-bottom: 0; display: none; width: 140px;">
+                <select id="sessionRecurrenceCount" class="form-control" onchange="updateRecurrencePreview()">
+                  <option value="4">4 ሳምንታት (4 weeks)</option>
+                  <option value="8">8 ሳምንታት (8 weeks)</option>
+                  <option value="12">12 ሳምንታት (12 weeks)</option>
+                  <option value="16">16 ሳምንታት (16 weeks)</option>
+                  <option value="24">24 ሳምንታት (24 weeks)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Custom Dates Container -->
+            <div id="sessionCustomDatesGroup" style="display: none; margin-top: 0.5rem;">
+              <div id="sessionCustomDatesList" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.4rem;">
+                <!-- dynamic date inputs -->
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="addCustomSessionDateInput()" data-i18n="addDate">
+                <i class="fa-solid fa-plus"></i> + ቀን ጨምር
+              </button>
+            </div>
+
+            <!-- Recurrence Dates Preview -->
+            <div id="sessionRecurrencePreview" style="display: none; margin-top: 0.5rem; font-size: 0.8rem; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem;">
+              <!-- Rendered via JS -->
+            </div>
           </div>
 
           <div class="form-group">
@@ -957,6 +1007,105 @@
             data-i18n="cancel">ተመለስ</button>
           <button type="submit" class="btn btn-primary" id="btnSubmitSession">
             <i class="fa-solid fa-plus"></i> <span data-i18n="save">ፍጠር</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3b. MODAL: CONTINUE / COPY SESSION -->
+  <div id="modalContinueSession" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="continueSessionTitle">ክፍለ-ጊዜ ቅዳና ቀጥል</h3>
+        <button type="button" class="modal-close" onclick="closeModal('modalContinueSession')">&times;</button>
+      </div>
+      <form id="formContinueSession" onsubmit="handleContinueSessionSubmit(event)">
+        <input type="hidden" id="continueOriginalSessionId">
+        <div class="modal-body">
+          <div style="background: #f1f5f9; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--primary);">
+            <div style="font-weight: 700; font-size: 1rem; color: var(--primary);" id="continueSessionOriginalTitle">Course Title</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;" id="continueSessionOriginalDetails">Category | Time</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="quickContinueOptions">ፈጣን የመቀጠያ አማራጮች</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin-bottom: 0.75rem;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="setContinueOption('next_week')" id="btnQuickNextWeek">
+                <i class="fa-solid fa-calendar-plus"></i> <span data-i18n="nextWeek">የሚቀጥለው ሳምንት</span>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setContinueOption('next_month')" id="btnQuickNextMonth">
+                <i class="fa-solid fa-calendar-days"></i> <span data-i18n="nextMonth">የሚቀጥለው ወር</span>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setContinueOption('weekly_4')" id="btnQuickWeekly4">
+                <i class="fa-solid fa-repeat"></i> 4 ሳምንታት
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setContinueOption('monthly_3')" id="btnQuickMonthly3">
+                <i class="fa-solid fa-repeat"></i> 3 ወራት
+              </button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="sessionDate">የመጀመሪያው ቀን (Start Date) *</label>
+              <input type="date" id="continueStartDate" class="form-control" required onchange="updateContinueRecurrencePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="recurrence">ድግግሞሽ (Recurrence)</label>
+              <select id="continueRecurrenceType" class="form-control" onchange="toggleContinueRecurrenceOptions()">
+                <option value="none" data-i18n="recNone">አንድ ቀን ብቻ (Single Date)</option>
+                <option value="weekly" data-i18n="recWeekly">ሳምንታዊ (Weekly)</option>
+                <option value="monthly" data-i18n="recMonthly">ወርሃዊ (Monthly)</option>
+                <option value="custom" data-i18n="recCustom">የተመረጡ ቀናት (Custom Dates)</option>
+              </select>
+            </div>
+            <div class="form-group" id="continueCountGroup" style="width: 110px; display: none;">
+              <label class="form-label" data-i18n="occurrences">ብዛት</label>
+              <select id="continueRecurrenceCount" class="form-control" onchange="updateContinueRecurrencePreview()">
+                <option value="2">2</option>
+                <option value="4" selected>4</option>
+                <option value="8">8</option>
+                <option value="12">12</option>
+                <option value="16">16</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Custom Dates for Continue -->
+          <div id="continueCustomDatesGroup" style="display: none; margin-bottom: 0.75rem;">
+            <label class="form-label" data-i18n="recCustom">የተመረጡ ቀናት</label>
+            <div id="continueCustomDatesList" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.4rem;">
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addContinueCustomDateInput()" data-i18n="addDate">
+              <i class="fa-solid fa-plus"></i> + ቀን ጨምር
+            </button>
+          </div>
+
+          <!-- Preview generated dates -->
+          <div id="continueDatesPreview" style="margin-bottom: 1rem; font-size: 0.8rem; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem;">
+            <!-- Rendered via JS -->
+          </div>
+
+          <!-- Encoders for continued session -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label class="form-label" style="margin-bottom: 0;" data-i18n="assignedEncoders">የተመደቡ መዝጋቢዎች (Assigned Encoders)</label>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;" onclick="selectAllContinueEncoders(true)" data-i18n="selectAll">ሁሉንም ምረጥ</button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;" onclick="selectAllContinueEncoders(false)" data-i18n="clearAll">አጽዳ</button>
+              </div>
+            </div>
+            <div id="continueEncodersList" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #fafafa; display: flex; flex-direction: column; gap: 0.4rem;">
+            </div>
+            <div style="margin-top: 3px; font-size: 0.75rem; color: var(--text-muted);" id="continueEncodersCount">0 መዝጋቢ(ዎች) ተመርጠዋል</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalContinueSession')" data-i18n="cancel">ተመለስ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitContinueSession">
+            <i class="fa-solid fa-copy"></i> <span data-i18n="duplicateSession">ክፍለ-ጊዜ ቅዳ</span>
           </button>
         </div>
       </form>

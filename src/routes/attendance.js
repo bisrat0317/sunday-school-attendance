@@ -16,9 +16,14 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
     }
     const session = sessions[0];
 
-    // Check encoder assignment
+    // Check encoder assignment (support multiple encoders)
     if (req.user.role === 'encoder') {
-      if (session.assigned_encoder_id && session.assigned_encoder_id !== req.user.id) {
+      const [encRows] = await pool.query('SELECT user_id FROM session_encoders WHERE session_id = ?', [sessionId]);
+      const encoderIds = encRows.map(r => r.user_id);
+      if (session.assigned_encoder_id && !encoderIds.includes(session.assigned_encoder_id)) {
+        encoderIds.push(session.assigned_encoder_id);
+      }
+      if (encoderIds.length > 0 && !encoderIds.includes(req.user.id)) {
         return res.status(403).json({ message: 'Access denied. You are not assigned to this session.' });
       }
     }
@@ -118,9 +123,14 @@ router.post('/session/:sessionId', authenticateToken, async (req, res) => {
     }
     const session = sessions[0];
 
-    // Check encoder assignment
+    // Check encoder assignment (support multiple encoders)
     if (req.user.role === 'encoder') {
-      if (session.assigned_encoder_id && session.assigned_encoder_id !== req.user.id) {
+      const [encRows] = await pool.query('SELECT user_id FROM session_encoders WHERE session_id = ?', [sessionId]);
+      const encoderIds = encRows.map(r => r.user_id);
+      if (session.assigned_encoder_id && !encoderIds.includes(session.assigned_encoder_id)) {
+        encoderIds.push(session.assigned_encoder_id);
+      }
+      if (encoderIds.length > 0 && !encoderIds.includes(req.user.id)) {
         return res.status(403).json({ message: 'Access denied. You are not assigned to this session.' });
       }
     }

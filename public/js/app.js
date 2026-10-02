@@ -480,13 +480,18 @@ async function loadSessions() {
 
       let encoderBadgeHtml = '';
       if (isAdmin) {
-        if (s.assigned_encoder_name) {
+        if (s.assigned_encoders && Array.isArray(s.assigned_encoders) && s.assigned_encoders.length > 0) {
+          const names = s.assigned_encoders.map(e => escapeHtml(e.full_name)).join(', ');
+          const countBadge = s.assigned_encoders.length > 1 ? ` <span class="tag" style="background:#e0e7ff; color:#3730a3; font-size:0.68rem; padding:0.1rem 0.35rem;">${s.assigned_encoders.length}</span>` : '';
+          encoderBadgeHtml = `<div style="font-size: 0.76rem; color: #475569; margin-top: 3px;"><i class="fa-solid fa-user-pen" style="color: var(--primary);"></i> ${t('assignedTo') || 'Assigned to:'} <strong>${names}</strong>${countBadge}</div>`;
+        } else if (s.assigned_encoder_name) {
           encoderBadgeHtml = `<div style="font-size: 0.76rem; color: #475569; margin-top: 3px;"><i class="fa-solid fa-user-pen" style="color: var(--primary);"></i> ${t('assignedTo') || 'Assigned to:'} <strong>${escapeHtml(s.assigned_encoder_name)}</strong></div>`;
         } else {
           encoderBadgeHtml = `<div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 3px;"><i class="fa-solid fa-user-slash"></i> <em>${t('unassigned') || 'Unassigned'}</em></div>`;
         }
       } else if (currentUser.role === 'encoder') {
-        if (s.assigned_encoder_id === currentUser.id) {
+        const isAssigned = (s.assigned_encoders && Array.isArray(s.assigned_encoders) && s.assigned_encoders.some(e => e.id === currentUser.id)) || s.assigned_encoder_id === currentUser.id;
+        if (isAssigned) {
           encoderBadgeHtml = `<span class="tag" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:0.72rem; padding:0.15rem 0.45rem;"><i class="fa-solid fa-user-check"></i> ${t('assignedToYou') || 'Assigned to You'}</span>`;
         }
       }
@@ -502,6 +507,15 @@ async function loadSessions() {
         deleteBtnHtml = `
           <button class="btn btn-outline btn-sm" style="color: #94a3b8; cursor: not-allowed; opacity: 0.6;" disabled title="${t('superAdminOnlyDeleteAttendance')}">
             <i class="fa-solid fa-lock"></i>
+          </button>
+        `;
+      }
+
+      let continueBtnHtml = '';
+      if (isAdmin) {
+        continueBtnHtml = `
+          <button class="btn btn-outline btn-sm" style="color: var(--primary); border-color: #93c5fd;" onclick="openContinueSessionModal(${s.id})" title="${t('continueSession')}">
+            <i class="fa-solid fa-copy"></i>
           </button>
         `;
       }
@@ -529,6 +543,7 @@ async function loadSessions() {
               <button class="btn ${isFuture ? 'btn-outline' : 'btn-primary'} btn-sm" onclick="openAttendanceModal(${s.id})">
                 <i class="fa-solid ${isFuture ? 'fa-calendar-day' : 'fa-clipboard-user'}"></i> ${isFuture ? t('upcomingSession') : t('takeAttendance')}
               </button>
+              ${continueBtnHtml}
               ${deleteBtnHtml}
             </div>
           </td>
@@ -563,6 +578,7 @@ async function loadSessions() {
               <button class="btn ${isFuture ? 'btn-outline' : 'btn-primary'} btn-sm" style="flex: 1; justify-content: center;" onclick="openAttendanceModal(${s.id})">
                 <i class="fa-solid ${isFuture ? 'fa-calendar-day' : 'fa-clipboard-user'}"></i> ${isFuture ? t('upcomingSession') : t('takeAttendance')}
               </button>
+              ${continueBtnHtml}
               ${deleteBtnHtml}
             </div>
           </div>
@@ -572,27 +588,205 @@ async function loadSessions() {
   } catch (err) { }
 }
 
+// Encoder checklist & recurrence helpers
+let cachedEncodersList = [];
+
+async function fetchEncodersList() {
+  try {
+    const encoders = await api('/api/users/encoders');
+    if (Array.isArray(encoders)) {
+      cachedEncodersList = encoders;
+    }
+  } catch (err) {
+    console.error('Failed to fetch encoders:', err);
+  }
+  return cachedEncodersList;
+}
+
+function renderEncoderChecklist(containerId, countElId, preselectedIds = []) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!cachedEncodersList || cachedEncodersList.length === 0) {
+    container.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.4rem;">${t('noEncodersFound') || 'No encoders found'}</div>`;
+    updateEncoderSelectedCount(containerId, countElId);
+    return;
+  }
+
+  cachedEncodersList.forEach(enc => {
+    const isChecked = preselectedIds.includes(enc.id);
+    const item = document.createElement('label');
+    item.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; padding: 0.2rem 0.3rem; border-radius: 4px;';
+    item.innerHTML = `
+      <input type="checkbox" value="${enc.id}" ${isChecked ? 'checked' : ''} onchange="updateEncoderSelectedCount('${containerId}', '${countElId}')" style="cursor: pointer;">
+      <span><strong>${escapeHtml(enc.full_name)}</strong> <small style="color: var(--text-muted);">(@${escapeHtml(enc.username)})</small></span>
+    `;
+    container.appendChild(item);
+  });
+
+  updateEncoderSelectedCount(containerId, countElId);
+}
+
+function updateEncoderSelectedCount(containerId, countElId) {
+  const container = document.getElementById(containerId);
+  const countEl = document.getElementById(countElId);
+  if (!container || !countEl) return;
+  const checked = container.querySelectorAll('input[type="checkbox"]:checked').length;
+  countEl.textContent = `${checked} ${t('encodersSelected') || 'encoder(s) selected'}`;
+}
+
+function selectAllSessionEncoders(selectAll) {
+  const container = document.getElementById('sessionEncodersList');
+  if (!container) return;
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAll);
+  updateEncoderSelectedCount('sessionEncodersList', 'sessionEncodersCount');
+}
+
+function selectAllContinueEncoders(selectAll) {
+  const container = document.getElementById('continueEncodersList');
+  if (!container) return;
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = selectAll);
+  updateEncoderSelectedCount('continueEncodersList', 'continueEncodersCount');
+}
+
+function getSelectedEncoderIds(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  const checked = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'));
+  return checked.map(cb => parseInt(cb.value, 10)).filter(n => !isNaN(n) && n > 0);
+}
+
+function toggleSessionRecurrenceOptions() {
+  const type = document.getElementById('sessionRecurrenceType').value;
+  const countGroup = document.getElementById('sessionRecurrenceCountGroup');
+  const customGroup = document.getElementById('sessionCustomDatesGroup');
+  const countSelect = document.getElementById('sessionRecurrenceCount');
+
+  if (type === 'weekly' || type === 'monthly') {
+    countGroup.style.display = 'block';
+    customGroup.style.display = 'none';
+    if (type === 'weekly') {
+      countSelect.innerHTML = `
+        <option value="4">4 ሳምንታት (4 weeks)</option>
+        <option value="8">8 ሳምንታት (8 weeks)</option>
+        <option value="12">12 ሳምንታት (12 weeks)</option>
+        <option value="16">16 ሳምንታት (16 weeks)</option>
+        <option value="24">24 ሳምንታት (24 weeks)</option>
+      `;
+    } else {
+      countSelect.innerHTML = `
+        <option value="2">2 ወራት (2 months)</option>
+        <option value="3" selected>3 ወራት (3 months)</option>
+        <option value="6">6 ወራት (6 months)</option>
+        <option value="12">12 ወራት (12 months)</option>
+      `;
+    }
+  } else if (type === 'custom') {
+    countGroup.style.display = 'none';
+    customGroup.style.display = 'block';
+    const list = document.getElementById('sessionCustomDatesList');
+    if (list && list.children.length === 0) {
+      addCustomSessionDateInput();
+    }
+  } else {
+    countGroup.style.display = 'none';
+    customGroup.style.display = 'none';
+  }
+
+  updateRecurrencePreview();
+}
+
+function addCustomSessionDateInput() {
+  const list = document.getElementById('sessionCustomDatesList');
+  if (!list) return;
+  const row = document.createElement('div');
+  row.style.cssText = 'display: flex; gap: 0.4rem; align-items: center;';
+  row.innerHTML = `
+    <input type="date" class="form-control session-custom-date-input" style="flex: 1;" onchange="updateRecurrencePreview()">
+    <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; padding: 0.35rem 0.6rem;" onclick="this.parentElement.remove(); updateRecurrencePreview();">
+      <i class="fa-solid fa-trash"></i>
+    </button>
+  `;
+  list.appendChild(row);
+  updateRecurrencePreview();
+}
+
+function calculateDatesClient(startDateStr, type, count, customDatesList = []) {
+  if (!startDateStr) return [];
+  if (!type || type === 'none') return [startDateStr];
+
+  if (type === 'custom') {
+    const set = new Set([startDateStr, ...customDatesList.filter(Boolean)]);
+    return Array.from(set).sort();
+  }
+
+  const [sYear, sMonth, sDay] = startDateStr.split('-').map(Number);
+  const num = Math.max(1, parseInt(count, 10) || 1);
+  const res = [];
+
+  for (let i = 0; i < num; i++) {
+    if (type === 'weekly') {
+      const d = new Date(Date.UTC(sYear, sMonth - 1, sDay + (i * 7)));
+      res.push(d.toISOString().split('T')[0]);
+    } else if (type === 'monthly') {
+      const d = new Date(Date.UTC(sYear, sMonth - 1 + i, sDay));
+      res.push(d.toISOString().split('T')[0]);
+    }
+  }
+
+  return Array.from(new Set(res)).sort();
+}
+
+function updateRecurrencePreview() {
+  const startEl = document.getElementById('sessionDate');
+  const typeEl = document.getElementById('sessionRecurrenceType');
+  const countEl = document.getElementById('sessionRecurrenceCount');
+  const previewEl = document.getElementById('sessionRecurrencePreview');
+  if (!startEl || !typeEl || !previewEl) return;
+
+  const startDate = startEl.value;
+  const type = typeEl.value;
+  const count = countEl ? countEl.value : 1;
+
+  if (type === 'none' || !startDate) {
+    previewEl.style.display = 'none';
+    previewEl.innerHTML = '';
+    return;
+  }
+
+  let customDates = [];
+  if (type === 'custom') {
+    document.querySelectorAll('.session-custom-date-input').forEach(inp => {
+      if (inp.value) customDates.push(inp.value);
+    });
+  }
+
+  const generated = calculateDatesClient(startDate, type, count, customDates);
+  previewEl.style.display = 'block';
+  previewEl.innerHTML = `
+    <div><i class="fa-solid fa-calendar-days"></i> <strong>${generated.length} ${t('totalSessions') || 'Sessions'} will be created:</strong></div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 4px;">
+      ${generated.map(d => `<span class="tag" style="background: white; border: 1px solid #bfdbfe; color: #1e3a8a; font-size: 0.75rem;">${formatDate(d)}</span>`).join('')}
+    </div>
+  `;
+}
+
 async function openCreateSessionModal() {
   document.getElementById('formSession').reset();
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('sessionStartTime').value = '09:00';
   document.getElementById('sessionEndTime').value = '11:00';
+  document.getElementById('sessionRecurrenceType').value = 'none';
+  document.getElementById('sessionRecurrenceCountGroup').style.display = 'none';
+  document.getElementById('sessionCustomDatesGroup').style.display = 'none';
+  const customList = document.getElementById('sessionCustomDatesList');
+  if (customList) customList.innerHTML = '';
+  document.getElementById('sessionRecurrencePreview').style.display = 'none';
   updateDualTimePreview();
 
-  const encSelect = document.getElementById('sessionAssignedEncoder');
-  if (encSelect) {
-    encSelect.innerHTML = `<option value="">${t('selectEncoderOptional') || '-- መዝጋቢ ምረጥ (አማራጭ) / Select Encoder --'}</option>`;
-    try {
-      const encoders = await api('/api/users/encoders');
-      if (Array.isArray(encoders)) {
-        encoders.forEach(enc => {
-          encSelect.innerHTML += `<option value="${enc.id}">${escapeHtml(enc.full_name)} (@${escapeHtml(enc.username)})</option>`;
-        });
-      }
-    } catch (err) {
-      console.error('Failed to load encoders for assignment:', err);
-    }
-  }
+  await fetchEncodersList();
+  renderEncoderChecklist('sessionEncodersList', 'sessionEncodersCount', []);
 
   openModal('modalSession');
 }
@@ -602,7 +796,16 @@ async function handleCreateSession(e) {
   const startTime = document.getElementById('sessionStartTime').value;
   const endTime = document.getElementById('sessionEndTime').value;
   const dualTimeStr = getDualTimeDisplay('', startTime, endTime);
-  const assignedEncoderId = document.getElementById('sessionAssignedEncoder')?.value || null;
+  const assignedEncoderIds = getSelectedEncoderIds('sessionEncodersList');
+  const recurrenceType = document.getElementById('sessionRecurrenceType').value;
+  const recurrenceCount = document.getElementById('sessionRecurrenceCount')?.value || 1;
+
+  let customDates = [];
+  if (recurrenceType === 'custom') {
+    document.querySelectorAll('.session-custom-date-input').forEach(inp => {
+      if (inp.value) customDates.push(inp.value);
+    });
+  }
 
   const body = {
     course_title: document.getElementById('sessionCourseTitle').value,
@@ -612,13 +815,198 @@ async function handleCreateSession(e) {
     session_time: dualTimeStr,
     category: document.getElementById('sessionCategory').value,
     description: document.getElementById('sessionDescription').value,
-    assigned_encoder_id: assignedEncoderId ? parseInt(assignedEncoderId, 10) : null
+    assigned_encoder_ids: assignedEncoderIds,
+    recurrence: {
+      type: recurrenceType,
+      count: parseInt(recurrenceCount, 10) || 1,
+      custom_dates: customDates
+    }
   };
 
   try {
-    await api('/api/sessions', { method: 'POST', body: JSON.stringify(body) });
+    const res = await api('/api/sessions', { method: 'POST', body: JSON.stringify(body) });
     closeModal('modalSession');
-    showToast('Session created successfully!', 'success');
+    showToast(res.message || 'Session created successfully!', 'success');
+    loadSessions();
+  } catch (err) { }
+}
+
+// Continue / Copy Session Modal Logic
+let currentContinueSessionData = null;
+
+async function openContinueSessionModal(sessionId) {
+  try {
+    const session = await api(`/api/sessions/${sessionId}`);
+    if (!session) return;
+    currentContinueSessionData = session;
+
+    document.getElementById('continueOriginalSessionId').value = session.id;
+    document.getElementById('continueSessionOriginalTitle').textContent = session.course_title;
+    const dualTime = getDualTimeDisplay(session.session_time, session.start_time, session.end_time);
+    document.getElementById('continueSessionOriginalDetails').textContent = `${session.category} | ${formatDate(session.session_date)} | ${dualTime}`;
+
+    // Suggested next date: +7 days from original date
+    const dateStr = session.session_date ? session.session_date.split('T')[0] : new Date().toISOString().split('T')[0];
+    const [sYear, sMonth, sDay] = dateStr.split('-').map(Number);
+    const nextWeekDate = new Date(Date.UTC(sYear, sMonth - 1, sDay + 7)).toISOString().split('T')[0];
+    document.getElementById('continueStartDate').value = nextWeekDate;
+
+    // Reset recurrence type to 'none'
+    document.getElementById('continueRecurrenceType').value = 'none';
+    document.getElementById('continueCountGroup').style.display = 'none';
+    document.getElementById('continueCustomDatesGroup').style.display = 'none';
+    const customList = document.getElementById('continueCustomDatesList');
+    if (customList) customList.innerHTML = '';
+
+    // Encoders checklist pre-checked with original encoders
+    await fetchEncodersList();
+    const origEncIds = (session.assigned_encoders || []).map(e => e.id);
+    if (session.assigned_encoder_id && !origEncIds.includes(session.assigned_encoder_id)) {
+      origEncIds.push(session.assigned_encoder_id);
+    }
+    renderEncoderChecklist('continueEncodersList', 'continueEncodersCount', origEncIds);
+
+    updateContinueRecurrencePreview();
+    openModal('modalContinueSession');
+  } catch (err) {
+    console.error('Error opening continue modal:', err);
+  }
+}
+
+function setContinueOption(option) {
+  if (!currentContinueSessionData) return;
+  const dateStr = currentContinueSessionData.session_date ? currentContinueSessionData.session_date.split('T')[0] : new Date().toISOString().split('T')[0];
+  const [sYear, sMonth, sDay] = dateStr.split('-').map(Number);
+
+  if (option === 'next_week') {
+    const d = new Date(Date.UTC(sYear, sMonth - 1, sDay + 7)).toISOString().split('T')[0];
+    document.getElementById('continueStartDate').value = d;
+    document.getElementById('continueRecurrenceType').value = 'none';
+    toggleContinueRecurrenceOptions();
+  } else if (option === 'next_month') {
+    const d = new Date(Date.UTC(sYear, sMonth, sDay)).toISOString().split('T')[0];
+    document.getElementById('continueStartDate').value = d;
+    document.getElementById('continueRecurrenceType').value = 'none';
+    toggleContinueRecurrenceOptions();
+  } else if (option === 'weekly_4') {
+    const d = new Date(Date.UTC(sYear, sMonth - 1, sDay + 7)).toISOString().split('T')[0];
+    document.getElementById('continueStartDate').value = d;
+    document.getElementById('continueRecurrenceType').value = 'weekly';
+    document.getElementById('continueRecurrenceCount').value = '4';
+    toggleContinueRecurrenceOptions();
+  } else if (option === 'monthly_3') {
+    const d = new Date(Date.UTC(sYear, sMonth, sDay)).toISOString().split('T')[0];
+    document.getElementById('continueStartDate').value = d;
+    document.getElementById('continueRecurrenceType').value = 'monthly';
+    document.getElementById('continueRecurrenceCount').value = '3';
+    toggleContinueRecurrenceOptions();
+  }
+}
+
+function toggleContinueRecurrenceOptions() {
+  const type = document.getElementById('continueRecurrenceType').value;
+  const countGroup = document.getElementById('continueCountGroup');
+  const customGroup = document.getElementById('continueCustomDatesGroup');
+
+  if (type === 'weekly' || type === 'monthly') {
+    countGroup.style.display = 'block';
+    customGroup.style.display = 'none';
+  } else if (type === 'custom') {
+    countGroup.style.display = 'none';
+    customGroup.style.display = 'block';
+    const list = document.getElementById('continueCustomDatesList');
+    if (list && list.children.length === 0) {
+      addContinueCustomDateInput();
+    }
+  } else {
+    countGroup.style.display = 'none';
+    customGroup.style.display = 'none';
+  }
+
+  updateContinueRecurrencePreview();
+}
+
+function addContinueCustomDateInput() {
+  const list = document.getElementById('continueCustomDatesList');
+  if (!list) return;
+  const row = document.createElement('div');
+  row.style.cssText = 'display: flex; gap: 0.4rem; align-items: center;';
+  row.innerHTML = `
+    <input type="date" class="form-control continue-custom-date-input" style="flex: 1;" onchange="updateContinueRecurrencePreview()">
+    <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; padding: 0.35rem 0.6rem;" onclick="this.parentElement.remove(); updateContinueRecurrencePreview();">
+      <i class="fa-solid fa-trash"></i>
+    </button>
+  `;
+  list.appendChild(row);
+  updateContinueRecurrencePreview();
+}
+
+function updateContinueRecurrencePreview() {
+  const startEl = document.getElementById('continueStartDate');
+  const typeEl = document.getElementById('continueRecurrenceType');
+  const countEl = document.getElementById('continueRecurrenceCount');
+  const previewEl = document.getElementById('continueDatesPreview');
+  if (!startEl || !typeEl || !previewEl) return;
+
+  const startDate = startEl.value;
+  const type = typeEl.value;
+  const count = countEl ? countEl.value : 1;
+
+  if (!startDate) {
+    previewEl.style.display = 'none';
+    previewEl.innerHTML = '';
+    return;
+  }
+
+  let customDates = [];
+  if (type === 'custom') {
+    document.querySelectorAll('.continue-custom-date-input').forEach(inp => {
+      if (inp.value) customDates.push(inp.value);
+    });
+  }
+
+  const generated = calculateDatesClient(startDate, type, count, customDates);
+  previewEl.style.display = 'block';
+  previewEl.innerHTML = `
+    <div><i class="fa-solid fa-calendar-days"></i> <strong>${generated.length} ${t('totalSessions') || 'Sessions'} will be created:</strong></div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 4px;">
+      ${generated.map(d => `<span class="tag" style="background: white; border: 1px solid #bfdbfe; color: #1e3a8a; font-size: 0.75rem;">${formatDate(d)}</span>`).join('')}
+    </div>
+  `;
+}
+
+async function handleContinueSessionSubmit(e) {
+  e.preventDefault();
+  const sessionId = document.getElementById('continueOriginalSessionId').value;
+  const startDate = document.getElementById('continueStartDate').value;
+  const recurrenceType = document.getElementById('continueRecurrenceType').value;
+  const recurrenceCount = document.getElementById('continueRecurrenceCount').value;
+  const assignedEncoderIds = getSelectedEncoderIds('continueEncodersList');
+
+  let customDates = [];
+  if (recurrenceType === 'custom') {
+    document.querySelectorAll('.continue-custom-date-input').forEach(inp => {
+      if (inp.value) customDates.push(inp.value);
+    });
+  }
+
+  const body = {
+    start_date: startDate,
+    recurrence: {
+      type: recurrenceType,
+      count: parseInt(recurrenceCount, 10) || 1,
+      custom_dates: customDates
+    },
+    assigned_encoder_ids: assignedEncoderIds
+  };
+
+  try {
+    const res = await api(`/api/sessions/${sessionId}/continue`, {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+    closeModal('modalContinueSession');
+    showToast(res.message || 'Session continued successfully!', 'success');
     loadSessions();
   } catch (err) { }
 }

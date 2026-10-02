@@ -79,6 +79,24 @@ async function initDatabase() {
       await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS end_time VARCHAR(10) DEFAULT '11:00';`);
       await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS attendance_status VARCHAR(20) DEFAULT 'unrecorded';`);
       await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS assigned_encoder_id INT REFERENCES users(id) ON DELETE SET NULL;`);
+
+      // 3b. Session Encoders Table (for assigning multiple encoders per session)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS session_encoders (
+          session_id INT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+          user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (session_id, user_id)
+        );
+      `);
+
+      // Migrate existing single assigned_encoder_id into session_encoders table
+      await pool.query(`
+        INSERT INTO session_encoders (session_id, user_id)
+        SELECT id, assigned_encoder_id FROM sessions
+        WHERE assigned_encoder_id IS NOT NULL
+        ON CONFLICT (session_id, user_id) DO NOTHING;
+      `);
     } catch (err) {
       console.log('Sessions migration notice:', err.message);
     }
