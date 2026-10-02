@@ -3,26 +3,12 @@ const router = express.Router();
 const pool = require('../config/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-// GET /api/sessions - List sessions with attendance summary
+// GET /api/sessions - List sessions with attendance summary (with optional pagination)
 router.get('/', authenticateToken, async (req, res) => {
-  const { category } = req.query;
+  const { category, page, limit } = req.query;
 
   try {
-    let query = `
-      SELECT 
-        s.id,
-        s.course_title,
-        s.session_date,
-        s.session_time,
-        s.category,
-        s.description,
-        s.created_by,
-        s.created_at,
-        u.full_name AS created_by_name,
-        COALESCE(att.present_count, 0) AS present_count,
-        COALESCE(att.absent_count, 0) AS absent_count,
-        COALESCE(att.permission_count, 0) AS permission_count,
-        COALESCE(att.total_marked, 0) AS total_marked
+    let baseQuery = `
       FROM sessions s
       LEFT JOIN users u ON s.created_by = u.id
       LEFT JOIN (
@@ -40,13 +26,52 @@ router.get('/', authenticateToken, async (req, res) => {
     const params = [];
 
     if (category && category !== 'All') {
-      query += " AND (s.category = ? OR s.category = 'All')";
+      baseQuery += " AND (s.category = ? OR s.category = 'All')";
       params.push(category);
     }
 
-    query += ' ORDER BY s.session_date DESC, s.session_time DESC';
+    let selectQuery = `
+      SELECT 
+        s.id,
+        s.course_title,
+        s.session_date,
+        s.session_time,
+        s.start_time,
+        s.end_time,
+        s.category,
+        s.description,
+        s.created_by,
+        s.created_at,
+        u.full_name AS created_by_name,
+        COALESCE(att.present_count, 0) AS present_count,
+        COALESCE(att.absent_count, 0) AS absent_count,
+        COALESCE(att.permission_count, 0) AS permission_count,
+        COALESCE(att.total_marked, 0) AS total_marked
+      ${baseQuery}
+      ORDER BY s.session_date DESC, s.session_time DESC
+    `;
 
-    const [sessions] = await pool.query(query, params);
+    if (limit && !isNaN(parseInt(limit, 10))) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.max(1, Math.min(200, parseInt(limit, 10)));
+      const offset = (pageNum - 1) * limitNum;
+      
+      const countParams = [...params];
+      const [[{ total }]] = await pool.query(`SELECT COUNT(s.id) AS total ${baseQuery}`, countParams);
+      
+      selectQuery += ` LIMIT ${limitNum} OFFSET ${offset}`;
+      const [sessions] = await pool.query(selectQuery, params);
+      
+      return res.json({
+        sessions,
+        total: parseInt(total, 10),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(parseInt(total, 10) / limitNum)
+      });
+    }
+
+    const [sessions] = await pool.query(selectQuery, params);
     res.json(sessions);
   } catch (error) {
     console.error('Fetch sessions error:', error);
@@ -157,8 +182,8 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/sessions/:id - Delete session
-router.delete('/:id', authenticateToken, async (req, res) => {
+// DELETE /api/sessions/:id - Delete session (Admin & Super Admin only)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {

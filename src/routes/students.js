@@ -3,11 +3,30 @@ const router = express.Router();
 const pool = require('../config/db');
 const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 
-// GET /api/students - List students with optional search, category, and status filters
+// GET /api/students - List students with optional search, category, status, and pagination
 router.get('/', authenticateToken, async (req, res) => {
-  const { category, status, search } = req.query;
+  const { category, status, search, page, limit } = req.query;
 
   try {
+    let whereClause = ' WHERE 1=1';
+    const params = [];
+
+    if (category && category !== 'All') {
+      whereClause += ' AND s.category = ?';
+      params.push(category);
+    }
+
+    if (status && status !== 'All') {
+      whereClause += ' AND s.status = ?';
+      params.push(status);
+    }
+
+    if (search && search.trim() !== '') {
+      const searchTerm = `%${search.trim()}%`;
+      whereClause += ' AND (s.first_name ILIKE ? OR s.father_name ILIKE ? OR s.mother_name ILIKE ? OR s.phone LIKE ? OR s.emergency_contact LIKE ?)';
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
     let query = `
       SELECT 
         s.*,
@@ -17,27 +36,30 @@ router.get('/', authenticateToken, async (req, res) => {
         COUNT(a.id) AS total_sessions_attended
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id
-      WHERE 1=1
+      ${whereClause}
+      GROUP BY s.id
+      ORDER BY s.first_name ASC
     `;
-    const params = [];
 
-    if (category && category !== 'All') {
-      query += ' AND s.category = ?';
-      params.push(category);
+    if (limit && !isNaN(parseInt(limit, 10))) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.max(1, Math.min(200, parseInt(limit, 10)));
+      const offset = (pageNum - 1) * limitNum;
+
+      const countParams = [...params];
+      const [[{ total }]] = await pool.query(`SELECT COUNT(s.id) AS total FROM students s ${whereClause}`, countParams);
+
+      query += ` LIMIT ${limitNum} OFFSET ${offset}`;
+      const [students] = await pool.query(query, params);
+
+      return res.json({
+        students,
+        total: parseInt(total, 10),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(parseInt(total, 10) / limitNum)
+      });
     }
-
-    if (status && status !== 'All') {
-      query += ' AND s.status = ?';
-      params.push(status);
-    }
-
-    if (search && search.trim() !== '') {
-      const searchTerm = `%${search.trim()}%`;
-      query += ' AND (s.first_name LIKE ? OR s.father_name LIKE ? OR s.mother_name LIKE ? OR s.phone LIKE ? OR s.emergency_contact LIKE ?)';
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
-    }
-
-    query += ' GROUP BY s.id ORDER BY s.first_name ASC';
 
     const [students] = await pool.query(query, params);
     res.json(students);

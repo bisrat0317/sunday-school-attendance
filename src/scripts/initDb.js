@@ -80,7 +80,17 @@ async function initDatabase() {
       );
     `);
 
-    console.log('Tables verified and ready.');
+    // 5. Performance Indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_students_category_status ON students(category, status);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_students_status ON students(status);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_students_first_name ON students(first_name);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_attendance_session_student ON attendance(session_id, student_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_attendance_student_status ON attendance(student_id, status);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_attendance_session_id ON attendance(session_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(session_date);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sessions_category_date ON sessions(category, session_date);`);
+
+    console.log('Tables and indexes verified and ready.');
 
     // Seed default superadmin, admin, and encoder accounts individually if missing
     const defaultUsers = [

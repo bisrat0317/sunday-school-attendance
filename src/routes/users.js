@@ -68,4 +68,23 @@ router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => 
   }
 });
 
+// PATCH /api/users/:id/reset-password - Reset another user's password (Super Admin only)
+router.patch('/:id/reset-password', authenticateToken, requireSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+  }
+
+  try {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+    res.json({ message: 'User password reset successfully' });
+  } catch (error) {
+    console.error('Reset user password error:', error);
+    res.status(500).json({ message: 'Error resetting password' });
+  }
+});
+
 module.exports = router;

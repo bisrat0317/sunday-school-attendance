@@ -1091,11 +1091,16 @@ async function loadUsers() {
           <td><span class="tag ${roleTagClass}">${roleText}</span></td>
           <td>${formatDate(u.created_at)}</td>
           <td>
-            ${u.id !== currentUser.id ? `
-              <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteUser(${u.id})">
-                <i class="fa-solid fa-trash"></i>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="btn btn-outline btn-sm" title="${t('resetUserPassword')}" onclick="openResetUserPasswordModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.full_name)}')">
+                <i class="fa-solid fa-key"></i>
               </button>
-            ` : `<small style="color: var(--text-muted);">(You)</small>`}
+              ${u.id !== currentUser.id ? `
+                <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteUser(${u.id})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              ` : `<small style="color: var(--text-muted); padding: 0.2rem 0.4rem;">(You)</small>`}
+            </div>
           </td>
         </tr>
       `;
@@ -1132,6 +1137,82 @@ async function deleteUser(id) {
     showToast('User deleted', 'info');
     loadUsers();
   } catch (err) { }
+}
+
+// Password Management Handlers
+function openChangePasswordModal() {
+  const form = document.getElementById('formChangePassword');
+  if (form) form.reset();
+  openModal('modalChangePassword');
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const currentPassword = document.getElementById('changeCurrentPassword').value;
+  const newPassword = document.getElementById('changeNewPassword').value;
+  const confirmPassword = document.getElementById('changeConfirmPassword').value;
+  const btn = document.getElementById('btnSubmitChangePassword');
+
+  if (newPassword !== confirmPassword) {
+    showToast(t('passwordsDoNotMatch'), 'danger');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showToast(t('passwordLengthMin'), 'danger');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}`;
+
+  try {
+    await api('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    closeModal('modalChangePassword');
+    showToast(t('passwordChangedSuccess'), 'success');
+  } catch (err) {
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-key"></i> ${t('save')}`;
+  }
+}
+
+function openResetUserPasswordModal(userId, username, fullName) {
+  document.getElementById('formResetUserPassword').reset();
+  document.getElementById('resetTargetUserId').value = userId;
+  document.getElementById('resetTargetUserText').textContent = `${fullName} (@${username})`;
+  openModal('modalResetUserPassword');
+}
+
+async function handleResetUserPassword(e) {
+  e.preventDefault();
+  const userId = document.getElementById('resetTargetUserId').value;
+  const newPassword = document.getElementById('resetUserNewPassword').value;
+  const btn = document.getElementById('btnSubmitResetUserPassword');
+
+  if (!newPassword || newPassword.length < 6) {
+    showToast(t('passwordLengthMin'), 'danger');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}`;
+
+  try {
+    await api(`/api/users/${userId}/reset-password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newPassword })
+    });
+    closeModal('modalResetUserPassword');
+    showToast('User password reset successfully!', 'success');
+  } catch (err) {
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-key"></i> ${t('save')}`;
+  }
 }
 
 // ==========================================

@@ -119,6 +119,16 @@ const translations = {
     categoryMatrixSubtitle: "Live attendance grid filtered by category and student registration date",
     regDate: "Registration Date",
 
+    // Password Management
+    changePassword: "Change Password",
+    currentPassword: "Current Password",
+    newPassword: "New Password",
+    confirmNewPassword: "Confirm New Password",
+    passwordChangedSuccess: "Password changed successfully!",
+    passwordsDoNotMatch: "New passwords do not match!",
+    passwordLengthMin: "Password must be at least 6 characters",
+    resetUserPassword: "Reset Password",
+
     // Form buttons
     save: "Save",
     cancel: "Cancel",
@@ -243,6 +253,16 @@ const translations = {
     categoryMatrixTitle: "የምድብ መገኘት መዝገብ እና Excel ማውረጃ",
     categoryMatrixSubtitle: "የተማሪዎችን መዝገብ የተመዘገቡበትን ቀን መሠረት ያደረገ መቆጣጠሪያ",
     regDate: "የተመዘገበበት ቀን",
+
+    // Password Management
+    changePassword: "የይለፍ ቃል ቀይር",
+    currentPassword: "የአሁኑ የይለፍ ቃል",
+    newPassword: "አዲስ የይለፍ ቃል",
+    confirmNewPassword: "አዲሱን የይለፍ ቃል አረጋግጥ",
+    passwordChangedSuccess: "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል!",
+    passwordsDoNotMatch: "አዲሶቹ የይለፍ ቃሎች አይመሳሰሉም!",
+    passwordLengthMin: "የይለፍ ቃል ቢያንስ 6 ፊደላት/ቁጥሮች መሆን አለበት",
+    resetUserPassword: "የይለፍ ቃል ቀይርለት",
 
     // Form buttons
     save: "መዝግብ",
