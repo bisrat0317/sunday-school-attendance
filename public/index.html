@@ -214,7 +214,12 @@
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="password">የይለፍ ቃል</label>
-            <input type="password" id="loginPassword" class="form-control" required autocomplete="current-password">
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="loginPassword" class="form-control" style="padding-right: 2.75rem;" required autocomplete="current-password">
+              <button type="button" id="btnToggleLoginPassword" onclick="togglePasswordVisibility('loginPassword', 'loginPasswordEyeIcon')" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; color: #64748b; padding: 0.4rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: color 0.2s ease;" title="Show/Hide Password" aria-label="Toggle password visibility">
+                <i id="loginPasswordEyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;"
             id="btnLoginSubmit">
@@ -1797,7 +1802,12 @@
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="password">የይለፍ ቃል *</label>
-            <input type="password" id="userPassword" class="form-control" required>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="userPassword" class="form-control" style="padding-right: 2.75rem;" required>
+              <button type="button" onclick="togglePasswordVisibility('userPassword', 'userPasswordEyeIcon')" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; color: #64748b; padding: 0.4rem; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Show/Hide Password" aria-label="Toggle password visibility">
+                <i id="userPasswordEyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="role">የሥራ ድርሻ *</label>
@@ -1830,15 +1840,30 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" data-i18n="currentPassword">የአሁኑ የይለፍ ቃል *</label>
-            <input type="password" id="changeCurrentPassword" class="form-control" required>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="changeCurrentPassword" class="form-control" style="padding-right: 2.75rem;" required>
+              <button type="button" onclick="togglePasswordVisibility('changeCurrentPassword', 'changeCurrentPasswordEyeIcon')" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; color: #64748b; padding: 0.4rem; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Show/Hide Password" aria-label="Toggle password visibility">
+                <i id="changeCurrentPasswordEyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="newPassword">አዲስ የይለፍ ቃል *</label>
-            <input type="password" id="changeNewPassword" class="form-control" required minlength="6">
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="changeNewPassword" class="form-control" style="padding-right: 2.75rem;" required minlength="6">
+              <button type="button" onclick="togglePasswordVisibility('changeNewPassword', 'changeNewPasswordEyeIcon')" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; color: #64748b; padding: 0.4rem; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Show/Hide Password" aria-label="Toggle password visibility">
+                <i id="changeNewPasswordEyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="confirmNewPassword">አዲሱን የይለፍ ቃል አረጋግጥ *</label>
-            <input type="password" id="changeConfirmPassword" class="form-control" required minlength="6">
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="changeConfirmPassword" class="form-control" style="padding-right: 2.75rem;" required minlength="6">
+              <button type="button" onclick="togglePasswordVisibility('changeConfirmPassword', 'changeConfirmPasswordEyeIcon')" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; color: #64748b; padding: 0.4rem; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Show/Hide Password" aria-label="Toggle password visibility">
+                <i id="changeConfirmPasswordEyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1864,7 +1889,12 @@
           <p id="resetTargetUserText" style="margin-bottom: 1rem; font-weight: 600; color: var(--text-main);"></p>
           <div class="form-group">
             <label class="form-label" data-i18n="newPassword">አዲስ የይለፍ ቃል *</label>
-            <input type="password" id="resetUserNewPassword" class="form-control" required minlength="6">
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="resetUserNewPassword" class="form-control" style="padding-right: 2.75rem;" required minlength="6">
+              <button type="button" onclick="togglePasswordVisibility('resetUserNewPassword', 'resetUserNewPasswordEyeIcon')" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; color: #64748b; padding: 0.4rem; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Show/Hide Password" aria-label="Toggle password visibility">
+                <i id="resetUserNewPasswordEyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
