@@ -147,6 +147,18 @@ async function initDatabase() {
       );
     `);
 
+    // Ensure all columns exist on pastoral_followups (idempotent migration)
+    await pool.query(`
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS contact_date DATE NOT NULL DEFAULT CURRENT_DATE;
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS contact_type VARCHAR(50) NOT NULL DEFAULT 'phone_call';
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS contacted_person VARCHAR(100) NOT NULL DEFAULT 'Parent';
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS reason_category VARCHAR(100) DEFAULT '';
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT '';
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'contacted';
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS next_followup_date DATE DEFAULT NULL;
+      ALTER TABLE pastoral_followups ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+    `);
+
     // 7. Student Promotions & Graduation History Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS student_promotions (

@@ -247,10 +247,37 @@ router.get('/:id', authenticateToken, async (req, res) => {
       siblings = siblingResult;
     }
 
+    // Get full pastoral follow-up history
+    const [followups] = await pool.query(`
+      SELECT 
+        f.id,
+        f.student_id,
+        f.user_id,
+        f.contact_date,
+        f.contact_date AS last_contact_date,
+        f.contact_type,
+        f.contact_type AS contact_method,
+        f.contacted_person,
+        f.contacted_person AS parent_contacted,
+        f.reason_category,
+        f.reason_category AS reason_for_absence,
+        f.notes,
+        f.status,
+        f.next_followup_date,
+        f.next_followup_date AS next_action,
+        f.created_at,
+        u.full_name AS logged_by_name
+      FROM pastoral_followups f
+      LEFT JOIN users u ON f.user_id = u.id
+      WHERE f.student_id = ?
+      ORDER BY f.contact_date DESC, f.id DESC
+    `, [id]);
+
     res.json({
       student: s,
       history,
-      siblings
+      siblings,
+      followups
     });
   } catch (error) {
     console.error('Fetch student details error:', error);

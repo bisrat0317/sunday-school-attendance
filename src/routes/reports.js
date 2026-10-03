@@ -174,7 +174,7 @@ router.get('/three-absents', authenticateToken, requireAdmin, async (req, res) =
           u.full_name AS logged_by_name
         FROM pastoral_followups f
         LEFT JOIN users u ON f.user_id = u.id
-        ORDER BY f.student_id, f.contact_date DESC, f.created_at DESC
+        ORDER BY f.student_id, f.contact_date DESC, f.id DESC
       ) lf ON s.id = lf.student_id
       WHERE s.status = 'active'
       ORDER BY recent.last_absent_date DESC

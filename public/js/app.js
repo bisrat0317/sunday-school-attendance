@@ -1964,6 +1964,64 @@ async function viewStudentProfile(id) {
       }
     }
 
+    // Render Pastoral Follow-up History in Profile
+    const folCard = document.getElementById('profileFollowupsCard');
+    const folContent = document.getElementById('profileFollowupsContent');
+    const btnFolLog = document.getElementById('btnProfileLogFollowup');
+    if (folCard && folContent) {
+      if (['admin', 'super_admin'].includes(currentUser.role)) {
+        folCard.style.display = 'block';
+        if (btnFolLog) {
+          btnFolLog.onclick = () => {
+            openLogFollowupModal(s.id, `${s.first_name} ${s.father_name}`, 'contacted', s.phone, s.emergency_contact, s.mother_name);
+          };
+        }
+
+        const followupsList = data.followups || [];
+        if (followupsList.length === 0) {
+          folContent.innerHTML = `
+            <div style="background: #fff; border: 1px dashed #f0abfc; padding: 0.75rem; border-radius: 6px; text-align: center; color: #a21caf; font-size: 0.83rem;">
+              <i class="fa-solid fa-bell"></i> ${t('noFollowupLogged')}
+            </div>
+          `;
+        } else {
+          folContent.innerHTML = '';
+          followupsList.forEach(f => {
+            const stBadge = getFollowupStatusBadge(f.status);
+            const dStr = formatDate(f.contact_date || f.created_at);
+            const mHtml = getContactMethodLabel(f.contact_type || f.contact_method);
+            const pHtml = getContactedPersonLabel(f.contacted_person || f.parent_contacted);
+            folContent.innerHTML += `
+              <div style="background: #fff; border: 1px solid #f0abfc; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.84rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
+                  <div style="font-weight: 700; color: #701a75;">
+                    ${pHtml} • ${mHtml}
+                  </div>
+                  ${stBadge}
+                </div>
+                ${(f.reason_category || f.reason_for_absence) ? `
+                  <div style="font-size: 0.8rem; color: #86198f; margin-bottom: 0.3rem;">
+                    <strong>${t('reasonCategory')}:</strong> ${escapeHtml(f.reason_category || f.reason_for_absence)}
+                  </div>
+                ` : ''}
+                ${f.notes ? `
+                  <div style="background: #fdf4ff; border-left: 3px solid #c026d3; padding: 0.4rem 0.6rem; border-radius: 4px; font-style: italic; color: #4a044e; margin-bottom: 0.35rem;">
+                    "${escapeHtml(f.notes)}"
+                  </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #a21caf; border-top: 1px dashed #f5d0fe; padding-top: 0.3rem;">
+                  <span><i class="fa-solid fa-calendar"></i> ${dStr}</span>
+                  <span><i class="fa-solid fa-user-pen"></i> ${escapeHtml(f.logged_by_name || 'Staff')}</span>
+                </div>
+              </div>
+            `;
+          });
+        }
+      } else {
+        folCard.style.display = 'none';
+      }
+    }
+
     const histTbody = document.getElementById('profileHistoryTableBody');
     histTbody.innerHTML = '';
     if (data.history.length === 0) {
@@ -2372,14 +2430,57 @@ async function handleSaveFollowup(e) {
       followup_status: followupStatus
     };
 
-    await api('/api/followups', {
+    const res = await api('/api/followups', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
 
-    showToast(t('followupSaved') || 'Follow-up log recorded successfully!', 'success');
+    // Auto switch active status tab so user immediately sees the updated student in that category
+    if (currentAlertStatusTab !== 'all') {
+      currentAlertStatusTab = followupStatus || 'contacted';
+    }
+
+    const statusLabel = followupStatus === 'resolved' ? (t('statusResolved') || 'Resolved') :
+                        followupStatus === 'needs_visit' ? (t('statusNeedsVisit') || 'Home Visit') :
+                        followupStatus === 'contacted' ? (t('statusContacted') || 'Contacted') :
+                        (t('statusPending') || 'Pending');
+
+    const toastMsg = currentLang === 'am'
+      ? `የመንፈሳዊ ክትትል መረጃው ተመዝግቧል! ተማሪው ወደ '${statusLabel}' ዝርዝር ተዛውሯል።`
+      : `Pastoral follow-up recorded! Student moved to '${statusLabel}' list.`;
+
+    showToast(toastMsg, 'success');
     closeModal('modalLogFollowup');
+
+    // 1. Refresh 3-Absent Alerts and update status pill tabs
     await load3AbsentAlerts();
+
+    // 2. Refresh Student Profile modal if currently open
+    const numStudentId = parseInt(studentId, 10);
+    const profModal = document.getElementById('modalStudentProfile');
+    if (profModal && profModal.style.display !== 'none') {
+      await viewStudentProfile(numStudentId);
+    }
+
+    // 3. Refresh Follow-up Timeline modal if open
+    const timeModal = document.getElementById('modalFollowupTimeline');
+    if (timeModal && timeModal.style.display !== 'none' && currentTimelineStudent) {
+      await openFollowupTimelineModal(
+        currentTimelineStudent.studentId,
+        currentTimelineStudent.studentName,
+        currentTimelineStudent.phone,
+        currentTimelineStudent.emergency,
+        currentTimelineStudent.motherName
+      );
+    }
+
+    // 4. Refresh Advanced Analytics if visible
+    if (currentUser && currentUser.role === 'super_admin') {
+      const analyticsTab = document.getElementById('tabAnalytics');
+      if (analyticsTab && analyticsTab.style.display !== 'none') {
+        loadAdvancedAnalytics();
+      }
+    }
   } catch (err) {
     console.error('Error saving follow-up:', err);
   } finally {

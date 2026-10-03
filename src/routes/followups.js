@@ -32,7 +32,7 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
       FROM pastoral_followups f
       LEFT JOIN users u ON f.user_id = u.id
       WHERE f.student_id = ?
-      ORDER BY f.contact_date DESC, f.created_at DESC
+      ORDER BY f.contact_date DESC, f.id DESC
     `, [studentId]);
 
     // Return structured object with followups array for frontend convenience
@@ -75,7 +75,7 @@ router.get('/recent', authenticateToken, requireAdmin, async (req, res) => {
       FROM pastoral_followups f
       JOIN students s ON f.student_id = s.id
       LEFT JOIN users u ON f.user_id = u.id
-      ORDER BY f.created_at DESC
+      ORDER BY f.contact_date DESC, f.id DESC
       LIMIT 25
     `);
 

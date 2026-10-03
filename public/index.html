@@ -1678,6 +1678,21 @@
           </div>
         </div>
 
+        <!-- Pastoral Care & Follow-ups Card inside Student Profile -->
+        <div id="profileFollowupsCard" style="display: none; background: #fdf4ff; border: 1px solid #f0abfc; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.4rem;">
+            <h4 style="margin: 0; color: #86198f; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
+              <i class="fa-solid fa-clipboard-user"></i> <span data-i18n="followupHistory">የመንፈሳዊ ክትትል ታሪክ (Pastoral Follow-up)</span>
+            </h4>
+            <button type="button" class="btn btn-primary btn-sm" id="btnProfileLogFollowup">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="logFollowup">+ ክትትል መዝግብ</span>
+            </button>
+          </div>
+          <div id="profileFollowupsContent" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
         <h4 style="margin-bottom: 0.75rem; color: var(--primary);"><i class="fa-solid fa-history"></i> የመገኘት ታሪክ
           (Attendance Timeline)</h4>
         <div class="table-responsive">
