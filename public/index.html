@@ -82,7 +82,7 @@
           <div class="nav-icon-bubble"><i class="fa-solid fa-user-slash"></i></div>
           <span data-i18n="navInactive">እንቅስቃሴ ያቆሙ</span>
         </button>
-        <button class="drawer-nav-item admin-only" id="drawerTabBackup" onclick="switchTab('backup')">
+        <button class="drawer-nav-item super-admin-only" id="drawerTabBackup" onclick="switchTab('backup')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-cloud-arrow-down"></i></div>
           <span data-i18n="navBackup">ዳታቤዝ እና ኤክስፖርት</span>
         </button>
@@ -179,7 +179,7 @@
       <button class="nav-tab admin-only" id="tabBtnInactive" onclick="switchTab('inactive')">
         <i class="fa-solid fa-user-slash"></i> <span data-i18n="navInactive">እንቅስቃሴ ያቆሙ</span>
       </button>
-      <button class="nav-tab admin-only" id="tabBtnBackup" onclick="switchTab('backup')">
+      <button class="nav-tab super-admin-only" id="tabBtnBackup" onclick="switchTab('backup')">
         <i class="fa-solid fa-cloud-arrow-down"></i> <span data-i18n="navBackup">ዳታቤዝ / ኤክስፖርት</span>
       </button>
       <button class="nav-tab super-admin-only" id="tabBtnUsers" onclick="switchTab('users')">
@@ -968,7 +968,7 @@
                 <h4 style="font-size: 0.98rem; font-weight: 700; color: #b45309; display: flex; align-items: center; gap: 0.4rem;">
                   <i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="atRiskTitle">አስቀድሞ የመለየት ማስጠንቀቂያ (At-Risk Early Detection)</span>
                 </h4>
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;" data-i18n="atRiskSubtitle">ባለፉት 4 ሳምንታት የመገኘት መጠናቸው ከ25% በላይ የቀነሰባቸው ንቁ ተማሪዎች</p>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;" data-i18n="atRiskSubtitle">ባለፉት 4 ክፍለ-ጊዜያት የመገኘት መጠናቸው ከ70% በታች የሆኑ ንቁ ተማሪዎች</p>
               </div>
             </div>
 
@@ -979,9 +979,9 @@
                     <th data-i18n="studentName">የተማሪው ስም</th>
                     <th data-i18n="category">ምድብ</th>
                     <th data-i18n="phone">ስልክ</th>
-                    <th data-i18n="pastAttendance">የቀድሞ አማካይ</th>
-                    <th data-i18n="recentAttendance">የቅርብ 4 ሳምንታት</th>
-                    <th data-i18n="dropRate">የቀነሰበት መጠን</th>
+                    <th data-i18n="pastAttendance">አጠቃላይ አማካይ</th>
+                    <th data-i18n="recentAttendance">የቅርብ 4 ክፍለ-ጊዜያት</th>
+                    <th data-i18n="atRiskThreshold">የመገኘት መጠን (&lt; 70%)</th>
                     <th data-i18n="actions">ድርጊት</th>
                   </tr>
                 </thead>
@@ -998,8 +998,8 @@
         </div>
       </section>
 
-      <!-- TAB: DATABASE BACKUP & WEEKLY EXPORTS ARCHIVE (Admin Only) -->
-      <section id="tabBackup" class="tab-pane admin-only" style="display: none;">
+      <!-- TAB: DATABASE BACKUP & WEEKLY EXPORTS ARCHIVE (Super Admin Only) -->
+      <section id="tabBackup" class="tab-pane super-admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
             <div>

@@ -258,10 +258,10 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'backup') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive') && !isAdmin) {
     tabName = 'sessions';
   }
-  if ((tabName === 'promotions' || tabName === 'analytics' || tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
+  if ((tabName === 'promotions' || tabName === 'analytics' || tabName === 'backup' || tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
     tabName = isAdmin ? 'dashboard' : 'sessions';
   }
 
@@ -293,7 +293,7 @@ function switchTab(tabName) {
   if (tabName === 'categoryMatrix' && isAdmin) loadCategoryMatrix();
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
-  if (tabName === 'backup' && isAdmin) loadWeeklyArchives();
+  if (tabName === 'backup' && isSuperAdmin) loadWeeklyArchives();
   if (tabName === 'users' && isSuperAdmin) loadUsers();
   if (tabName === 'auditLogs' && isSuperAdmin) loadAuditLogs();
 }
@@ -312,7 +312,7 @@ function refreshActiveTabData() {
   else if (tabId === 'tabCategoryMatrix') loadCategoryMatrix();
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
-  else if (tabId === 'tabBackup') loadWeeklyArchives();
+  else if (tabId === 'tabBackup' && isSuperAdmin) loadWeeklyArchives();
   else if (tabId === 'tabUsers' && isSuperAdmin) loadUsers();
   else if (tabId === 'tabAuditLogs' && isSuperAdmin) loadAuditLogs();
 }
@@ -3906,13 +3906,20 @@ function renderAtRiskTable(atRiskStudents) {
   if (cardContainer) cardContainer.innerHTML = '';
 
   if (!atRiskStudents || atRiskStudents.length === 0) {
-    const emptyMsg = currentLang === 'am' ? 'ባለፉት 4 ሳምንታት ከፍተኛ የመገኘት ቅናሽ የታየባቸው ተማሪዎች የሉም። ሁሉም በጥሩ ሁኔታ ላይ ናቸው!' : 'No students at immediate risk detected. Attendance is stable across all cohorts!';
+    const emptyMsg = currentLang === 'am' 
+      ? 'ባለፉት 4 ክፍለ-ጊዜያት የመገኘት መጠናቸው ከ70% በታች የሆነ ተማሪ የለም። ሁሉም በጥሩ ሁኔታ ላይ ናቸው!' 
+      : 'Praise God! No students with < 70% attendance in the last 4 sessions detected. All cohorts are performing well!';
     if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 2rem;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</td></tr>`;
     if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 1.5rem; border-radius: 8px;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</div>`;
     return;
   }
 
   atRiskStudents.forEach(st => {
+    const recentPresent = Number(st.recent_present || 0);
+    const recentTotal = Number(st.recent_total || 0);
+    const recentRate = Number(st.recent_rate || 0);
+    const overallRate = Number(st.overall_rate || 0);
+
     // Desktop Row
     if (tbody) {
       tbody.innerHTML += `
@@ -3923,9 +3930,18 @@ function renderAtRiskTable(atRiskStudents) {
           </td>
           <td><span class="tag tag-category">${escapeHtml(st.category)}</span></td>
           <td>${st.phone ? `<a href="tel:${escapeHtml(st.phone)}">${escapeHtml(st.phone)}</a>` : '-'}</td>
-          <td><span style="color: #64748b; font-weight: 600;">${st.overall_rate}%</span></td>
-          <td><span style="color: var(--danger); font-weight: 700;">${st.recent_rate}%</span></td>
-          <td><span class="tag tag-absent" style="font-weight: 700;">-${st.drop_rate}%</span></td>
+          <td><span style="color: #64748b; font-weight: 600;">${overallRate}%</span></td>
+          <td>
+            <span style="color: var(--danger); font-weight: 700;">
+              ${recentPresent} / ${recentTotal}
+            </span>
+            <small style="color: var(--text-muted); margin-left: 4px;">(${recentRate}%)</small>
+          </td>
+          <td>
+            <span class="tag tag-absent" style="font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-triangle-exclamation"></i> ${recentRate}% (&lt; 70%)
+            </span>
+          </td>
           <td>
             <div style="display: flex; gap: 0.35rem;">
               <button class="btn btn-warning btn-sm" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', 'pending', '${escapeHtml(st.phone || '')}', '', '')">
@@ -3946,11 +3962,11 @@ function renderAtRiskTable(atRiskStudents) {
         <div class="card" style="margin-bottom: 0.6rem; padding: 0.85rem; border-left: 4px solid var(--danger);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
             <strong style="font-size: 0.95rem; color: #1e293b;">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</strong>
-            <span class="tag tag-absent">-${st.drop_rate}% Drop</span>
+            <span class="tag tag-absent">${recentRate}% (&lt; 70%)</span>
           </div>
           <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">
             <span>${escapeHtml(st.category)}</span> | 
-            <span>${t('pastAttendance')}: <strong>${st.overall_rate}%</strong> &rarr; ${t('recentAttendance')}: <strong style="color: var(--danger);">${st.recent_rate}%</strong></span>
+            <span>${t('recentAttendance')}: <strong style="color: var(--danger);">${recentPresent}/${recentTotal} (${recentRate}%)</strong> | ${t('pastAttendance')}: <strong>${overallRate}%</strong></span>
           </div>
           <div style="display: flex; gap: 0.4rem;">
             <button class="btn btn-warning btn-sm" style="flex: 1; justify-content: center;" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', 'pending', '${escapeHtml(st.phone || '')}', '', '')">

@@ -2,21 +2,32 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
 const pool = require('../config/db');
-const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
-const { executeWeeklyExport, BACKUP_DIR } = require('../utils/scheduler');
+const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
+const { 
+  executeWeeklyExport, 
+  generateMasterExcelBuffer, 
+  BACKUP_DIR, 
+  ensureBackupDir 
+} = require('../utils/scheduler');
 const { logActivity } = require('../utils/auditLogger');
 
-// GET /api/backup/export/full-json - 1-Click download full database JSON snapshot
-router.get('/export/full-json', authenticateToken, requireAdmin, async (req, res) => {
+// GET /api/backup/export/full-json - 1-Click download full database JSON snapshot (Super Admin Only)
+router.get('/export/full-json', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const [students] = await pool.query('SELECT * FROM students ORDER BY category, first_name');
     const [sessions] = await pool.query('SELECT * FROM sessions ORDER BY session_date DESC');
     const [attendance] = await pool.query('SELECT * FROM attendance ORDER BY timestamp DESC');
     const [sessionEncoders] = await pool.query('SELECT * FROM session_encoders');
     const [followups] = await pool.query('SELECT * FROM pastoral_followups ORDER BY contact_date DESC');
-    const [promotions] = await pool.query('SELECT * FROM student_promotions ORDER BY created_at DESC');
+    
+    let promotions = [];
+    try {
+      const [promResult] = await pool.query('SELECT * FROM student_promotions ORDER BY promotion_date DESC');
+      promotions = promResult;
+    } catch (e) {
+      console.warn('Student promotions query note:', e.message);
+    }
 
     const backupData = {
       app: 'Bete Yared Sunday School Management System',
@@ -58,60 +69,69 @@ router.get('/export/full-json', authenticateToken, requireAdmin, async (req, res
   }
 });
 
-// GET /api/backup/export/full-excel - 1-Click download multi-sheet Sunday School Excel
-router.get('/export/full-excel', authenticateToken, requireAdmin, async (req, res) => {
+// GET /api/backup/export/full-excel - 1-Click download multi-sheet Sunday School Excel (Super Admin Only)
+router.get('/export/full-excel', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    const exportResult = await executeWeeklyExport(true);
-    const filePath = path.join(BACKUP_DIR, exportResult.excelFilename);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'Generated export file not found' });
-    }
+    const { buffer, filename } = await generateMasterExcelBuffer();
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${exportResult.excelFilename}"`);
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'DATABASE_BACKUP_EXCEL',
+      details: `Downloaded Master Sunday School Excel export (${filename})`,
+      req
+    });
   } catch (error) {
     console.error('Export full Excel error:', error);
     res.status(500).json({ message: 'Error generating multi-sheet Excel export' });
   }
 });
 
-// GET /api/backup/weekly-list - List all archived weekly exports
-router.get('/weekly-list', authenticateToken, requireAdmin, async (req, res) => {
+// GET /api/backup/weekly-list - List all archived weekly exports (Super Admin Only)
+router.get('/weekly-list', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
+    ensureBackupDir();
     if (!fs.existsSync(BACKUP_DIR)) {
-      return res.json([]);
+      return res.json({ weeklyBackups: [] });
     }
 
     const files = fs.readdirSync(BACKUP_DIR);
-    const fileDetails = files.map(filename => {
-      const filePath = path.join(BACKUP_DIR, filename);
-      const stats = fs.statSync(filePath);
-      return {
-        filename,
-        sizeBytes: stats.size,
-        sizeFormatted: `${(stats.size / 1024).toFixed(1)} KB`,
-        createdAt: stats.birthtime,
-        modifiedAt: stats.mtime,
-        isExcel: filename.endsWith('.xlsx'),
-        isJson: filename.endsWith('.json')
-      };
-    });
+    const fileDetails = files
+      .filter(filename => filename.endsWith('.xlsx') || filename.endsWith('.json'))
+      .map(filename => {
+        const filePath = path.join(BACKUP_DIR, filename);
+        try {
+          const stats = fs.statSync(filePath);
+          return {
+            filename,
+            type: filename.endsWith('.xlsx') ? 'excel' : 'json',
+            size_bytes: stats.size,
+            size_formatted: `${(stats.size / 1024).toFixed(1)} KB`,
+            created_at: stats.birthtime || stats.mtime,
+            modified_at: stats.mtime
+          };
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     // Sort newest first
-    fileDetails.sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
+    fileDetails.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    res.json(fileDetails);
+    res.json({ weeklyBackups: fileDetails });
   } catch (error) {
     console.error('Fetch weekly archive list error:', error);
     res.status(500).json({ message: 'Error retrieving weekly export archives' });
   }
 });
 
-// GET /api/backup/download/:filename - Download specific archived export file
-router.get('/download/:filename', authenticateToken, requireAdmin, (req, res) => {
+// GET /api/backup/download/:filename - Download specific archived export file (Super Admin Only)
+router.get('/download/:filename', authenticateToken, requireSuperAdmin, (req, res) => {
   const { filename } = req.params;
   const safeFilename = path.basename(filename);
   const filePath = path.join(BACKUP_DIR, safeFilename);
@@ -123,8 +143,8 @@ router.get('/download/:filename', authenticateToken, requireAdmin, (req, res) =>
   res.download(filePath, safeFilename);
 });
 
-// POST /api/backup/run-weekly-now - Trigger the Monday night export on demand
-router.post('/run-weekly-now', authenticateToken, requireAdmin, async (req, res) => {
+// POST /api/backup/run-weekly-now - Trigger the Monday night export on demand (Super Admin Only)
+router.post('/run-weekly-now', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const result = await executeWeeklyExport(true);
     res.json({

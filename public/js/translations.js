@@ -340,11 +340,12 @@ const translations = {
     seasonalComparison: "Seasonal & Church Feasts Impact",
     categoryRankings: "Category Retention Rankings",
     atRiskTitle: "At-Risk Early Warning System",
-    atRiskSubtitle: "Active students whose attendance dropped by >25% in the last 4 held sessions",
-    recentAttendance: "Recent (Last 4 Held)",
-    pastAttendance: "Historical Baseline",
+    atRiskSubtitle: "Active students attending < 70% in the last 4 recorded sessions",
+    recentAttendance: "Last 4 Sessions",
+    pastAttendance: "Overall Rate",
+    atRiskThreshold: "Attendance (< 70%)",
     dropRate: "Drop Rate",
-    noAtRisk: "Praise God! No students have shown a severe recent attendance drop.",
+    noAtRisk: "Praise God! No students with < 70% attendance in the last 4 sessions detected.",
 
     // Database Backup & Scheduled Weekly Exports
     navBackup: "Backup & Weekly Export",
@@ -703,11 +704,12 @@ const translations = {
     seasonalComparison: "የጾምና የበዓላት ተሳትፎ ንጽጽር",
     categoryRankings: "የክፍሎች ተሳትፎ ደረጃ እና ንጽጽር",
     atRiskTitle: "አስቀድሞ የመለየት ማስጠንቀቂያ (At-Risk Alert)",
-    atRiskSubtitle: "ባለፉት 4 ሳምንታት የመገኘት መጠናቸው ከ25% በላይ የቀነሰባቸው ንቁ ተማሪዎች",
-    recentAttendance: "የቅርብ 4 ሳምንታት",
-    pastAttendance: "የቀድሞ አማካይ",
+    atRiskSubtitle: "ባለፉት 4 ክፍለ-ጊዜያት የመገኘት መጠናቸው ከ70% በታች የሆኑ ንቁ ተማሪዎች",
+    recentAttendance: "የቅርብ 4 ክፍለ-ጊዜያት",
+    pastAttendance: "አጠቃላይ አማካይ",
+    atRiskThreshold: "የመገኘት መጠን (< 70%)",
     dropRate: "የቀነሰበት መጠን",
-    noAtRisk: "እግዚአብሔር ይመስገን! ከፍተኛ የመገኘት መቀነስ የታየበት ተማሪ የለም።",
+    noAtRisk: "እግዚአብሔር ይመስገን! ባለፉት 4 ክፍለ-ጊዜያት የመገኘት መጠናቸው ከ70% በታች የሆነ ተማሪ የለም።",
 
     // Database Backup & Scheduled Weekly Exports
     navBackup: "ዳታቤዝ ጥበቃ እና ሳምንታዊ ኤክስፖርት",

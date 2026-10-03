@@ -183,48 +183,27 @@ router.get('/three-absents', authenticateToken, requireAdmin, async (req, res) =
 // GET /api/reports/advanced-analytics - Comprehensive retention, seasonal & at-risk analytics (Super Admin Only)
 router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    // 1. Weekly / Session-by-Session Retention Timeline
-    const [timelineData] = await pool.query(`
+    // 1. Weekly Attendance Trends (Time-series for chart)
+    const [weeklyTrends] = await pool.query(`
       SELECT 
-        s.id AS session_id,
-        s.session_date,
-        s.category,
-        s.course_title,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_count,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_count,
-        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_count,
-        COUNT(a.id) AS total_marked,
-        ROUND(
-          (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0) * 100), 1
-        ) AS attendance_rate
-      FROM sessions s
-      LEFT JOIN attendance a ON s.id = a.session_id
-      GROUP BY s.id, s.session_date, s.category, s.course_title
-      HAVING COUNT(a.id) > 0
-      ORDER BY s.session_date ASC, s.id ASC
-    `);
-
-    // 2. Monthly Retention Aggregation
-    const [monthlyData] = await pool.query(`
-      SELECT 
-        TO_CHAR(s.session_date, 'YYYY-MM') AS month_key,
-        TO_CHAR(s.session_date, 'Mon YYYY') AS month_label,
+        TO_CHAR(s.session_date, 'YYYY-"W"IW') AS year_week,
+        TO_CHAR(MIN(s.session_date), 'Mon DD, YYYY') AS week_start,
         COUNT(DISTINCT s.id) AS sessions_count,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_total,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_total,
-        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_total,
+        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS total_present,
+        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS total_absent,
+        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS total_permission,
         COUNT(a.id) AS total_records,
-        ROUND(
+        COALESCE(ROUND(
           (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0) * 100), 1
-        ) AS attendance_rate
+        ), 0) AS attendance_rate
       FROM sessions s
       JOIN attendance a ON s.id = a.session_id
-      GROUP BY TO_CHAR(s.session_date, 'YYYY-MM'), TO_CHAR(s.session_date, 'Mon YYYY')
-      ORDER BY month_key ASC
+      GROUP BY TO_CHAR(s.session_date, 'YYYY-"W"IW')
+      ORDER BY year_week ASC
     `);
 
-    // 3. Category Performance & Retention Comparison
-    const [categoryComparison] = await pool.query(`
+    // 2. Category Performance & Retention Comparison
+    const [categoryRankings] = await pool.query(`
       SELECT 
         c.category,
         COUNT(DISTINCT st.id) AS total_students,
@@ -233,46 +212,64 @@ router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (r
         COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_count,
         COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_count,
         COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_count,
-        ROUND(
+        COALESCE(ROUND(
           (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0) * 100), 1
-        ) AS average_attendance_rate
+        ), 0) AS attendance_rate
       FROM (SELECT DISTINCT category FROM students WHERE category != '' AND category IS NOT NULL) c
       LEFT JOIN students st ON c.category = st.category
       LEFT JOIN sessions s ON c.category = s.category
       LEFT JOIN attendance a ON s.id = a.session_id AND a.student_id = st.id
       GROUP BY c.category
-      ORDER BY average_attendance_rate DESC NULLS LAST, total_students DESC
+      ORDER BY attendance_rate DESC NULLS LAST, total_students DESC
     `);
 
-    // 4. Seasonal & Holiday Retention Analysis
-    // Group into church seasons:
-    // Q1 (Sep-Nov): Ethiopian New Year / Meskel / Tikimt
-    // Q2 (Dec-Feb): Gena / Timkat / Yekatit
-    // Q3 (Mar-May): Great Lent (አቢይ ጾም) / Fasika
-    // Q4 (Jun-Aug): Sene / Hamle / Filseta (ጾመ ፍልሰታ)
-    const [seasonalData] = await pool.query(`
+    // 3. Seasonal Church Feasts Comparison
+    // Q1 (Sep-Nov): Meskerem - Hidar (Fall Feasts)
+    // Q2 (Dec-Feb): Tahsas - Yekatit (Gena & Timkat)
+    // Q3 (Mar-May): Megabit - Ginbot (Great Lent & Fasika)
+    // Q4 (Jun-Aug): Sene - Pagumen (Summer & Filseta)
+    const [seasonalTrends] = await pool.query(`
       SELECT 
         CASE 
-          WHEN EXTRACT(MONTH FROM s.session_date) IN (9, 10, 11) THEN 'Meskerem - Hidar (መስከረም - ኅዳር / Fall Feasts)'
-          WHEN EXTRACT(MONTH FROM s.session_date) IN (12, 1, 2) THEN 'Tahsas - Yekatit (ታኅሣሥ - የካቲት / Gena & Timkat)'
-          WHEN EXTRACT(MONTH FROM s.session_date) IN (3, 4, 5) THEN 'Megabit - Ginbot (መጋቢት - ግንቦት / Great Lent & Fasika)'
-          ELSE 'Sene - Pagumen (ሰኔ - ጳጉሜን / Summer & Filseta)'
-        END AS season_name,
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (9, 10, 11) THEN 'Meskerem - Hidar (Fall Feasts)'
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (12, 1, 2) THEN 'Tahsas - Yekatit (Gena & Timkat)'
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (3, 4, 5) THEN 'Megabit - Ginbot (Great Lent & Fasika)'
+          ELSE 'Sene - Pagumen (Summer & Filseta)'
+        END AS name_en,
+        CASE 
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (9, 10, 11) THEN 'መስከረም - ኅዳር (የበልግ በዓላት)'
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (12, 1, 2) THEN 'ታኅሣሥ - የካቲት (ገና እና ጥምቀት)'
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (3, 4, 5) THEN 'መጋቢት - ግንቦት (አቢይ ጾም እና ፋሲካ)'
+          ELSE 'ሰኔ - ጳጉሜን (ክረምት እና ጾመ ፍልሰታ)'
+        END AS name_am,
+        CASE 
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (9, 10, 11) THEN 'fa-leaf'
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (12, 1, 2) THEN 'fa-church'
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (3, 4, 5) THEN 'fa-cross'
+          ELSE 'fa-sun'
+        END AS icon,
         COUNT(DISTINCT s.id) AS sessions_count,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_total,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_total,
-        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_total,
+        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_records,
+        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_records,
+        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) AS permission_records,
         COUNT(a.id) AS total_records,
-        ROUND(
+        COALESCE(ROUND(
           (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0) * 100), 1
-        ) AS attendance_rate
+        ), 0) AS attendance_rate
       FROM sessions s
       JOIN attendance a ON s.id = a.session_id
-      GROUP BY season_name
-      ORDER BY season_name ASC
+      GROUP BY 
+        CASE 
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (9, 10, 11) THEN 1
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (12, 1, 2) THEN 2
+          WHEN EXTRACT(MONTH FROM s.session_date) IN (3, 4, 5) THEN 3
+          ELSE 4
+        END,
+        name_en, name_am, icon
+      ORDER BY 1 ASC
     `);
 
-    // 5. At-Risk Early Warning Students (Attendance dropped significantly over the last 4 held sessions)
+    // 4. At-Risk Early Warning Students (< 70% Attendance in the Last 4 Recorded Sessions)
     const [atRiskStudents] = await pool.query(`
       WITH student_recent_att AS (
         SELECT 
@@ -286,12 +283,14 @@ router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (r
       student_stats AS (
         SELECT 
           student_id,
-          -- Recent 4 sessions
+          -- Last 4 sessions
           COUNT(CASE WHEN rn <= 4 AND status = 'present' THEN 1 END) AS recent_present,
+          COUNT(CASE WHEN rn <= 4 AND status = 'absent' THEN 1 END) AS recent_absent,
+          COUNT(CASE WHEN rn <= 4 AND status = 'permission' THEN 1 END) AS recent_permission,
           COUNT(CASE WHEN rn <= 4 THEN 1 END) AS recent_total,
-          -- All earlier sessions
-          COUNT(CASE WHEN rn > 4 AND status = 'present' THEN 1 END) AS past_present,
-          COUNT(CASE WHEN rn > 4 THEN 1 END) AS past_total
+          -- Overall stats
+          COUNT(CASE WHEN status = 'present' THEN 1 END) AS overall_present,
+          COUNT(*) AS overall_total
         FROM student_recent_att
         GROUP BY student_id
       )
@@ -300,34 +299,42 @@ router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (r
         st.first_name,
         st.father_name,
         st.mother_name,
+        st.christian_name,
         st.phone,
         st.emergency_contact,
         st.category,
         ss.recent_present,
+        ss.recent_absent,
+        ss.recent_permission,
         ss.recent_total,
         ROUND((ss.recent_present::numeric / NULLIF(ss.recent_total, 0) * 100), 0) AS recent_rate,
-        ss.past_present,
-        ss.past_total,
-        ROUND((ss.past_present::numeric / NULLIF(ss.past_total, 0) * 100), 0) AS past_rate,
-        ROUND(
-          (ss.past_present::numeric / NULLIF(ss.past_total, 0) * 100) - 
+        ss.overall_present,
+        ss.overall_total,
+        ROUND((ss.overall_present::numeric / NULLIF(ss.overall_total, 0) * 100), 0) AS overall_rate,
+        GREATEST(0, ROUND(
+          (ss.overall_present::numeric / NULLIF(ss.overall_total, 0) * 100) - 
           (ss.recent_present::numeric / NULLIF(ss.recent_total, 0) * 100), 0
-        ) AS drop_rate
+        )) AS drop_rate
       FROM student_stats ss
       JOIN students st ON ss.student_id = st.id
       WHERE st.status = 'active'
-        AND ss.recent_total >= 3
-        AND ss.past_total >= 3
-        AND (ss.past_present::numeric / ss.past_total) >= 0.50
-        AND (
-          ((ss.past_present::numeric / ss.past_total) - (ss.recent_present::numeric / ss.recent_total)) >= 0.25
-          OR (ss.recent_present::numeric / ss.recent_total) <= 0.35
-        )
-      ORDER BY drop_rate DESC
-      LIMIT 30
+        AND ss.recent_total >= 1
+        AND (ss.recent_present::numeric / ss.recent_total) < 0.70
+      ORDER BY recent_rate ASC, ss.recent_present ASC, st.first_name ASC
+      LIMIT 60
     `);
 
-    // 6. Follow-up resolution breakdown
+    // 5. Summary KPI metrics
+    const [[overallStats]] = await pool.query(`
+      SELECT 
+        COUNT(a.id) AS total_records,
+        COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS total_present,
+        COALESCE(ROUND(
+          (COUNT(CASE WHEN a.status = 'present' THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0) * 100), 1
+        ), 0) AS overall_attendance_rate
+      FROM attendance a
+    `);
+
     const [[followupStats]] = await pool.query(`
       SELECT 
         COUNT(*) AS total_followups,
@@ -338,11 +345,19 @@ router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (r
       FROM pastoral_followups
     `);
 
+    const topCategory = categoryRankings.length > 0 ? categoryRankings[0] : null;
+
     res.json({
-      timeline: timelineData,
-      monthly: monthlyData,
-      categories: categoryComparison,
-      seasonal: seasonalData,
+      summary: {
+        overall_attendance_rate: overallStats ? overallStats.overall_attendance_rate : 0,
+        top_category: topCategory ? topCategory.category : null,
+        top_category_rate: topCategory ? topCategory.attendance_rate : 0,
+        at_risk_count: atRiskStudents.length,
+        total_followups_logged: followupStats ? followupStats.total_followups : 0
+      },
+      weeklyTrends,
+      categoryRankings,
+      seasonalTrends,
       atRiskStudents,
       followupStats: followupStats || { total_followups: 0, pending_count: 0, contacted_count: 0, resolved_count: 0 }
     });
