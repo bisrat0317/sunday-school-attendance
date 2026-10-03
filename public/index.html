@@ -990,13 +990,68 @@
 
           <!-- At-Risk Early Warning Radar -->
           <div style="margin-top: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
               <div>
                 <h4 style="font-size: 0.98rem; font-weight: 700; color: #b45309; display: flex; align-items: center; gap: 0.4rem;">
                   <i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="atRiskTitle">አስቀድሞ የመለየት ማስጠንቀቂያ (At-Risk Early Detection)</span>
                 </h4>
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;" data-i18n="atRiskSubtitle">ባለፉት 4 ክፍለ-ጊዜያት የመገኘት መጠናቸው ከ70% በታች የሆኑ ንቁ ተማሪዎች</p>
               </div>
+            </div>
+
+            <!-- At-Risk Status Pill Tabs -->
+            <div class="followup-tabs-pills" style="margin-bottom: 1rem;">
+              <button type="button" class="followup-tab-pill active-all" id="pillAtRiskTabAll" onclick="setAtRiskStatusFilter('all')">
+                <i class="fa-solid fa-layer-group"></i>
+                <span data-i18n="allAtRisk">ሁሉም ተማሪዎች (&lt;70%)</span>
+                <span id="pillAtRiskCountAll" class="pill-count">0</span>
+              </button>
+              <button type="button" class="followup-tab-pill" id="pillAtRiskTabPending" onclick="setAtRiskStatusFilter('pending')">
+                <i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i>
+                <span data-i18n="tabPendingFollowup">ክትትል የሚሹ (Pending)</span>
+                <span id="pillAtRiskCountPending" class="pill-count">0</span>
+              </button>
+              <button type="button" class="followup-tab-pill" id="pillAtRiskTabContacted" onclick="setAtRiskStatusFilter('contacted')">
+                <i class="fa-solid fa-phone" style="color: #2563eb;"></i>
+                <span data-i18n="tabContactedFollowup">ተገናኝቷል / በሂደት ላይ</span>
+                <span id="pillAtRiskCountContacted" class="pill-count">0</span>
+              </button>
+              <button type="button" class="followup-tab-pill" id="pillAtRiskTabNeedsVisit" onclick="setAtRiskStatusFilter('needs_visit')">
+                <i class="fa-solid fa-house-chimney-user" style="color: #db2777;"></i>
+                <span data-i18n="tabNeedsVisitFollowup">የቤት ጉብኝት የሚሹ</span>
+                <span id="pillAtRiskCountNeedsVisit" class="pill-count">0</span>
+              </button>
+              <button type="button" class="followup-tab-pill" id="pillAtRiskTabResolved" onclick="setAtRiskStatusFilter('resolved')">
+                <i class="fa-solid fa-circle-check" style="color: #059669;"></i>
+                <span data-i18n="tabResolvedFollowup">ተፈቷል / የተመለሱ</span>
+                <span id="pillAtRiskCountResolved" class="pill-count">0</span>
+              </button>
+            </div>
+
+            <!-- Filters -->
+            <div style="display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;">
+              <input type="text" id="atRiskSearchInput" class="form-control" style="flex: 2; min-width: 180px;"
+                placeholder="ተማሪ በስም ወይም በስልክ ፈልግ..." data-i18n-ph="searchStudent" oninput="filterAtRiskList()">
+
+              <select id="atRiskFilterCategory" class="form-control" style="flex: 1; min-width: 140px;" onchange="filterAtRiskList()">
+                <option value="All" data-i18n="allCategories">ሁሉም ምድቦች</option>
+                <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+                <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+                <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+                <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+                <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+                <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+                <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+                <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+                <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+                <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+                <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+                <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+                <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
+                <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+                <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
+                <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+              </select>
             </div>
 
             <div class="table-responsive desktop-only">
@@ -1009,6 +1064,7 @@
                     <th data-i18n="pastAttendance">አጠቃላይ አማካይ</th>
                     <th data-i18n="recentAttendance">የቅርብ 4 ክፍለ-ጊዜያት</th>
                     <th data-i18n="atRiskThreshold">የመገኘት መጠን (&lt; 70%)</th>
+                    <th data-i18n="followupStatus">የመንፈሳዊ ክትትል ሁኔታ</th>
                     <th data-i18n="actions">ድርጊት</th>
                   </tr>
                 </thead>

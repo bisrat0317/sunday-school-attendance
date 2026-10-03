@@ -310,6 +310,7 @@ router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (r
         st.phone,
         st.emergency_contact,
         st.category,
+        st.profession,
         ss.recent_present,
         ss.recent_absent,
         ss.recent_permission,
@@ -321,9 +322,40 @@ router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (r
         GREATEST(0, ROUND(
           (ss.overall_present::numeric / NULLIF(ss.overall_total, 0) * 100) - 
           (ss.recent_present::numeric / NULLIF(ss.recent_total, 0) * 100), 0
-        )) AS drop_rate
+        )) AS drop_rate,
+        lf.id AS latest_followup_id,
+        COALESCE(lf.status, 'pending') AS followup_status,
+        lf.contact_type AS followup_contact_type,
+        lf.contacted_person AS followup_contacted_person,
+        lf.reason_category AS followup_reason,
+        lf.notes AS followup_notes,
+        lf.contact_date AS followup_date,
+        lf.next_followup_date,
+        lf.logged_by_name AS followup_logged_by,
+        COALESCE(fc.total_followups, 0) AS total_followups
       FROM student_stats ss
       JOIN students st ON ss.student_id = st.id
+      LEFT JOIN (
+        SELECT student_id, COUNT(*) AS total_followups
+        FROM pastoral_followups
+        GROUP BY student_id
+      ) fc ON st.id = fc.student_id
+      LEFT JOIN (
+        SELECT DISTINCT ON (f.student_id)
+          f.id,
+          f.student_id,
+          f.status,
+          f.contact_type,
+          f.contacted_person,
+          f.reason_category,
+          f.notes,
+          f.contact_date,
+          f.next_followup_date,
+          u.full_name AS logged_by_name
+        FROM pastoral_followups f
+        LEFT JOIN users u ON f.user_id = u.id
+        ORDER BY f.student_id, f.contact_date DESC, f.id DESC
+      ) lf ON st.id = lf.student_id
       WHERE st.status = 'active'
         AND ss.recent_total >= 1
         AND (ss.recent_present::numeric / ss.recent_total) < 0.70

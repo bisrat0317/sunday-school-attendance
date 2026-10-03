@@ -4135,27 +4135,122 @@ function renderSeasonalCards(seasonalData) {
   });
 }
 
+let cachedAtRiskStudents = [];
+let currentAtRiskStatusTab = 'all';
+
 function renderAtRiskTable(atRiskStudents) {
+  cachedAtRiskStudents = atRiskStudents || [];
+
+  // 1. Calculate counters for At-Risk status tabs
+  const totalCount = cachedAtRiskStudents.length;
+  let pendingCount = 0;
+  let contactedCount = 0;
+  let needsVisitCount = 0;
+  let resolvedCount = 0;
+
+  cachedAtRiskStudents.forEach(st => {
+    const stStatus = st.followup_status || 'pending';
+    if (stStatus === 'pending') pendingCount++;
+    else if (stStatus === 'contacted') contactedCount++;
+    else if (stStatus === 'needs_visit') needsVisitCount++;
+    else if (stStatus === 'resolved') resolvedCount++;
+  });
+
+  const pAll = document.getElementById('pillAtRiskCountAll');
+  const pPending = document.getElementById('pillAtRiskCountPending');
+  const pContacted = document.getElementById('pillAtRiskCountContacted');
+  const pNeedsVisit = document.getElementById('pillAtRiskCountNeedsVisit');
+  const pResolved = document.getElementById('pillAtRiskCountResolved');
+
+  if (pAll) pAll.textContent = totalCount;
+  if (pPending) pPending.textContent = pendingCount;
+  if (pContacted) pContacted.textContent = contactedCount;
+  if (pNeedsVisit) pNeedsVisit.textContent = needsVisitCount;
+  if (pResolved) pResolved.textContent = resolvedCount;
+
+  setAtRiskStatusFilter(currentAtRiskStatusTab);
+}
+
+function setAtRiskStatusFilter(statusTab) {
+  currentAtRiskStatusTab = statusTab || 'all';
+
+  const pills = ['all', 'pending', 'contacted', 'needs_visit', 'resolved'];
+  pills.forEach(p => {
+    const pillId = p === 'all' ? 'pillAtRiskTabAll' :
+                   p === 'pending' ? 'pillAtRiskTabPending' :
+                   p === 'contacted' ? 'pillAtRiskTabContacted' :
+                   p === 'needs_visit' ? 'pillAtRiskTabNeedsVisit' : 'pillAtRiskTabResolved';
+    const el = document.getElementById(pillId);
+    if (el) {
+      el.className = `followup-tab-pill ${p === currentAtRiskStatusTab ? `active-${p}` : ''}`;
+    }
+  });
+
+  filterAtRiskList();
+}
+
+function filterAtRiskList() {
   const tbody = document.getElementById('analyticsAtRiskTableBody');
   const cardContainer = document.getElementById('analyticsAtRiskCardsContainer');
+  if (!tbody && !cardContainer) return;
+
+  const search = (document.getElementById('atRiskSearchInput')?.value || '').toLowerCase().trim();
+  const catFilter = document.getElementById('atRiskFilterCategory')?.value || 'All';
+
+  let list = cachedAtRiskStudents;
+
+  if (catFilter !== 'All') {
+    list = list.filter(st => st.category === catFilter);
+  }
+
+  if (currentAtRiskStatusTab !== 'all') {
+    list = list.filter(st => {
+      const stStatus = st.followup_status || 'pending';
+      return stStatus === currentAtRiskStatusTab;
+    });
+  }
+
+  if (search) {
+    list = list.filter(st => {
+      const name = `${st.first_name} ${st.father_name}`.toLowerCase();
+      const mother = (st.mother_name || '').toLowerCase();
+      const phone = (st.phone || '').toLowerCase();
+      const christian = (st.christian_name || '').toLowerCase();
+      const notes = (st.followup_notes || '').toLowerCase();
+      const reason = (st.followup_reason || '').toLowerCase();
+      return name.includes(search) || mother.includes(search) || phone.includes(search) || christian.includes(search) || notes.includes(search) || reason.includes(search);
+    });
+  }
 
   if (tbody) tbody.innerHTML = '';
   if (cardContainer) cardContainer.innerHTML = '';
 
-  if (!atRiskStudents || atRiskStudents.length === 0) {
-    const emptyMsg = currentLang === 'am' 
+  if (list.length === 0) {
+    let emptyMsg = currentLang === 'am' 
       ? 'ባለፉት 4 ክፍለ-ጊዜያት የመገኘት መጠናቸው ከ70% በታች የሆነ ተማሪ የለም። ሁሉም በጥሩ ሁኔታ ላይ ናቸው!' 
       : 'Praise God! No students with < 70% attendance in the last 4 sessions detected. All cohorts are performing well!';
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 2rem;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</td></tr>`;
+    if (cachedAtRiskStudents.length > 0) {
+      emptyMsg = t('noFollowupsInTab') || 'No students currently in this follow-up status category.';
+    }
+
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 2rem;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</td></tr>`;
     if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 1.5rem; border-radius: 8px;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</div>`;
     return;
   }
 
-  atRiskStudents.forEach(st => {
+  list.forEach(st => {
     const recentPresent = Number(st.recent_present || 0);
     const recentTotal = Number(st.recent_total || 0);
     const recentRate = Number(st.recent_rate || 0);
     const overallRate = Number(st.overall_rate || 0);
+    const hasFollowup = (st.total_followups > 0) || (st.followup_status && st.followup_status !== 'pending') || !!st.latest_followup_id;
+    const statusBadge = getFollowupStatusBadge(st.followup_status);
+    const methodHtml = getContactMethodLabel(st.followup_contact_type);
+    const personHtml = getContactedPersonLabel(st.followup_contacted_person);
+    const reasonText = st.followup_reason;
+    const notesText = st.followup_notes;
+    const nextDate = st.next_followup_date;
+    const lastContactStr = st.followup_date ? formatDate(st.followup_date) : null;
 
     // Desktop Row
     if (tbody) {
@@ -4180,10 +4275,29 @@ function renderAtRiskTable(atRiskStudents) {
             </span>
           </td>
           <td>
-            <div style="display: flex; gap: 0.35rem;">
-              <button class="btn btn-warning btn-sm" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', 'pending', '${escapeHtml(st.phone || '')}', '', '')">
-                <i class="fa-solid fa-phone"></i> ${t('logFollowup')}
+            <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+              <div>${statusBadge}</div>
+              ${hasFollowup ? `
+                <div style="font-size: 0.78rem; color: #64748b; line-height: 1.4;">
+                  <span>${methodHtml} • ${personHtml}</span>
+                  ${lastContactStr ? `<br><span><i class="fa-solid fa-calendar"></i> ${lastContactStr}</span>` : ''}
+                  ${notesText ? `<div style="font-style: italic; color: #475569; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(notesText)}">"${escapeHtml(notesText)}"</div>` : ''}
+                </div>
+              ` : `
+                <small style="color: #d97706;"><i class="fa-solid fa-circle-exclamation"></i> ${t('noFollowupLogged')}</small>
+              `}
+            </div>
+          </td>
+          <td>
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              <button class="btn ${hasFollowup ? 'btn-primary' : 'btn-warning'} btn-sm" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', '${st.followup_status || 'pending'}', '${escapeHtml(st.phone || '')}', '${escapeHtml(st.emergency_contact || '')}', '${escapeHtml(st.mother_name || '')}')">
+                <i class="fa-solid ${hasFollowup ? 'fa-pen-to-square' : 'fa-phone'}"></i> ${hasFollowup ? (t('updateFollowup') || 'Update') : t('logFollowup')}
               </button>
+              ${hasFollowup ? `
+                <button class="btn btn-outline btn-sm" onclick="openFollowupTimelineModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', '${escapeHtml(st.phone || '')}', '${escapeHtml(st.emergency_contact || '')}', '${escapeHtml(st.mother_name || '')}')" title="${t('followupTimeline')}">
+                  <i class="fa-solid fa-timeline"></i>
+                </button>
+              ` : ''}
               <button class="btn btn-outline btn-sm" onclick="viewStudentProfile(${st.student_id})" title="${t('viewProfile')}">
                 <i class="fa-solid fa-eye"></i>
               </button>
@@ -4195,21 +4309,47 @@ function renderAtRiskTable(atRiskStudents) {
 
     // Mobile Card
     if (cardContainer) {
+      const borderColor = st.followup_status === 'resolved' ? '#10b981' : 
+                          st.followup_status === 'needs_visit' ? '#db2777' : 
+                          st.followup_status === 'contacted' ? '#3b82f6' : 'var(--danger)';
+
       cardContainer.innerHTML += `
-        <div class="card" style="margin-bottom: 0.6rem; padding: 0.85rem; border-left: 4px solid var(--danger);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <strong style="font-size: 0.95rem; color: #1e293b;">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</strong>
-            <span class="tag tag-absent">${recentRate}% (&lt; 70%)</span>
+        <div class="card" style="margin-bottom: 0.75rem; padding: 0.9rem; border-left: 4px solid ${borderColor};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.35rem;">
+            <div>
+              <strong style="font-size: 0.95rem; color: #1e293b;">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</strong>
+              <span class="tag tag-category" style="margin-left: 4px;">${escapeHtml(st.category)}</span>
+            </div>
+            ${statusBadge}
           </div>
-          <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-            <span>${escapeHtml(st.category)}</span> | 
-            <span>${t('recentAttendance')}: <strong style="color: var(--danger);">${recentPresent}/${recentTotal} (${recentRate}%)</strong> | ${t('pastAttendance')}: <strong>${overallRate}%</strong></span>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.5;">
+            <div>
+              ${t('recentAttendance')}: <strong style="color: var(--danger);">${recentPresent}/${recentTotal} (${recentRate}%)</strong> | 
+              ${t('pastAttendance')}: <strong>${overallRate}%</strong>
+            </div>
+            ${st.phone ? `<div>${t('phone')}: <a href="tel:${escapeHtml(st.phone)}">${escapeHtml(st.phone)}</a></div>` : ''}
           </div>
+
+          ${hasFollowup ? `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.8rem; margin-bottom: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; font-weight: 600; color: #475569; margin-bottom: 2px;">
+                <span>${methodHtml} • ${personHtml}</span>
+                <span>${lastContactStr || ''}</span>
+              </div>
+              ${notesText ? `<div style="color: #334155; font-style: italic;">"${escapeHtml(notesText)}"</div>` : ''}
+            </div>
+          ` : ''}
+
           <div style="display: flex; gap: 0.4rem;">
-            <button class="btn btn-warning btn-sm" style="flex: 1; justify-content: center;" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', 'pending', '${escapeHtml(st.phone || '')}', '', '')">
-              <i class="fa-solid fa-phone"></i> ${t('logFollowup')}
+            <button class="btn ${hasFollowup ? 'btn-primary' : 'btn-warning'} btn-sm" style="flex: 2; justify-content: center;" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', '${st.followup_status || 'pending'}', '${escapeHtml(st.phone || '')}', '${escapeHtml(st.emergency_contact || '')}', '${escapeHtml(st.mother_name || '')}')">
+              <i class="fa-solid ${hasFollowup ? 'fa-pen-to-square' : 'fa-phone'}"></i> ${hasFollowup ? (t('updateFollowup') || 'Update') : t('logFollowup')}
             </button>
-            <button class="btn btn-outline btn-sm" onclick="viewStudentProfile(${st.student_id})">
+            ${hasFollowup ? `
+              <button class="btn btn-outline btn-sm" onclick="openFollowupTimelineModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', '${escapeHtml(st.phone || '')}', '${escapeHtml(st.emergency_contact || '')}', '${escapeHtml(st.mother_name || '')}')" title="${t('followupTimeline')}">
+                <i class="fa-solid fa-timeline"></i>
+              </button>
+            ` : ''}
+            <button class="btn btn-outline btn-sm" onclick="viewStudentProfile(${st.student_id})" title="${t('viewProfile')}">
               <i class="fa-solid fa-eye"></i>
             </button>
           </div>
