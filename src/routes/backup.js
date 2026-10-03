@@ -7,10 +7,57 @@ const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
 const { 
   executeWeeklyExport, 
   generateMasterExcelBuffer, 
+  sendWeeklyBackupEmail,
+  isEmailConfigured,
+  getEmailConfigStatus,
   BACKUP_DIR, 
   ensureBackupDir 
 } = require('../utils/scheduler');
 const { logActivity } = require('../utils/auditLogger');
+
+// GET /api/backup/email-status - Check if automated SMTP delivery is configured (Super Admin Only)
+router.get('/email-status', authenticateToken, requireSuperAdmin, (req, res) => {
+  const status = getEmailConfigStatus();
+  res.json(status);
+});
+
+// POST /api/backup/send-email-now - Dispatch full Sunday School Excel backup to email immediately (Super Admin Only)
+router.post('/send-email-now', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    if (!isEmailConfigured()) {
+      return res.status(400).json({
+        message: 'SMTP email credentials are not configured yet. Please configure SMTP_USER & SMTP_PASS in your environment variables.'
+      });
+    }
+
+    const { recipientEmail } = req.body || {};
+    const { buffer, filename, counts } = await generateMasterExcelBuffer();
+
+    const result = await sendWeeklyBackupEmail({
+      buffer,
+      filename,
+      recipientEmail: recipientEmail && recipientEmail.trim() ? recipientEmail.trim() : undefined,
+      counts,
+      isManual: true
+    });
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'DATABASE_BACKUP_EMAIL',
+      details: `Dispatched Master Excel backup (${filename}) to ${result.recipient}`,
+      req
+    });
+
+    res.json({
+      message: `Master Excel backup successfully sent to ${result.recipient}!`,
+      details: result
+    });
+  } catch (error) {
+    console.error('Send backup email error:', error);
+    res.status(500).json({ message: `Error sending backup email: ${error.message}` });
+  }
+});
 
 // GET /api/backup/export/full-json - 1-Click download full database JSON snapshot (Super Admin Only)
 router.get('/export/full-json', authenticateToken, requireSuperAdmin, async (req, res) => {

@@ -362,7 +362,17 @@ const translations = {
     createdOn: "Created On",
     download: "Download",
     noWeeklyArchives: "No archived exports found yet. Run an export now to generate the first archive!",
-    weeklyRunSuccess: "Weekly export archive created successfully!"
+    weeklyRunSuccess: "Weekly export archive created successfully!",
+    emailBackupTitle: "Automated Email Delivery",
+    emailBackupSubtitle: "Automatically sends full Master Excel backup directly to your email inbox every Monday night",
+    sendBackupEmailNow: "Send Backup to Email Now",
+    sendBackupEmailModalTitle: "Send Database Backup to Email",
+    recipientEmail: "Recipient Email Address",
+    sendNow: "Send Now",
+    emailSending: "Sending backup email...",
+    emailSentSuccess: "Master Excel backup sent successfully to your email!",
+    emailConfigActive: "Active (Automated)",
+    emailConfigInactive: "Setup Available (Free)"
   },
 
   am: {
@@ -726,7 +736,17 @@ const translations = {
     createdOn: "የተፈጠረበት ቀን",
     download: "አውርድ",
     noWeeklyArchives: "እስካሁን ምንም የተቀመጠ ሳምንታዊ ማህደር የለም። የመጀመሪያውን ማህደር ለማመንጨት 'አሁን ኤክስፖርት አድርግ' የሚለውን ይጫኑ!",
-    weeklyRunSuccess: "ሳምንታዊው ማህደር በተሳካ ሁኔታ ተፈጥሯል!"
+    weeklyRunSuccess: "ሳምንታዊው ማህደር በተሳካ ሁኔታ ተፈጥሯል!",
+    emailBackupTitle: "የኢሜይል ራስ-ሰር ኤክስፖርት",
+    emailBackupSubtitle: "በየሳምንቱ ሰኞ ምሽት የExcel መረጃውን በቀጥታ ወደ ኢሜይልዎ በአባሪነት (Attachment) ይልካል",
+    sendBackupEmailNow: "አሁን ወደ ኢሜይል ላክ",
+    sendBackupEmailModalTitle: "የዳታቤዝ ባክአፕ ወደ ኢሜይል ላክ",
+    recipientEmail: "የተቀባይ ኢሜይል አድራሻ",
+    sendNow: "አሁን ላክ",
+    emailSending: "ኢሜይሉ እየተላከ ነው...",
+    emailSentSuccess: "የሰንበት ት/ቤት መረጃ በተሳካ ሁኔታ ወደ ኢሜይልዎ ተልኳል!",
+    emailConfigActive: "ንቁ (የነቃ)",
+    emailConfigInactive: "ማስተካከል ይቻላል (ነጻ)"
   }
 };
 

@@ -1012,7 +1012,7 @@
           </div>
 
           <!-- Backup Actions Row -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
             <!-- 1-Click Direct System Snapshot -->
             <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
               <div>
@@ -1049,6 +1049,27 @@
               <div>
                 <button class="btn btn-warning" id="btnRunWeeklyExportNow" onclick="runWeeklyExportNow()" style="background: #eab308; border-color: #ca8a04; color: #fff; font-weight: 600;">
                   <i class="fa-solid fa-play"></i> <span data-i18n="runWeeklyNow">አሁን ሳምንታዊ ኤክስፖርት አድርግ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Automated Email Delivery (Free SMTP) -->
+            <div style="background: #fdf4ff; border: 1px solid #f0abfc; border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+                  <h4 style="font-size: 1rem; font-weight: 700; color: #86198f;">
+                    <i class="fa-solid fa-envelope"></i> <span data-i18n="emailBackupTitle">የኢሜይል ራስ-ሰር ኤክስፖርት</span>
+                  </h4>
+                  <span id="emailBackupStatusBadge" class="tag tag-category" style="font-size: 0.75rem; padding: 2px 8px;">Checking...</span>
+                </div>
+                <p style="font-size: 0.85rem; color: #701a75; margin-bottom: 0.4rem;" data-i18n="emailBackupSubtitle">
+                  በየሳምንቱ ሰኞ ምሽት የExcel መረጃውን በቀጥታ ወደ ኢሜይልዎ በአባሪነት (Attachment) ይልካል።
+                </p>
+                <div id="emailBackupRecipientDisplay" style="font-size: 0.8rem; color: #a21caf; margin-bottom: 0.8rem;"></div>
+              </div>
+              <div>
+                <button class="btn btn-outline" id="btnSendBackupEmailNow" onclick="openSendBackupEmailModal()" style="border-color: #c026d3; color: #86198f; font-weight: 600; background: #fff;">
+                  <i class="fa-solid fa-paper-plane"></i> <span data-i18n="sendBackupEmailNow">አሁን ወደ ኢሜይል ላክ</span>
                 </button>
               </div>
             </div>
@@ -1961,9 +1982,38 @@
           </table>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal('modalPromotionHistory')" data-i18n="close">ዝጋ</button>
+  <!-- 12. MODAL: SEND BACKUP EMAIL -->
+  <div id="modalSendBackupEmail" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="sendBackupEmailModalTitle"><i class="fa-solid fa-paper-plane" style="color: #c026d3;"></i> የዳታቤዝ ባክአፕ ወደ ኢሜይል ላክ</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Send Master Sunday School Excel Export to your Email Inbox</p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalSendBackupEmail')">&times;</button>
       </div>
+      <form id="formSendBackupEmail" onsubmit="submitSendBackupEmail(event)">
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="backupRecipientEmail" data-i18n="recipientEmail">የተቀባይ ኢሜይል አድራሻ (Recipient Email)</label>
+            <input type="email" id="backupRecipientEmail" class="form-control" placeholder="superadmin@example.com" required>
+            <small style="color: var(--text-muted); margin-top: 4px; display: block;">
+              ሙሉ የExcel ፋይል (Student Directory, Matrix, Follow-ups, Promotions) ተያይዞ ይላካል።
+            </small>
+          </div>
+
+          <div id="emailSmtpNotice" style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 8px; padding: 0.85rem; font-size: 0.82rem; color: #831843;">
+            <strong><i class="fa-solid fa-circle-info"></i> 100% Free Automated SMTP:</strong><br>
+            To activate automatic Monday night email sending, set <code>SMTP_USER</code> and <code>SMTP_PASS</code> (Free Gmail 16-character App Password) in your Vercel / <code>.env</code> environment variables.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalSendBackupEmail')" data-i18n="cancel">ሰርዝ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitSendBackupEmail" style="background: #a21caf; border-color: #86198f;">
+            <i class="fa-solid fa-paper-plane"></i> <span data-i18n="sendNow">አሁን ላክ</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -5,6 +5,7 @@ const os = require('os');
 const XLSX = require('xlsx');
 const pool = require('../config/db');
 const { logActivity } = require('./auditLogger');
+const { sendWeeklyBackupEmail, isEmailConfigured, getEmailConfigStatus } = require('./mailer');
 
 // Use OS temporary directory for serverless (Vercel/Lambda) compatibility
 const BACKUP_DIR = path.join(os.tmpdir(), 'sunday-school-backups', 'weekly');
@@ -252,10 +253,11 @@ async function generateMasterExcelBuffer() {
 }
 
 /**
- * Generate full Sunday School Excel workbook and JSON snapshot
+ * Generate full Sunday School Excel workbook, JSON snapshot, and automated email
  * @param {boolean} isManual - True if manually triggered by super admin
+ * @param {string} [customRecipientEmail] - Specific recipient email if requested
  */
-async function executeWeeklyExport(isManual = false) {
+async function executeWeeklyExport(isManual = false, customRecipientEmail = null) {
   ensureBackupDir();
   const dateStr = getFormattedDate();
   console.log(`[Backup Engine] Starting ${isManual ? 'manual' : 'scheduled Monday night'} Sunday School export...`);
@@ -265,8 +267,9 @@ async function executeWeeklyExport(isManual = false) {
 
     const excelFilename = `SundaySchool_Weekly_Export_${dateStr}_${isManual ? 'manual' : 'auto'}.xlsx`;
     const jsonFilename = `SundaySchool_Database_Snapshot_${dateStr}_${isManual ? 'manual' : 'auto'}.json`;
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-    // Try saving files to temporary backup directory
+    // 1. Try saving files to temporary backup directory
     try {
       ensureBackupDir();
       const excelFilePath = path.join(BACKUP_DIR, excelFilename);
@@ -298,12 +301,32 @@ async function executeWeeklyExport(isManual = false) {
       console.warn('[Backup Engine] File write to backup directory was skipped/failed:', fsErr.message);
     }
 
+    // 2. Automated Email Delivery (Super Admin Notification with Excel Attachment)
+    let emailResult = { skipped: true };
+    try {
+      emailResult = await sendWeeklyBackupEmail({
+        buffer,
+        filename: excelFilename,
+        recipientEmail: customRecipientEmail,
+        counts: {
+          students: students.length,
+          sessions: sessions.length,
+          attendance: attendance.length
+        },
+        isManual
+      });
+    } catch (mailErr) {
+      console.warn('[Backup Engine] Email delivery note:', mailErr.message);
+      emailResult = { success: false, error: mailErr.message };
+    }
+
+    // 3. Log Audit
     try {
       logActivity({
         userId: 1,
         username: 'SYSTEM',
         action: 'WEEKLY_AUTO_EXPORT',
-        details: `${isManual ? 'Manual' : 'Scheduled Monday Night'} full export generated: ${excelFilename} & ${jsonFilename} (${students.length} students, ${attendance.length} attendance records)`,
+        details: `${isManual ? 'Manual' : 'Scheduled Monday Night'} full export generated: ${excelFilename} & ${jsonFilename} (${students.length} students, ${attendance.length} records)${emailResult && emailResult.success ? ` [Emailed to ${emailResult.recipient}]` : ''}`,
         req: null
       });
     } catch (logErr) {
@@ -317,7 +340,8 @@ async function executeWeeklyExport(isManual = false) {
       studentCount: students.length,
       sessionCount: sessions.length,
       attendanceCount: attendance.length,
-      dateStr
+      dateStr,
+      emailDelivery: emailResult
     };
   } catch (error) {
     console.error('[Backup Engine] Error generating weekly export:', error);
@@ -334,7 +358,7 @@ function initScheduler() {
 
   // '59 23 * * 1' -> At minute 59 past hour 23 on Monday
   cron.schedule('59 23 * * 1', async () => {
-    console.log('[Scheduler] Monday Night 23:59 Triggered: Running automated Sunday School weekly export...');
+    console.log('[Scheduler] Monday Night 23:59 Triggered: Running automated Sunday School weekly export and email dispatch...');
     try {
       await executeWeeklyExport(false);
     } catch (err) {
@@ -350,6 +374,9 @@ module.exports = {
   generateMasterWorkbook,
   generateMasterExcelBuffer,
   executeWeeklyExport,
+  sendWeeklyBackupEmail,
+  isEmailConfigured,
+  getEmailConfigStatus,
   BACKUP_DIR,
   ensureBackupDir
 };

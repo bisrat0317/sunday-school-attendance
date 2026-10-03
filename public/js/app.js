@@ -4037,6 +4037,8 @@ async function loadWeeklyArchives() {
   const tbody = document.getElementById('weeklyArchivesTableBody');
   const cardContainer = document.getElementById('weeklyArchivesCardContainer');
 
+  checkEmailBackupStatus();
+
   if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></td></tr>`;
   if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>`;
 
@@ -4120,6 +4122,72 @@ async function runWeeklyExportNow() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalHtml;
+  }
+}
+
+async function checkEmailBackupStatus() {
+  const badge = document.getElementById('emailBackupStatusBadge');
+  const recipientDisplay = document.getElementById('emailBackupRecipientDisplay');
+  const modalInput = document.getElementById('backupRecipientEmail');
+
+  try {
+    const status = await api('/api/backup/email-status');
+    if (!status) return;
+
+    if (badge) {
+      if (status.configured) {
+        badge.className = 'tag tag-present';
+        badge.textContent = t('emailConfigActive') || 'Active (Automated)';
+      } else {
+        badge.className = 'tag tag-permission';
+        badge.textContent = t('emailConfigInactive') || 'Setup Available (Free)';
+      }
+    }
+
+    if (recipientDisplay) {
+      if (status.recipient) {
+        recipientDisplay.innerHTML = `<i class="fa-solid fa-at"></i> ${t('recipientEmail') || 'Target'}: <strong>${escapeHtml(status.recipient)}</strong>`;
+      } else {
+        recipientDisplay.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${status.configured ? 'Default recipient ready' : 'Configure SMTP to automate'}`;
+      }
+    }
+
+    if (modalInput && status.fullRecipient && !modalInput.value) {
+      modalInput.value = status.fullRecipient;
+    }
+  } catch (err) {
+    console.warn('Error checking email backup status:', err);
+  }
+}
+
+function openSendBackupEmailModal() {
+  openModal('modalSendBackupEmail');
+  checkEmailBackupStatus();
+}
+
+async function submitSendBackupEmail(e) {
+  e.preventDefault();
+  const recipientInput = document.getElementById('backupRecipientEmail');
+  const recipientEmail = recipientInput ? recipientInput.value.trim() : '';
+  const submitBtn = document.getElementById('btnSubmitSendBackupEmail');
+  const originalHtml = submitBtn.innerHTML;
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('emailSending') || 'Sending...'}`;
+
+  try {
+    const res = await api('/api/backup/send-email-now', {
+      method: 'POST',
+      body: JSON.stringify({ recipientEmail })
+    });
+
+    closeModal('modalSendBackupEmail');
+    showToast(res.message || t('emailSentSuccess') || 'Master Excel backup sent successfully to your email!', 'success');
+  } catch (err) {
+    showToast(err.message || 'Error sending backup email', 'danger');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalHtml;
   }
 }
 
