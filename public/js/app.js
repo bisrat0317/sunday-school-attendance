@@ -258,11 +258,11 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'promotions' || tabName === 'analytics' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'backup') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'backup') && !isAdmin) {
     tabName = 'sessions';
   }
-  if ((tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
-    tabName = 'sessions';
+  if ((tabName === 'promotions' || tabName === 'analytics' || tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
+    tabName = isAdmin ? 'dashboard' : 'sessions';
   }
 
   // Update Tab buttons & Drawer items
@@ -288,8 +288,8 @@ function switchTab(tabName) {
   if (tabName === 'sessions') loadSessions();
   if (tabName === 'students') loadStudents();
   if (tabName === 'families') loadFamilies();
-  if (tabName === 'promotions' && isAdmin) loadPromotionCandidateStudents();
-  if (tabName === 'analytics' && isAdmin) loadAdvancedAnalytics();
+  if (tabName === 'promotions' && isSuperAdmin) loadPromotionCandidateStudents();
+  if (tabName === 'analytics' && isSuperAdmin) loadAdvancedAnalytics();
   if (tabName === 'categoryMatrix' && isAdmin) loadCategoryMatrix();
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
@@ -301,19 +301,20 @@ function switchTab(tabName) {
 function refreshActiveTabData() {
   const activePane = document.querySelector('.tab-pane[style*="display: block"]');
   if (!activePane) return;
+  const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
   const tabId = activePane.id;
   if (tabId === 'tabDashboard') loadDashboard();
   else if (tabId === 'tabSessions') loadSessions();
   else if (tabId === 'tabStudents') loadStudents();
   else if (tabId === 'tabFamilies') loadFamilies();
-  else if (tabId === 'tabPromotions') loadPromotionCandidateStudents();
-  else if (tabId === 'tabAnalytics') loadAdvancedAnalytics();
+  else if (tabId === 'tabPromotions' && isSuperAdmin) loadPromotionCandidateStudents();
+  else if (tabId === 'tabAnalytics' && isSuperAdmin) loadAdvancedAnalytics();
   else if (tabId === 'tabCategoryMatrix') loadCategoryMatrix();
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
   else if (tabId === 'tabBackup') loadWeeklyArchives();
-  else if (tabId === 'tabUsers') loadUsers();
-  else if (tabId === 'tabAuditLogs') loadAuditLogs();
+  else if (tabId === 'tabUsers' && isSuperAdmin) loadUsers();
+  else if (tabId === 'tabAuditLogs' && isSuperAdmin) loadAuditLogs();
 }
 
 // ==========================================
@@ -3596,6 +3597,11 @@ async function confirmAndExecutePromotion() {
   const isGraduation = action === 'graduate';
   const count = selectedPromoIds.size;
 
+  if (!isGraduation && (!targetCat || targetCat.trim() === '')) {
+    showToast(t('targetCategoryRequired') || 'Target category is required for promotion', 'warning');
+    return;
+  }
+
   let confirmMsg = '';
   if (isGraduation) {
     confirmMsg = currentLang === 'am'
@@ -3618,7 +3624,12 @@ async function confirmAndExecutePromotion() {
     const payload = {
       student_ids: Array.from(selectedPromoIds),
       action: action,
+      action_type: action,
+      from_category: sourceCat,
+      source_category: sourceCat,
+      to_category: isGraduation ? null : targetCat,
       target_category: isGraduation ? null : targetCat,
+      notes: notes || (isGraduation ? 'Graduation' : `Promotion from ${sourceCat} to ${targetCat}`),
       reason: notes || (isGraduation ? 'Graduation' : `Promotion from ${sourceCat} to ${targetCat}`)
     };
 

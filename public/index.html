@@ -61,11 +61,11 @@
           <div class="nav-icon-bubble"><i class="fa-solid fa-people-roof"></i></div>
           <span data-i18n="navFamilies">ቤተሰቦች</span>
         </button>
-        <button class="drawer-nav-item admin-only" id="drawerTabPromotions" onclick="switchTab('promotions')">
+        <button class="drawer-nav-item super-admin-only" id="drawerTabPromotions" onclick="switchTab('promotions')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-arrows-up-to-line"></i></div>
           <span data-i18n="navPromotions">የክፍል ሽግግር</span>
         </button>
-        <button class="drawer-nav-item admin-only" id="drawerTabAnalytics" onclick="switchTab('analytics')">
+        <button class="drawer-nav-item super-admin-only" id="drawerTabAnalytics" onclick="switchTab('analytics')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-chart-line"></i></div>
           <span data-i18n="navAnalytics">የተሳትፎ ትንታኔ</span>
         </button>
@@ -163,10 +163,10 @@
       <button class="nav-tab" id="tabBtnFamilies" onclick="switchTab('families')">
         <i class="fa-solid fa-people-roof"></i> <span data-i18n="navFamilies">ቤተሰቦች</span>
       </button>
-      <button class="nav-tab admin-only" id="tabBtnPromotions" onclick="switchTab('promotions')">
+      <button class="nav-tab super-admin-only" id="tabBtnPromotions" onclick="switchTab('promotions')">
         <i class="fa-solid fa-arrows-up-to-line"></i> <span data-i18n="navPromotions">የክፍል ሽግግር</span>
       </button>
-      <button class="nav-tab admin-only" id="tabBtnAnalytics" onclick="switchTab('analytics')">
+      <button class="nav-tab super-admin-only" id="tabBtnAnalytics" onclick="switchTab('analytics')">
         <i class="fa-solid fa-chart-line"></i> <span data-i18n="navAnalytics">የተሳትፎ ትንታኔ</span>
       </button>
       <button class="nav-tab admin-only" id="tabBtnCategoryMatrix" onclick="switchTab('categoryMatrix')">
@@ -762,8 +762,8 @@
         </div>
       </section>
 
-      <!-- TAB: STUDENT PROMOTION & GRADUATION (Admin Only) -->
-      <section id="tabPromotions" class="tab-pane admin-only" style="display: none;">
+      <!-- TAB: STUDENT PROMOTION & GRADUATION (Super Admin Only) -->
+      <section id="tabPromotions" class="tab-pane super-admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
             <div>
@@ -883,8 +883,8 @@
         </div>
       </section>
 
-      <!-- TAB: ADVANCED ANALYTICS & RETENTION TRENDS (Admin Only) -->
-      <section id="tabAnalytics" class="tab-pane admin-only" style="display: none;">
+      <!-- TAB: ADVANCED ANALYTICS & RETENTION TRENDS (Super Admin Only) -->
+      <section id="tabAnalytics" class="tab-pane super-admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
             <div>

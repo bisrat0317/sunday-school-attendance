@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 
 // GET /api/reports/dashboard - Overview statistics for Admin
 router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
@@ -180,8 +180,8 @@ router.get('/three-absents', authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
-// GET /api/reports/advanced-analytics - Comprehensive retention, seasonal & at-risk analytics
-router.get('/advanced-analytics', authenticateToken, requireAdmin, async (req, res) => {
+// GET /api/reports/advanced-analytics - Comprehensive retention, seasonal & at-risk analytics (Super Admin Only)
+router.get('/advanced-analytics', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     // 1. Weekly / Session-by-Session Retention Timeline
     const [timelineData] = await pool.query(`
