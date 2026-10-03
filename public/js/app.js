@@ -258,7 +258,7 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'promotions' || tabName === 'analytics' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'backup') && !isAdmin) {
     tabName = 'sessions';
   }
   if ((tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
@@ -288,9 +288,12 @@ function switchTab(tabName) {
   if (tabName === 'sessions') loadSessions();
   if (tabName === 'students') loadStudents();
   if (tabName === 'families') loadFamilies();
+  if (tabName === 'promotions' && isAdmin) loadPromotionCandidateStudents();
+  if (tabName === 'analytics' && isAdmin) loadAdvancedAnalytics();
   if (tabName === 'categoryMatrix' && isAdmin) loadCategoryMatrix();
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
+  if (tabName === 'backup' && isAdmin) loadWeeklyArchives();
   if (tabName === 'users' && isSuperAdmin) loadUsers();
   if (tabName === 'auditLogs' && isSuperAdmin) loadAuditLogs();
 }
@@ -303,9 +306,12 @@ function refreshActiveTabData() {
   else if (tabId === 'tabSessions') loadSessions();
   else if (tabId === 'tabStudents') loadStudents();
   else if (tabId === 'tabFamilies') loadFamilies();
+  else if (tabId === 'tabPromotions') loadPromotionCandidateStudents();
+  else if (tabId === 'tabAnalytics') loadAdvancedAnalytics();
   else if (tabId === 'tabCategoryMatrix') loadCategoryMatrix();
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
+  else if (tabId === 'tabBackup') loadWeeklyArchives();
   else if (tabId === 'tabUsers') loadUsers();
   else if (tabId === 'tabAuditLogs') loadAuditLogs();
 }
@@ -2006,70 +2012,326 @@ async function deleteStudent(id) {
 }
 
 // ==========================================
-// 4. 3-CONSECUTIVE ABSENCES ALERT (Admin)
+// 4. 3-CONSECUTIVE ABSENCES ALERT & PASTORAL CARE FOLLOW-UP (Admin)
 // ==========================================
+let cachedAlertsList = [];
+let currentTimelineStudent = null;
+
 async function load3AbsentAlerts() {
   try {
     const alerts = await api('/api/reports/three-absents');
     const badge = document.getElementById('badge3AbsentCount');
     const drawerBadge = document.getElementById('drawerBadge3AbsentCount');
-    const container = document.getElementById('alertsContainer');
 
-    if (!alerts || alerts.length === 0) {
-      if (badge) badge.style.display = 'none';
-      if (drawerBadge) drawerBadge.style.display = 'none';
-      if (container) {
-        container.innerHTML = `
-          <div style="text-align: center; padding: 2.5rem; color: #15803d; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
-            <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
-            <h4 style="font-size: 1.1rem; font-weight: 700;">${t('noAlerts')}</h4>
-          </div>
-        `;
-      }
-      return;
-    }
+    cachedAlertsList = alerts || [];
+
+    // Calculate Summary Stats
+    const totalCount = cachedAlertsList.length;
+    let pendingCount = 0;
+    let contactedCount = 0;
+    let resolvedCount = 0;
+    let needsVisitCount = 0;
+
+    cachedAlertsList.forEach(a => {
+      const st = a.followup_status || 'pending';
+      if (st === 'pending') pendingCount++;
+      else if (st === 'contacted') contactedCount++;
+      else if (st === 'resolved') resolvedCount++;
+      else if (st === 'needs_visit') needsVisitCount++;
+    });
+
+    const elTotal = document.getElementById('alertTotalFlagged');
+    const elPending = document.getElementById('alertPendingFollowup');
+    const elContacted = document.getElementById('alertContactedCount');
+    const elResolved = document.getElementById('alertResolvedCount');
+
+    if (elTotal) elTotal.textContent = totalCount;
+    if (elPending) elPending.textContent = pendingCount;
+    if (elContacted) elContacted.textContent = contactedCount + needsVisitCount;
+    if (elResolved) elResolved.textContent = resolvedCount;
 
     if (badge) {
-      badge.style.display = 'inline-block';
-      badge.textContent = alerts.length;
+      badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+      badge.textContent = totalCount;
     }
     if (drawerBadge) {
-      drawerBadge.style.display = 'inline-block';
-      drawerBadge.textContent = alerts.length;
+      drawerBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+      drawerBadge.textContent = totalCount;
     }
 
+    filter3AbsentAlertsList();
+  } catch (err) {
+    console.error('Error loading 3-absent alerts:', err);
+  }
+}
+
+function getFollowupStatusBadge(status) {
+  const st = status || 'pending';
+  if (st === 'resolved') {
+    return `<span class="tag tag-resolved"><i class="fa-solid fa-circle-check"></i> ${t('statusResolved')}</span>`;
+  } else if (st === 'contacted') {
+    return `<span class="tag tag-contacted"><i class="fa-solid fa-phone"></i> ${t('statusContacted')}</span>`;
+  } else if (st === 'needs_visit') {
+    return `<span class="tag tag-needs-visit"><i class="fa-solid fa-house-chimney-user"></i> ${t('statusNeedsVisit')}</span>`;
+  } else {
+    return `<span class="tag tag-pending"><i class="fa-solid fa-hourglass-half"></i> ${t('statusPending')}</span>`;
+  }
+}
+
+function filter3AbsentAlertsList() {
+  const container = document.getElementById('alertsContainer');
+  if (!container) return;
+
+  const search = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
+  const categoryFilter = document.getElementById('alertFilterCategory')?.value || 'All';
+  const statusFilter = document.getElementById('alertFilterFollowupStatus')?.value || 'All';
+
+  let list = cachedAlertsList;
+
+  if (categoryFilter !== 'All') {
+    list = list.filter(a => a.category === categoryFilter);
+  }
+
+  if (statusFilter !== 'All') {
+    list = list.filter(a => (a.followup_status || 'pending') === statusFilter);
+  }
+
+  if (search) {
+    list = list.filter(a => {
+      const name = `${a.first_name} ${a.father_name}`.toLowerCase();
+      const mother = (a.mother_name || '').toLowerCase();
+      const phone = (a.phone || '').toLowerCase();
+      const emergency = (a.emergency_contact || '').toLowerCase();
+      return name.includes(search) || mother.includes(search) || phone.includes(search) || emergency.includes(search);
+    });
+  }
+
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem; color: #15803d; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+        <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
+        <h4 style="font-size: 1.1rem; font-weight: 700;">${t('noAlerts')}</h4>
+      </div>
+    `;
+    return;
+  }
+
+  list.forEach(a => {
+    const statusBadge = getFollowupStatusBadge(a.followup_status);
+    const hasFollowup = a.total_followups > 0;
+    const lastContactStr = a.last_contact_date ? formatDate(a.last_contact_date) : null;
+
+    container.innerHTML += `
+      <div class="alert-card" style="margin-bottom: 1rem; border-left: 5px solid ${a.followup_status === 'resolved' ? '#10b981' : (a.followup_status === 'needs_visit' ? '#dc2626' : (a.followup_status === 'contacted' ? '#3b82f6' : '#f59e0b'))};">
+        <div class="alert-student-info" style="flex: 1; min-width: 260px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
+            <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 700;">
+              <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger); margin-right: 4px;"></i>
+              ${escapeHtml(a.first_name)} ${escapeHtml(a.father_name)}
+              <span class="tag tag-category" style="margin-left: 6px;">${escapeHtml(a.category)}</span>
+            </h4>
+            ${statusBadge}
+          </div>
+
+          <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.6rem;">
+            <div><strong>${t('motherName')}:</strong> ${escapeHtml(a.mother_name || 'N/A')} | <strong>${t('profession')}:</strong> ${escapeHtml(a.profession || 'N/A')}</div>
+            <div>
+              <strong style="color: var(--danger);">${t('consecutiveAbsences')}:</strong> <span style="font-weight: 800; color: var(--danger); font-size: 1.05rem;">${a.absent_count}</span> | 
+              <strong>${t('lastPresentDate')}:</strong> ${a.last_present_date ? formatDate(a.last_present_date) : 'Never'}
+            </div>
+          </div>
+
+          ${hasFollowup ? `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.83rem; margin-top: 0.4rem;">
+              <div style="font-weight: 600; color: #334155; margin-bottom: 2px;">
+                <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> ${t('lastContact')}: ${lastContactStr} (${a.total_followups} ${t('followupTotalCount')})
+              </div>
+              <div style="color: #475569;"><strong>${t('reasonCategory')}:</strong> ${escapeHtml(a.reason_for_absence || '-')}</div>
+              ${a.followup_notes ? `<div style="color: #64748b; font-style: italic; margin-top: 2px;">"${escapeHtml(a.followup_notes)}"</div>` : ''}
+            </div>
+          ` : `
+            <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 0.4rem 0.65rem; font-size: 0.82rem; color: #b45309;">
+              <i class="fa-solid fa-bell"></i> ${t('noFollowupLogged')}
+            </div>
+          `}
+        </div>
+
+        <div class="alert-actions" style="display: flex; flex-direction: column; gap: 0.45rem; justify-content: center; min-width: 200px;">
+          <div style="display: flex; gap: 0.4rem;">
+            ${a.phone ? `
+              <a href="tel:${escapeHtml(a.phone)}" class="btn btn-danger btn-sm" style="flex: 1; justify-content: center;">
+                <i class="fa-solid fa-phone"></i> ${escapeHtml(a.phone)}
+              </a>
+            ` : ''}
+            ${a.emergency_contact ? `
+              <a href="tel:${escapeHtml(a.emergency_contact)}" class="btn btn-warning btn-sm" style="flex: 1; justify-content: center;" title="${t('callEmergency')}">
+                <i class="fa-solid fa-phone-volume"></i> ${escapeHtml(a.emergency_contact)}
+              </a>
+            ` : ''}
+          </div>
+
+          <button type="button" class="btn btn-primary btn-sm" onclick="openLogFollowupModal(${a.student_id}, '${escapeHtml(a.first_name)} ${escapeHtml(a.father_name)}', '${a.followup_status || 'pending'}', '${escapeHtml(a.phone || '')}', '${escapeHtml(a.emergency_contact || '')}', '${escapeHtml(a.mother_name || '')}')">
+            <i class="fa-solid fa-pen-to-square"></i> ${t('logFollowup')}
+          </button>
+
+          <div style="display: flex; gap: 0.4rem;">
+            <button type="button" class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="openFollowupTimelineModal(${a.student_id}, '${escapeHtml(a.first_name)} ${escapeHtml(a.father_name)}', '${escapeHtml(a.phone || '')}', '${escapeHtml(a.emergency_contact || '')}', '${escapeHtml(a.mother_name || '')}')">
+              <i class="fa-solid fa-timeline"></i> ${t('followupTimeline')}
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="viewStudentProfile(${a.student_id})" title="${t('viewProfile')}">
+              <i class="fa-solid fa-user"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function openLogFollowupModal(studentId, studentName, currentStatus, phone, emergency, motherName) {
+  document.getElementById('formLogFollowup')?.reset();
+  document.getElementById('followupStudentId').value = studentId;
+  document.getElementById('followupStudentSubtitle').textContent = studentName;
+
+  const today = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('followupContactDate');
+  if (dateInput) dateInput.value = today;
+
+  const statusSelect = document.getElementById('followupStatus');
+  if (statusSelect) statusSelect.value = (currentStatus && currentStatus !== 'pending') ? currentStatus : 'contacted';
+
+  const banner = document.getElementById('followupStudentInfoBanner');
+  if (banner) {
+    banner.innerHTML = `
+      <div style="font-weight: 700; color: #1e40af; margin-bottom: 2px;">
+        <i class="fa-solid fa-user-circle"></i> ${escapeHtml(studentName)}
+      </div>
+      <div style="font-size: 0.82rem; color: #3b82f6;">
+        ${t('motherName')}: <strong>${escapeHtml(motherName || '-')}</strong> | 
+        ${t('phone')}: <a href="tel:${escapeHtml(phone)}" style="font-weight: 600; text-decoration: underline;">${escapeHtml(phone || '-')}</a>
+        ${emergency ? ` | ${t('emergencyContact')}: <a href="tel:${escapeHtml(emergency)}" style="font-weight: 600; text-decoration: underline;">${escapeHtml(emergency)}</a>` : ''}
+      </div>
+    `;
+  }
+
+  openModal('modalLogFollowup');
+}
+
+async function handleSaveFollowup(e) {
+  e.preventDefault();
+  const studentId = document.getElementById('followupStudentId').value;
+  const contactDate = document.getElementById('followupContactDate').value;
+  const contactMethod = document.getElementById('followupContactType').value;
+  const contactedPerson = document.getElementById('followupContactedPerson').value;
+  const reasonCategory = document.getElementById('followupReasonCategory').value;
+  const followupStatus = document.getElementById('followupStatus').value;
+  const nextDate = document.getElementById('followupNextDate').value || null;
+  const notes = document.getElementById('followupNotesText').value.trim();
+
+  const submitBtn = document.getElementById('btnSubmitFollowup');
+  const originalHtml = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}`;
+
+  try {
+    const payload = {
+      student_id: parseInt(studentId, 10),
+      parent_contacted: contactedPerson,
+      contact_method: contactMethod,
+      reason_for_absence: reasonCategory,
+      notes: notes,
+      next_action: nextDate,
+      status: followupStatus
+    };
+
+    await api('/api/followups', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    showToast(t('followupSaved') || 'Follow-up log recorded successfully!', 'success');
+    closeModal('modalLogFollowup');
+    load3AbsentAlerts();
+  } catch (err) {
+    console.error('Error saving follow-up:', err);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalHtml;
+  }
+}
+
+async function openFollowupTimelineModal(studentId, studentName, phone, emergency, motherName) {
+  currentTimelineStudent = { studentId, studentName, phone, emergency, motherName };
+  document.getElementById('timelineStudentSubtitle').textContent = studentName;
+  const container = document.getElementById('followupTimelineContainer');
+  if (container) container.innerHTML = `<div style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>`;
+
+  openModal('modalFollowupTimeline');
+
+  try {
+    const data = await api(`/api/followups/student/${studentId}`);
     if (!container) return;
     container.innerHTML = '';
 
-    alerts.forEach(a => {
-      container.innerHTML += `
-        <div class="alert-card">
-          <div class="alert-student-info">
-            <h4><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(a.first_name)} ${escapeHtml(a.father_name)} (${escapeHtml(a.category)})</h4>
-            <p><strong>${t('motherName')}:</strong> ${escapeHtml(a.mother_name)} | <strong>${t('profession')}:</strong> ${escapeHtml(a.profession || 'N/A')}</p>
-            <p>
-              <strong>${t('consecutiveAbsences')}:</strong> <span style="font-weight: 700; color: var(--danger); font-size: 1rem;">${a.absent_count}</span> | 
-              <strong>${t('lastPresentDate')}:</strong> ${a.last_present_date ? formatDate(a.last_present_date) : 'Never'}
-            </p>
-          </div>
+    if (!data || !data.followups || data.followups.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 2.5rem 1rem;">
+          <i class="fa-solid fa-clipboard-list" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.75rem; display: block;"></i>
+          ${t('noFollowupLogged')}
+        </div>
+      `;
+      return;
+    }
 
-          <div class="alert-actions">
-            <a href="tel:${escapeHtml(a.phone)}" class="btn btn-danger">
-              <i class="fa-solid fa-phone"></i> ${t('callStudent')} (${escapeHtml(a.phone)})
-            </a>
-            ${a.emergency_contact ? `
-              <a href="tel:${escapeHtml(a.emergency_contact)}" class="btn btn-warning">
-                <i class="fa-solid fa-phone-volume"></i> ${t('callEmergency')}
-              </a>
-            ` : ''}
-            <button class="btn btn-outline" onclick="viewStudentProfile(${a.student_id})">
-              <i class="fa-solid fa-user"></i> ${t('viewProfile')}
-            </button>
+    data.followups.forEach(f => {
+      const statusBadge = getFollowupStatusBadge(f.status);
+      const dateDisplay = formatDate(f.created_at || f.contact_date);
+
+      container.innerHTML += `
+        <div class="timeline-item" style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; margin-top: 2px;">
+            <i class="fa-solid fa-phone-volume"></i>
+          </div>
+          <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.4rem;">
+              <span style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">
+                ${escapeHtml(f.parent_contacted || 'Contact')} (${escapeHtml(f.contact_method || 'Phone')})
+              </span>
+              ${statusBadge}
+            </div>
+            <div style="font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
+              <strong>${t('reasonCategory')}:</strong> ${escapeHtml(f.reason_for_absence || 'Unspecified')}
+            </div>
+            <div style="font-size: 0.85rem; color: #475569; background: #fff; border: 1px solid #f1f5f9; padding: 0.5rem 0.65rem; border-radius: 6px; margin-bottom: 0.4rem;">
+              ${escapeHtml(f.notes || '-')}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 0.35rem;">
+              <span><i class="fa-solid fa-calendar"></i> ${dateDisplay}</span>
+              <span><i class="fa-solid fa-user-pen"></i> ${escapeHtml(f.logged_by_name || 'System')}</span>
+            </div>
           </div>
         </div>
       `;
     });
-  } catch (err) { }
+  } catch (err) {
+    if (container) container.innerHTML = `<div style="color: var(--danger); text-align: center; padding: 1rem;">Error loading timeline</div>`;
+  }
+}
+
+function openLogFollowupFromTimeline() {
+  closeModal('modalFollowupTimeline');
+  if (currentTimelineStudent) {
+    openLogFollowupModal(
+      currentTimelineStudent.studentId,
+      currentTimelineStudent.studentName,
+      'contacted',
+      currentTimelineStudent.phone,
+      currentTimelineStudent.emergency,
+      currentTimelineStudent.motherName
+    );
+  }
 }
 
 // ==========================================
@@ -3141,6 +3403,719 @@ async function loadAuditLogs() {
     });
   } catch (err) {
     console.error('Error loading audit logs:', err);
+  }
+}
+
+// ==========================================
+// 10. STUDENT PROMOTION & GRADUATION LOGIC
+// ==========================================
+let cachedPromoStudents = [];
+let selectedPromoIds = new Set();
+
+const NEXT_CATEGORY_MAP = {
+  'Child': 'Grade 1',
+  'Grade 1': 'Grade 2',
+  'Grade 2': 'Grade 3',
+  'Grade 3': 'Grade 4',
+  'Grade 4': 'Grade 5',
+  'Grade 5': 'Grade 6',
+  'Grade 6': 'Grade 7',
+  'Grade 7': 'Grade 8',
+  'Grade 8': 'Grade 9',
+  'Grade 9': 'Grade 10',
+  'Grade 10': 'Grade 11',
+  'Grade 11': 'Grade 12',
+  'Grade 12': 'Youth',
+  'Teens': 'Youth',
+  'Youth': 'Adult',
+  'Adult': 'Adult'
+};
+
+async function loadPromotionCandidateStudents() {
+  const sourceCat = document.getElementById('promoSourceCategory')?.value || 'Child';
+  const tbody = document.getElementById('promoStudentsTableBody');
+  const cardContainer = document.getElementById('promoStudentsCardContainer');
+  const countEl = document.getElementById('promoRosterSummary');
+  const chkHeader = document.getElementById('chkPromoHeader');
+
+  if (chkHeader) chkHeader.checked = false;
+  selectedPromoIds.clear();
+  updatePromoSelectedCount();
+
+  // Auto set default next category in dropdown
+  const targetCatSelect = document.getElementById('promoTargetCategory');
+  if (targetCatSelect && NEXT_CATEGORY_MAP[sourceCat]) {
+    targetCatSelect.value = NEXT_CATEGORY_MAP[sourceCat];
+  }
+
+  if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></td></tr>`;
+  if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>`;
+
+  try {
+    const students = await api(`/api/students?category=${encodeURIComponent(sourceCat)}&status=active`);
+    cachedPromoStudents = students || [];
+
+    if (tbody) tbody.innerHTML = '';
+    if (cardContainer) cardContainer.innerHTML = '';
+
+    if (cachedPromoStudents.length === 0) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">${t('noStudentsFound') || 'No active students found in this category'}</td></tr>`;
+      if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">${t('noStudentsFound') || 'No active students found in this category'}</div>`;
+      if (countEl) countEl.textContent = `${t('selectedStudents') || 'Selected'}: 0 / 0`;
+      return;
+    }
+
+    if (countEl) countEl.textContent = `${t('selectedStudents') || 'Selected'}: 0 / ${cachedPromoStudents.length}`;
+
+    cachedPromoStudents.forEach(s => {
+      const totalSess = (s.present_count || 0) + (s.absent_count || 0) + (s.permission_count || 0);
+      const rate = totalSess > 0 ? Math.round(((s.present_count || 0) / totalSess) * 100) : 0;
+      const rateBadge = rate >= 75 ? 'tag-present' : (rate >= 50 ? 'tag-permission' : 'tag-absent');
+
+      // Desktop table row
+      if (tbody) {
+        tbody.innerHTML += `
+          <tr id="promoRow_${s.id}">
+            <td>
+              <input type="checkbox" class="chk-promo-student" value="${s.id}" onchange="handlePromoRowCheckbox(${s.id}, this.checked)">
+            </td>
+            <td>
+              <strong>${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}</strong>
+            </td>
+            <td>${escapeHtml(s.christian_name || '-')}</td>
+            <td>${s.age || '-'}</td>
+            <td>${escapeHtml(s.phone || '-')}</td>
+            <td>
+              <span class="tag ${rateBadge}">${rate}%</span>
+            </td>
+            <td>
+              <span class="tag tag-present">${escapeHtml(s.status)}</span>
+            </td>
+          </tr>
+        `;
+      }
+
+      // Mobile Card
+      if (cardContainer) {
+        cardContainer.innerHTML += `
+          <div class="card" id="promoCard_${s.id}" style="margin-bottom: 0.6rem; padding: 0.85rem; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label style="display: flex; align-items: center; gap: 0.6rem; font-weight: 700; cursor: pointer; margin-bottom: 0;">
+                <input type="checkbox" class="chk-promo-student" value="${s.id}" onchange="handlePromoRowCheckbox(${s.id}, this.checked)">
+                ${escapeHtml(s.first_name)} ${escapeHtml(s.father_name)}
+              </label>
+              <span class="tag ${rateBadge}">${rate}%</span>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+              <span>${t('age')}: ${s.age || '-'} | ${escapeHtml(s.phone || '-')}</span>
+              <span>${escapeHtml(s.christian_name || '')}</span>
+            </div>
+          </div>
+        `;
+      }
+    });
+  } catch (err) {
+    console.error('Error loading promotion candidates:', err);
+  }
+}
+
+function handlePromotionActionChange() {
+  const action = document.getElementById('promoActionType')?.value;
+  const targetGroup = document.getElementById('promoTargetCategoryGroup');
+  if (!targetGroup) return;
+
+  if (action === 'graduate') {
+    targetGroup.style.display = 'none';
+  } else {
+    targetGroup.style.display = 'block';
+  }
+}
+
+function handlePromoRowCheckbox(studentId, isChecked) {
+  if (isChecked) {
+    selectedPromoIds.add(studentId);
+  } else {
+    selectedPromoIds.delete(studentId);
+  }
+
+  const row = document.getElementById(`promoRow_${studentId}`);
+  if (row) row.classList.toggle('row-selected', isChecked);
+
+  const card = document.getElementById(`promoCard_${studentId}`);
+  if (card) card.classList.toggle('card-selected', isChecked);
+
+  updatePromoSelectedCount();
+}
+
+function handlePromoHeaderCheckbox(headerChk) {
+  toggleSelectAllPromotions(headerChk.checked);
+}
+
+function toggleSelectAllPromotions(checkAll) {
+  const checkboxes = document.querySelectorAll('.chk-promo-student');
+  checkboxes.forEach(cb => {
+    cb.checked = checkAll;
+    const id = parseInt(cb.value, 10);
+    if (checkAll) {
+      selectedPromoIds.add(id);
+    } else {
+      selectedPromoIds.delete(id);
+    }
+
+    const row = document.getElementById(`promoRow_${id}`);
+    if (row) row.classList.toggle('row-selected', checkAll);
+
+    const card = document.getElementById(`promoCard_${id}`);
+    if (card) card.classList.toggle('card-selected', checkAll);
+  });
+
+  const chkHeader = document.getElementById('chkPromoHeader');
+  if (chkHeader) chkHeader.checked = checkAll;
+
+  updatePromoSelectedCount();
+}
+
+function updatePromoSelectedCount() {
+  const countEl = document.getElementById('promoRosterSummary');
+  if (countEl) {
+    countEl.textContent = `${t('selectedStudents') || 'የተመረጡ ተማሪዎች'}: ${selectedPromoIds.size} / ${cachedPromoStudents.length}`;
+  }
+}
+
+async function confirmAndExecutePromotion() {
+  if (selectedPromoIds.size === 0) {
+    showToast(t('noStudentsSelected') || 'Please select at least one student to promote/graduate', 'warning');
+    return;
+  }
+
+  const action = document.getElementById('promoActionType')?.value || 'promote';
+  const sourceCat = document.getElementById('promoSourceCategory')?.value;
+  const targetCat = document.getElementById('promoTargetCategory')?.value;
+  const notes = document.getElementById('promoNotes')?.value || '';
+
+  const isGraduation = action === 'graduate';
+  const count = selectedPromoIds.size;
+
+  let confirmMsg = '';
+  if (isGraduation) {
+    confirmMsg = currentLang === 'am'
+      ? `እርግጠኛ ነዎት? ${count} ተማሪ(ዎችን) ወደ 'ምሩቅ/አልሙናይ' (Graduated) ማሸጋገር ይፈልጋሉ?`
+      : `Are you sure you want to graduate ${count} student(s) to Alumni status?`;
+  } else {
+    confirmMsg = currentLang === 'am'
+      ? `እርግጠኛ ነዎት? ${count} ተማሪ(ዎችን) ከ'${sourceCat}' ወደ '${targetCat}' ማሸጋገር ይፈልጋሉ?`
+      : `Are you sure you want to promote ${count} student(s) from '${sourceCat}' to '${targetCat}'?`;
+  }
+
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('btnExecutePromotion');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}`;
+
+  try {
+    const payload = {
+      student_ids: Array.from(selectedPromoIds),
+      action: action,
+      target_category: isGraduation ? null : targetCat,
+      reason: notes || (isGraduation ? 'Graduation' : `Promotion from ${sourceCat} to ${targetCat}`)
+    };
+
+    const res = await api('/api/students/promote/batch', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    showToast(res.message || `${count} students processed successfully!`, 'success');
+    loadPromotionCandidateStudents();
+    loadStudents();
+  } catch (err) {
+    console.error('Error executing promotion:', err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function openPromotionHistoryModal() {
+  const tbody = document.getElementById('promoHistoryTableBody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></td></tr>`;
+
+  openModal('modalPromotionHistory');
+
+  try {
+    const history = await api('/api/students/promotions/history');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!history || history.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">${t('noHistory') || 'No promotion history recorded yet'}</td></tr>`;
+      return;
+    }
+
+    history.forEach(h => {
+      const isGrad = h.action_type === 'graduate';
+      const actionBadge = isGrad
+        ? `<span class="tag tag-graduated"><i class="fa-solid fa-graduation-cap"></i> ${t('actionGraduate')}</span>`
+        : `<span class="tag tag-present"><i class="fa-solid fa-arrow-up"></i> ${t('actionPromote')}</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${escapeHtml(h.first_name)} ${escapeHtml(h.father_name)}</strong></td>
+          <td><span class="tag tag-category">${escapeHtml(h.from_category)}</span></td>
+          <td>${h.to_category ? `<span class="tag tag-category">${escapeHtml(h.to_category)}</span>` : '<span class="tag tag-graduated">Alumni</span>'}</td>
+          <td>${actionBadge}</td>
+          <td>${formatDate(h.promotion_date)}</td>
+          <td><small>${escapeHtml(h.promoted_by_name || 'System')}</small></td>
+          <td style="font-size: 0.85rem; color: #475569;">${escapeHtml(h.reason || '-')}</td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color: var(--danger); text-align: center; padding: 1rem;">Error loading promotion history</td></tr>`;
+  }
+}
+
+// ==========================================
+// 11. ADVANCED ANALYTICS & SEASONAL TRENDS LOGIC
+// ==========================================
+let chartWeeklyTrendsInstance = null;
+let chartCategoryRankingsInstance = null;
+
+async function loadAdvancedAnalytics() {
+  try {
+    const data = await api('/api/reports/advanced-analytics');
+    if (!data) return;
+
+    // 1. Top Summary Counters
+    const avgRetentionEl = document.getElementById('analyticsAvgRetention');
+    const topCatEl = document.getElementById('analyticsTopCategory');
+    const atRiskCountEl = document.getElementById('analyticsAtRiskCount');
+    const followupsCountEl = document.getElementById('analyticsFollowupsCount');
+
+    if (avgRetentionEl) avgRetentionEl.textContent = `${data.summary.overall_attendance_rate}%`;
+    if (topCatEl) topCatEl.textContent = data.summary.top_category ? `${data.summary.top_category} (${data.summary.top_category_rate}%)` : '-';
+    if (atRiskCountEl) atRiskCountEl.textContent = data.summary.at_risk_count || 0;
+    if (followupsCountEl) followupsCountEl.textContent = data.summary.total_followups_logged || 0;
+
+    // 2. Weekly Attendance Retention Multi-Line Chart
+    renderWeeklyTrendsChart(data.weeklyTrends || []);
+
+    // 3. Category Retention Bar Chart
+    renderCategoryRankingsChart(data.categoryRankings || []);
+
+    // 4. Seasonal Feasts Retention Cards
+    renderSeasonalCards(data.seasonalTrends || []);
+
+    // 5. At-Risk Early Warning Radar Matrix
+    renderAtRiskTable(data.atRiskStudents || []);
+  } catch (err) {
+    console.error('Error loading advanced analytics:', err);
+  }
+}
+
+function renderWeeklyTrendsChart(weeklyData) {
+  const canvas = document.getElementById('chartWeeklyTrends');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  if (chartWeeklyTrendsInstance) {
+    chartWeeklyTrendsInstance.destroy();
+    chartWeeklyTrendsInstance = null;
+  }
+
+  const labels = weeklyData.map(w => w.year_week || w.week_start);
+  const rates = weeklyData.map(w => w.attendance_rate);
+  const presentCounts = weeklyData.map(w => w.total_present);
+
+  const ctx = canvas.getContext('2d');
+  chartWeeklyTrendsInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: currentLang === 'am' ? 'የመገኘት %' : 'Attendance Rate %',
+          data: rates,
+          borderColor: '#4338ca',
+          backgroundColor: 'rgba(67, 56, 202, 0.12)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: '#4338ca',
+          pointRadius: 4,
+          yAxisID: 'y'
+        },
+        {
+          label: currentLang === 'am' ? 'የተገኙ ተማሪዎች ብዛት' : 'Present Count',
+          data: presentCounts,
+          borderColor: '#10b981',
+          borderDash: [5, 5],
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.35,
+          fill: false,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { boxWidth: 12, font: { size: 11 } }
+        }
+      },
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          position: 'left',
+          ticks: { callback: v => `${v}%` },
+          grid: { color: '#f1f5f9' }
+        },
+        y1: {
+          min: 0,
+          position: 'right',
+          grid: { drawOnChartArea: false }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function renderCategoryRankingsChart(catData) {
+  const canvas = document.getElementById('chartCategoryRankings');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  if (chartCategoryRankingsInstance) {
+    chartCategoryRankingsInstance.destroy();
+    chartCategoryRankingsInstance = null;
+  }
+
+  const labels = catData.map(c => c.category);
+  const rates = catData.map(c => c.attendance_rate);
+  const colors = rates.map(r => r >= 80 ? '#10b981' : (r >= 60 ? '#3b82f6' : (r >= 40 ? '#f59e0b' : '#ef4444')));
+
+  const ctx = canvas.getContext('2d');
+  chartCategoryRankingsInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: currentLang === 'am' ? 'የመገኘት %' : 'Attendance Rate %',
+          data: rates,
+          backgroundColor: colors,
+          borderRadius: 6,
+          borderSkipped: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { callback: v => `${v}%` },
+          grid: { color: '#f1f5f9' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function renderSeasonalCards(seasonalData) {
+  const container = document.getElementById('analyticsSeasonalContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!seasonalData || seasonalData.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 1.5rem;">No seasonal data recorded yet</div>`;
+    return;
+  }
+
+  seasonalData.forEach(s => {
+    const rate = s.attendance_rate || 0;
+    const isAmharic = currentLang === 'am';
+    const seasonName = isAmharic ? s.name_am : s.name_en;
+
+    container.innerHTML += `
+      <div class="card seasonal-card" style="margin-bottom: 0; padding: 1rem; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem;">
+          <div>
+            <h5 style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 2px;">
+              <i class="fa-solid ${s.icon || 'fa-cross'}" style="color: var(--primary); margin-right: 4px;"></i>
+              ${escapeHtml(seasonName)}
+            </h5>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">${s.sessions_count} ${t('totalSessions') || 'Sessions'}</span>
+          </div>
+          <span class="tag ${rate >= 75 ? 'tag-present' : (rate >= 50 ? 'tag-permission' : 'tag-absent')}" style="font-weight: 700; font-size: 0.85rem;">
+            ${rate}%
+          </span>
+        </div>
+
+        <div style="background: #e2e8f0; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 0.5rem;">
+          <div style="width: ${rate}%; height: 100%; background: ${rate >= 75 ? 'var(--success)' : (rate >= 50 ? 'var(--warning)' : 'var(--danger)')}; border-radius: 4px;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #64748b; margin-top: 0.5rem;">
+          <span>${s.present_records} ${t('present') || 'Present'}</span>
+          <span>${s.total_records} ${t('total') || 'Total'}</span>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function renderAtRiskTable(atRiskStudents) {
+  const tbody = document.getElementById('analyticsAtRiskTableBody');
+  const cardContainer = document.getElementById('analyticsAtRiskCardsContainer');
+
+  if (tbody) tbody.innerHTML = '';
+  if (cardContainer) cardContainer.innerHTML = '';
+
+  if (!atRiskStudents || atRiskStudents.length === 0) {
+    const emptyMsg = currentLang === 'am' ? 'ባለፉት 4 ሳምንታት ከፍተኛ የመገኘት ቅናሽ የታየባቸው ተማሪዎች የሉም። ሁሉም በጥሩ ሁኔታ ላይ ናቸው!' : 'No students at immediate risk detected. Attendance is stable across all cohorts!';
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 2rem;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</td></tr>`;
+    if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; color: #16a34a; background: #f0fdf4; padding: 1.5rem; border-radius: 8px;"><i class="fa-solid fa-circle-check"></i> ${emptyMsg}</div>`;
+    return;
+  }
+
+  atRiskStudents.forEach(st => {
+    // Desktop Row
+    if (tbody) {
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <strong>${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</strong>
+            ${st.christian_name ? `<br><small style="color: var(--primary);">(${escapeHtml(st.christian_name)})</small>` : ''}
+          </td>
+          <td><span class="tag tag-category">${escapeHtml(st.category)}</span></td>
+          <td>${st.phone ? `<a href="tel:${escapeHtml(st.phone)}">${escapeHtml(st.phone)}</a>` : '-'}</td>
+          <td><span style="color: #64748b; font-weight: 600;">${st.overall_rate}%</span></td>
+          <td><span style="color: var(--danger); font-weight: 700;">${st.recent_rate}%</span></td>
+          <td><span class="tag tag-absent" style="font-weight: 700;">-${st.drop_rate}%</span></td>
+          <td>
+            <div style="display: flex; gap: 0.35rem;">
+              <button class="btn btn-warning btn-sm" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', 'pending', '${escapeHtml(st.phone || '')}', '', '')">
+                <i class="fa-solid fa-phone"></i> ${t('logFollowup')}
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="viewStudentProfile(${st.student_id})" title="${t('viewProfile')}">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    // Mobile Card
+    if (cardContainer) {
+      cardContainer.innerHTML += `
+        <div class="card" style="margin-bottom: 0.6rem; padding: 0.85rem; border-left: 4px solid var(--danger);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <strong style="font-size: 0.95rem; color: #1e293b;">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</strong>
+            <span class="tag tag-absent">-${st.drop_rate}% Drop</span>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            <span>${escapeHtml(st.category)}</span> | 
+            <span>${t('pastAttendance')}: <strong>${st.overall_rate}%</strong> &rarr; ${t('recentAttendance')}: <strong style="color: var(--danger);">${st.recent_rate}%</strong></span>
+          </div>
+          <div style="display: flex; gap: 0.4rem;">
+            <button class="btn btn-warning btn-sm" style="flex: 1; justify-content: center;" onclick="openLogFollowupModal(${st.student_id}, '${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}', 'pending', '${escapeHtml(st.phone || '')}', '', '')">
+              <i class="fa-solid fa-phone"></i> ${t('logFollowup')}
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="viewStudentProfile(${st.student_id})">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  });
+}
+
+// ==========================================
+// 12. 1-CLICK BACKUP & WEEKLY EXPORTS ARCHIVE
+// ==========================================
+async function downloadDatabaseJsonBackup() {
+  showToast(t('generatingBackup') || 'Generating database JSON backup...', 'info');
+  try {
+    const response = await fetch('/api/backup/export/full-json', {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+    });
+
+    if (!response.ok) throw new Error('Backup download failed');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SundaySchool_Full_Database_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+    showToast(t('backupDownloadSuccess') || 'JSON database backup downloaded!', 'success');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+async function downloadDatabaseExcelBackup() {
+  showToast(t('generatingBackup') || 'Generating Master Attendance Excel backup...', 'info');
+  try {
+    const response = await fetch('/api/backup/export/full-excel', {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+    });
+
+    if (!response.ok) throw new Error('Excel backup export failed');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SundaySchool_Master_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+    showToast(t('backupDownloadSuccess') || 'Master Excel export downloaded!', 'success');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+async function loadWeeklyArchives() {
+  const tbody = document.getElementById('weeklyArchivesTableBody');
+  const cardContainer = document.getElementById('weeklyArchivesCardContainer');
+
+  if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></td></tr>`;
+  if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>`;
+
+  try {
+    const data = await api('/api/backup/weekly-list');
+    if (tbody) tbody.innerHTML = '';
+    if (cardContainer) cardContainer.innerHTML = '';
+
+    const files = (data && data.weeklyBackups) ? data.weeklyBackups : [];
+
+    if (files.length === 0) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">${t('noArchives') || 'No weekly backup archives generated yet. Click "Run Weekly Export Now" to generate.'}</td></tr>`;
+      if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">${t('noArchives') || 'No weekly backup archives generated yet.'}</div>`;
+      return;
+    }
+
+    files.forEach(f => {
+      const isExcel = f.type === 'excel';
+      const typeBadge = isExcel
+        ? `<span class="tag tag-present"><i class="fa-solid fa-file-excel"></i> Excel (.xlsx)</span>`
+        : `<span class="tag tag-category"><i class="fa-solid fa-file-code"></i> JSON (.json)</span>`;
+      const dateDisplay = formatDate(f.created_at);
+
+      // Desktop table row
+      if (tbody) {
+        tbody.innerHTML += `
+          <tr>
+            <td>
+              <strong style="font-family: monospace; font-size: 0.88rem; color: #1e293b;">
+                <i class="fa-solid ${isExcel ? 'fa-file-excel' : 'fa-file-code'}" style="color: ${isExcel ? '#16a34a' : '#4338ca'}; margin-right: 6px;"></i>
+                ${escapeHtml(f.filename)}
+              </strong>
+            </td>
+            <td>${typeBadge}</td>
+            <td style="font-size: 0.85rem; color: #64748b;">${escapeHtml(f.size_formatted)}</td>
+            <td><small style="color: var(--text-muted);"><i class="fa-solid fa-clock"></i> ${dateDisplay}</small></td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="downloadWeeklyArchiveFile('${escapeHtml(f.filename)}')">
+                <i class="fa-solid fa-download"></i> ${t('download') || 'Download'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }
+
+      // Mobile Card
+      if (cardContainer) {
+        cardContainer.innerHTML += `
+          <div class="card" style="margin-bottom: 0.6rem; padding: 0.85rem; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <span style="font-family: monospace; font-weight: 700; font-size: 0.85rem; color: #1e293b;">${escapeHtml(f.filename)}</span>
+              ${typeBadge}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--text-muted); border-top: 1px solid #f1f5f9; padding-top: 0.4rem; margin-top: 0.4rem;">
+              <span>${escapeHtml(f.size_formatted)} | ${dateDisplay}</span>
+              <button class="btn btn-outline btn-sm" onclick="downloadWeeklyArchiveFile('${escapeHtml(f.filename)}')">
+                <i class="fa-solid fa-download"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    });
+  } catch (err) {
+    console.error('Error loading weekly archives:', err);
+  }
+}
+
+async function runWeeklyExportNow() {
+  const btn = document.getElementById('btnRunWeeklyExportNow');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('generatingBackup') || 'Exporting...'}`;
+
+  try {
+    const res = await api('/api/backup/run-weekly-now', { method: 'POST' });
+    showToast(res.message || 'Weekly export archives generated successfully!', 'success');
+    loadWeeklyArchives();
+  } catch (err) {
+    console.error('Error triggering weekly export:', err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function downloadWeeklyArchiveFile(filename) {
+  showToast(`${t('downloading') || 'Downloading'} ${filename}...`, 'info');
+  try {
+    const response = await fetch(`/api/backup/download/${encodeURIComponent(filename)}`, {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+    });
+
+    if (!response.ok) throw new Error('Failed to download archive');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+  } catch (err) {
+    showToast(err.message, 'danger');
   }
 }
 

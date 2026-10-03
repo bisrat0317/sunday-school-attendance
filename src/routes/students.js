@@ -497,6 +497,117 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/students/promote/batch - Batch promote or graduate selected students
+router.post('/promote/batch', authenticateToken, requireAdmin, async (req, res) => {
+  const {
+    student_ids,
+    from_category,
+    to_category,
+    action_type = 'promote',
+    notes = ''
+  } = req.body;
+
+  if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+    return res.status(400).json({ message: 'A non-empty list of student IDs is required' });
+  }
+
+  if (action_type === 'promote' && (!to_category || to_category.trim() === '')) {
+    return res.status(400).json({ message: 'Target category is required for promotion' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    let updatedCount = 0;
+    const targetCat = action_type === 'graduate' ? (from_category || 'Graduated') : to_category.trim();
+    const targetStatus = action_type === 'graduate' ? 'graduated' : 'active';
+
+    for (const sid of student_ids) {
+      // Get current student status & category
+      const [currRows] = await conn.query('SELECT id, category, status FROM students WHERE id = ?', [sid]);
+      if (currRows.length === 0) continue;
+      const current = currRows[0];
+
+      if (action_type === 'graduate') {
+        await conn.query('UPDATE students SET status = ? WHERE id = ?', ['graduated', sid]);
+      } else {
+        await conn.query('UPDATE students SET category = ?, status = ? WHERE id = ?', [targetCat, targetStatus, sid]);
+      }
+
+      await conn.query(`
+        INSERT INTO student_promotions (
+          student_id, from_category, to_category, from_status, to_status, promoted_by, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+        sid,
+        current.category || from_category || 'Uncategorized',
+        targetCat,
+        current.status,
+        targetStatus,
+        req.user.id,
+        notes.trim()
+      ]);
+
+      updatedCount++;
+    }
+
+    await conn.commit();
+
+    logActivity({
+      userId: req.user.id,
+      username: req.user.username,
+      action: action_type === 'graduate' ? 'STUDENT_GRADUATION' : 'STUDENT_PROMOTION',
+      details: `${action_type === 'graduate' ? 'Graduated' : 'Promoted'} ${updatedCount} student(s) from "${from_category || 'Various'}" to "${targetCat}"`,
+      req
+    });
+
+    res.json({
+      message: `Successfully ${action_type === 'graduate' ? 'graduated' : 'promoted'} ${updatedCount} student(s).`,
+      promotedCount: updatedCount,
+      targetCategory: targetCat
+    });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Promotion error:', error);
+    res.status(500).json({ message: 'Error processing student promotion / graduation' });
+  } finally {
+    conn.release();
+  }
+});
+
+// GET /api/students/promotions/history - View past promotion and graduation logs
+router.get('/promotions/history', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [history] = await pool.query(`
+      SELECT 
+        p.id,
+        p.student_id,
+        p.from_category,
+        p.to_category,
+        p.from_status,
+        p.to_status,
+        p.promotion_date,
+        p.notes,
+        p.created_at,
+        s.first_name,
+        s.father_name,
+        s.phone,
+        u.full_name AS promoted_by_name
+      FROM student_promotions p
+      JOIN students s ON p.student_id = s.id
+      LEFT JOIN users u ON p.promoted_by = u.id
+      ORDER BY p.created_at DESC
+      LIMIT 100
+    `);
+
+    res.json(history);
+  } catch (error) {
+    console.error('Promotion history error:', error);
+    res.status(500).json({ message: 'Error retrieving promotion history' });
+  }
+});
+
 // DELETE /api/students/:id - Delete student (Super Admin only)
 router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
@@ -522,4 +633,5 @@ router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => 
 });
 
 module.exports = router;
+
 

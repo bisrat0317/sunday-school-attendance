@@ -5,6 +5,7 @@ const os = require('os');
 require('dotenv').config();
 
 const initDatabase = require('./scripts/initDb');
+const { initScheduler } = require('./utils/scheduler');
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
 const sessionRoutes = require('./routes/sessions');
@@ -12,6 +13,8 @@ const attendanceRoutes = require('./routes/attendance');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
 const auditLogRoutes = require('./routes/auditLogs');
+const followupRoutes = require('./routes/followups');
+const backupRoutes = require('./routes/backup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,6 +59,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/followups', followupRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Catch-all fallback for single-page app frontend routing
 app.use((req, res) => {
@@ -79,6 +84,7 @@ function getLocalIP() {
 async function startServer() {
   try {
     await initDatabase();
+    initScheduler();
     
     app.listen(PORT, '0.0.0.0', () => {
       const localIP = getLocalIP();

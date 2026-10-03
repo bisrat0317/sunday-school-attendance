@@ -39,12 +39,14 @@ async function initDatabase() {
         profession VARCHAR(100) DEFAULT '',
         previous_service VARCHAR(150) DEFAULT '',
         category VARCHAR(50) DEFAULT '',
-        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'graduated')),
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
     try {
+      await pool.query(`ALTER TABLE students DROP CONSTRAINT IF EXISTS students_status_check;`);
+      await pool.query(`ALTER TABLE students ADD CONSTRAINT students_status_check CHECK (status IN ('active', 'inactive', 'graduated'));`);
       await pool.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS christian_name VARCHAR(100) DEFAULT '';`);
       await pool.query(`ALTER TABLE students ALTER COLUMN mother_name DROP NOT NULL;`);
       await pool.query(`ALTER TABLE students ALTER COLUMN mother_name SET DEFAULT '';`);
@@ -128,7 +130,40 @@ async function initDatabase() {
       );
     `);
 
-    // 6. Performance Indexes
+    // 6. Pastoral Care & Absence Follow-ups Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pastoral_followups (
+        id SERIAL PRIMARY KEY,
+        student_id INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE SET NULL,
+        contact_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        contact_type VARCHAR(50) NOT NULL DEFAULT 'phone_call',
+        contacted_person VARCHAR(100) NOT NULL DEFAULT 'Parent',
+        reason_category VARCHAR(100) DEFAULT '',
+        notes TEXT NOT NULL,
+        status VARCHAR(30) DEFAULT 'contacted',
+        next_followup_date DATE DEFAULT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 7. Student Promotions & Graduation History Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_promotions (
+        id SERIAL PRIMARY KEY,
+        student_id INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+        from_category VARCHAR(50) NOT NULL,
+        to_category VARCHAR(50) NOT NULL,
+        from_status VARCHAR(20) DEFAULT 'active',
+        to_status VARCHAR(20) DEFAULT 'active',
+        promoted_by INT REFERENCES users(id) ON DELETE SET NULL,
+        promotion_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        notes TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 8. Performance Indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_students_category_status ON students(category, status);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_students_status ON students(status);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_students_first_name ON students(first_name);`);
@@ -140,6 +175,10 @@ async function initDatabase() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sessions_category_date ON sessions(category, session_date);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_followups_student ON pastoral_followups(student_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_followups_status ON pastoral_followups(status);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_student_promotions_student ON student_promotions(student_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_student_promotions_date ON student_promotions(promotion_date DESC);`);
 
     console.log('Tables and indexes verified and ready.');
 
