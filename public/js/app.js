@@ -290,10 +290,10 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'users') && !isAdmin) {
     tabName = 'sessions';
   }
-  if ((tabName === 'promotions' || tabName === 'analytics' || tabName === 'backup' || tabName === 'users' || tabName === 'auditLogs') && !isSuperAdmin) {
+  if ((tabName === 'promotions' || tabName === 'analytics' || tabName === 'backup' || tabName === 'auditLogs') && !isSuperAdmin) {
     tabName = isAdmin ? 'dashboard' : 'sessions';
   }
 
@@ -326,7 +326,7 @@ function switchTab(tabName) {
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
   if (tabName === 'backup' && isSuperAdmin) loadWeeklyArchives();
-  if (tabName === 'users' && isSuperAdmin) loadUsers();
+  if (tabName === 'users' && isAdmin) loadUsers();
   if (tabName === 'auditLogs' && isSuperAdmin) loadAuditLogs();
 }
 
@@ -334,6 +334,7 @@ function refreshActiveTabData() {
   const activePane = document.querySelector('.tab-pane[style*="display: block"]');
   if (!activePane) return;
   const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
+  const isAdmin = currentUser && ['admin', 'super_admin'].includes(currentUser.role);
   const tabId = activePane.id;
   if (tabId === 'tabDashboard') loadDashboard();
   else if (tabId === 'tabSessions') loadSessions();
@@ -345,7 +346,7 @@ function refreshActiveTabData() {
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
   else if (tabId === 'tabBackup' && isSuperAdmin) loadWeeklyArchives();
-  else if (tabId === 'tabUsers' && isSuperAdmin) loadUsers();
+  else if (tabId === 'tabUsers' && isAdmin) loadUsers();
   else if (tabId === 'tabAuditLogs' && isSuperAdmin) loadAuditLogs();
 }
 
@@ -2647,56 +2648,111 @@ async function loadInactiveStudents() {
 }
 
 // ==========================================
-// 6. USER MANAGEMENT (Admin)
+// ==========================================
+// 6. USER MANAGEMENT (Admin & Super Admin)
 // ==========================================
 async function loadUsers() {
   try {
     const users = await api('/api/users');
     const tbody = document.getElementById('usersTableBody');
-    tbody.innerHTML = '';
+    const cardContainer = document.getElementById('usersCardContainer');
+    if (tbody) tbody.innerHTML = '';
+    if (cardContainer) cardContainer.innerHTML = '';
+
+    const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
 
     if (!users || users.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No users found.</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">${t('noData') || 'No users found.'}</td></tr>`;
+      if (cardContainer) cardContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1rem;">${t('noData') || 'No users found.'}</div>`;
       return;
     }
 
     users.forEach(u => {
+      if (!isSuperAdmin && u.role === 'super_admin') return;
+
       let roleTagClass = 'tag-permission';
-      let roleText = t('encoderRole');
+      let roleText = t('encoderRole') || 'መዝጋቢ';
       if (u.role === 'super_admin') {
         roleTagClass = 'tag-present';
-        roleText = t('superAdminRole');
+        roleText = t('superAdminRole') || 'ዋና አስተዳዳሪ';
       } else if (u.role === 'admin') {
         roleTagClass = 'tag-category';
-        roleText = t('adminRole');
+        roleText = t('adminRole') || 'አስተዳዳሪ';
       }
 
-      tbody.innerHTML += `
-        <tr>
-          <td><strong>${escapeHtml(u.full_name)}</strong></td>
-          <td>${escapeHtml(u.username)}</td>
-          <td><span class="tag ${roleTagClass}">${roleText}</span></td>
-          <td>${formatDate(u.created_at)}</td>
-          <td>
-            <div style="display: flex; gap: 0.4rem;">
-              <button class="btn btn-outline btn-sm" title="${t('resetUserPassword')}" onclick="openResetUserPasswordModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.full_name)}')">
-                <i class="fa-solid fa-key"></i>
-              </button>
-              ${u.id !== currentUser.id ? `
-                <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteUser(${u.id})">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              ` : `<small style="color: var(--text-muted); padding: 0.2rem 0.4rem;">(You)</small>`}
+      const canDelete = (u.id !== currentUser.id) && (isSuperAdmin || u.role !== 'super_admin');
+
+      if (tbody) {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${escapeHtml(u.full_name)}</strong></td>
+            <td>${escapeHtml(u.username)}</td>
+            <td><span class="tag ${roleTagClass}">${roleText}</span></td>
+            <td>${formatDate(u.created_at)}</td>
+            <td>
+              <div style="display: flex; gap: 0.4rem;">
+                ${isSuperAdmin ? `
+                  <button class="btn btn-outline btn-sm" title="${t('resetUserPassword')}" onclick="openResetUserPasswordModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.full_name)}')">
+                    <i class="fa-solid fa-key"></i>
+                  </button>
+                ` : ''}
+                ${canDelete ? `
+                  <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteUser(${u.id})">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                ` : (u.id === currentUser.id ? `<small style="color: var(--text-muted); padding: 0.2rem 0.4rem;">(You)</small>` : '')}
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+
+      if (cardContainer) {
+        cardContainer.innerHTML += `
+          <div class="card" style="padding: 1rem; margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div>
+                <strong style="font-size: 1rem; color: var(--text-main);">${escapeHtml(u.full_name)}</strong>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">@${escapeHtml(u.username)}</div>
+              </div>
+              <span class="tag ${roleTagClass}">${roleText}</span>
             </div>
-          </td>
-        </tr>
-      `;
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+              <span>${formatDate(u.created_at)}</span>
+              <div style="display: flex; gap: 0.4rem;">
+                ${isSuperAdmin ? `
+                  <button class="btn btn-outline btn-sm" title="${t('resetUserPassword')}" onclick="openResetUserPasswordModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.full_name)}')">
+                    <i class="fa-solid fa-key"></i>
+                  </button>
+                ` : ''}
+                ${canDelete ? `
+                  <button class="btn btn-outline btn-sm" style="color: var(--danger);" onclick="deleteUser(${u.id})">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                ` : (u.id === currentUser.id ? `<small style="color: var(--text-muted); padding: 0.2rem 0.4rem;">(You)</small>` : '')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
     });
   } catch (err) { }
 }
 
 function openCreateUserModal() {
-  document.getElementById('formUser').reset();
+  const form = document.getElementById('formUser');
+  if (form) form.reset();
+
+  const roleSelect = document.getElementById('userRole');
+  if (roleSelect) {
+    const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
+    roleSelect.innerHTML = `
+      <option value="encoder" selected>${t('encoderRole') || 'መዝጋቢ (Encoder)'}</option>
+      <option value="admin">${t('adminRole') || 'አስተዳዳሪ (Admin)'}</option>
+      ${isSuperAdmin ? `<option value="super_admin">${t('superAdminRole') || 'ዋና አስተዳዳሪ (Super Admin)'}</option>` : ''}
+    `;
+  }
+
   openModal('modalUser');
 }
 
@@ -2776,6 +2832,10 @@ function openResetUserPasswordModal(userId, username, fullName) {
 
 async function handleResetUserPassword(e) {
   e.preventDefault();
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    showToast('Access denied. Only Super Admin can reset user passwords.', 'danger');
+    return;
+  }
   const userId = document.getElementById('resetTargetUserId').value;
   const newPassword = document.getElementById('resetUserNewPassword').value;
   const btn = document.getElementById('btnSubmitResetUserPassword');

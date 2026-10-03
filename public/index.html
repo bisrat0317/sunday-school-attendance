@@ -86,7 +86,7 @@
           <div class="nav-icon-bubble"><i class="fa-solid fa-cloud-arrow-down"></i></div>
           <span data-i18n="navBackup">ዳታቤዝ እና ኤክስፖርት</span>
         </button>
-        <button class="drawer-nav-item super-admin-only" id="drawerTabUsers" onclick="switchTab('users')">
+        <button class="drawer-nav-item admin-only" id="drawerTabUsers" onclick="switchTab('users')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-users-gear"></i></div>
           <span data-i18n="navUsers">ተጠቃሚዎች</span>
         </button>
@@ -182,7 +182,7 @@
       <button class="nav-tab super-admin-only" id="tabBtnBackup" onclick="switchTab('backup')">
         <i class="fa-solid fa-cloud-arrow-down"></i> <span data-i18n="navBackup">ዳታቤዝ / ኤክስፖርት</span>
       </button>
-      <button class="nav-tab super-admin-only" id="tabBtnUsers" onclick="switchTab('users')">
+      <button class="nav-tab admin-only" id="tabBtnUsers" onclick="switchTab('users')">
         <i class="fa-solid fa-users-gear"></i> <span data-i18n="navUsers">ተጠቃሚዎች</span>
       </button>
       <button class="nav-tab super-admin-only" id="tabBtnAuditLogs" onclick="switchTab('auditLogs')">
@@ -226,14 +226,6 @@
             <i class="fa-solid fa-arrow-right-to-bracket"></i> <span data-i18n="signIn">ግባ</span>
           </button>
         </form>
-
-        <div
-          style="margin-top: 1.5rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #475569; line-height: 1.6;">
-          <strong style="color: #1e293b;">Default Login Credentials / የመግቢያ መረጃ:</strong><br>
-          • <strong>Super Admin:</strong> <code style="color: #4338ca; font-weight: 700;">superadmin</code> / <code style="color: #4338ca; font-weight: 700;">superadmin1219</code><br>
-          • <strong>Admin:</strong> <code style="color: #0284c7; font-weight: 700;">admin</code> / <code style="color: #0284c7; font-weight: 700;">admin123</code><br>
-          • <strong>Encoder:</strong> <code style="color: #16a34a; font-weight: 700;">encoder</code> / <code style="color: #16a34a; font-weight: 700;">encoder123</code>
-        </div>
       </div>
     </section>
 
@@ -597,8 +589,8 @@
         </div>
       </section>
 
-      <!-- TAB: USER MANAGEMENT (Super Admin Only) -->
-      <section id="tabUsers" class="tab-pane super-admin-only" style="display: none;">
+      <!-- TAB: USER MANAGEMENT (Admin & Super Admin) -->
+      <section id="tabUsers" class="tab-pane admin-only" style="display: none;">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n="usersTitle">የስርዓቱ

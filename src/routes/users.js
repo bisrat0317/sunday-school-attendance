@@ -18,12 +18,17 @@ router.get('/encoders', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/users - List system users (Super Admin only)
-router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
+// GET /api/users - List system users (Admin and Super Admin)
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const [users] = await pool.query(
-      'SELECT id, username, full_name, role, created_at FROM users ORDER BY created_at DESC'
-    );
+    const isSuperAdmin = req.user.role === 'super_admin';
+    let query = 'SELECT id, username, full_name, role, created_at FROM users ';
+    if (!isSuperAdmin) {
+      query += "WHERE role != 'super_admin' ";
+    }
+    query += 'ORDER BY created_at DESC';
+
+    const [users] = await pool.query(query);
     res.json(users);
   } catch (error) {
     console.error('Fetch users error:', error);
@@ -31,20 +36,27 @@ router.get('/', authenticateToken, requireSuperAdmin, async (req, res) => {
   }
 });
 
-// POST /api/users - Create new encoder, admin, or super admin (Super Admin only)
-router.post('/', authenticateToken, requireSuperAdmin, async (req, res) => {
+// POST /api/users - Create new encoder, admin, or super admin (Admin and Super Admin)
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   const { username, password, full_name, role } = req.body;
 
   if (!username || !password || !full_name || !role) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  if (!['super_admin', 'admin', 'encoder'].includes(role)) {
-    return res.status(400).json({ message: 'Role must be super_admin, admin, or encoder' });
+  const isSuperAdmin = req.user.role === 'super_admin';
+  const allowedRoles = isSuperAdmin ? ['super_admin', 'admin', 'encoder'] : ['admin', 'encoder'];
+
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({ message: 'Invalid role selection' });
+  }
+
+  if (role === 'super_admin' && !isSuperAdmin) {
+    return res.status(403).json({ message: 'Only Super Admin can create Super Admin accounts' });
   }
 
   try {
-    const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username.trim()]);
+    const [existing] = await pool.query('SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(?)', [username.trim()]);
     if (existing.length > 0) {
       return res.status(400).json({ message: 'Username already taken' });
     }
@@ -73,8 +85,8 @@ router.post('/', authenticateToken, requireSuperAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/users/:id - Delete user (Super Admin only, cannot delete self)
-router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+// DELETE /api/users/:id - Delete user (Admin and Super Admin, cannot delete self or super_admin)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
   if (parseInt(id, 10) === req.user.id) {
@@ -82,8 +94,16 @@ router.delete('/:id', authenticateToken, requireSuperAdmin, async (req, res) => 
   }
 
   try {
-    const [existing] = await pool.query('SELECT username, full_name FROM users WHERE id = ?', [id]);
-    const details = existing[0] ? `Deleted user: ${existing[0].username} (${existing[0].full_name})` : `Deleted user ID ${id}`;
+    const [existing] = await pool.query('SELECT username, full_name, role FROM users WHERE id = ?', [id]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (existing[0].role === 'super_admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Cannot delete Super Admin accounts' });
+    }
+
+    const details = `Deleted user: ${existing[0].username} (${existing[0].full_name})`;
 
     await pool.query('DELETE FROM users WHERE id = ?', [id]);
 
