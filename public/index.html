@@ -471,32 +471,67 @@
             </button>
           </div>
 
-          <!-- Quick Follow-up Status Counters -->
-          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem;">
-            <div class="stat-box" style="border-left: 4px solid var(--danger);">
+          <!-- Quick Follow-up Status Counters (Clickable) -->
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 1rem;">
+            <div class="stat-box clickable-stat" onclick="setAlertStatusFilter('all')" title="View All Flagged" style="border-left: 4px solid var(--danger);">
               <div>
                 <div class="stat-number" id="alertTotalFlagged" style="color: var(--danger);">0</div>
-                <div class="stat-label">3 ሳምንት የቀሩ</div>
+                <div class="stat-label" data-i18n="tabAllAlerts">3 ሳምንት የቀሩ</div>
               </div>
             </div>
-            <div class="stat-box warning" style="border-left: 4px solid #f59e0b;">
+            <div class="stat-box warning clickable-stat" onclick="setAlertStatusFilter('pending')" title="View Pending Follow-up" style="border-left: 4px solid #f59e0b;">
               <div>
                 <div class="stat-number" id="alertPendingFollowup" style="color: #d97706;">0</div>
                 <div class="stat-label" data-i18n="statusPending">ክትትል ያልተደረገለት</div>
               </div>
             </div>
-            <div class="stat-box" style="border-left: 4px solid #3b82f6;">
+            <div class="stat-box clickable-stat" onclick="setAlertStatusFilter('contacted')" title="View Contacted / In Progress" style="border-left: 4px solid #3b82f6;">
               <div>
                 <div class="stat-number" id="alertContactedCount" style="color: #2563eb;">0</div>
                 <div class="stat-label" data-i18n="statusContacted">ተገናኝቷል / በሂደት ላይ</div>
               </div>
             </div>
-            <div class="stat-box success" style="border-left: 4px solid #10b981;">
+            <div class="stat-box clickable-stat" onclick="setAlertStatusFilter('needs_visit')" title="View Home Visit Required" style="border-left: 4px solid #db2777;">
+              <div>
+                <div class="stat-number" id="alertNeedsVisitCount" style="color: #db2777;">0</div>
+                <div class="stat-label" data-i18n="statusNeedsVisit">የቤት ጉብኝት የሚሻ</div>
+              </div>
+            </div>
+            <div class="stat-box success clickable-stat" onclick="setAlertStatusFilter('resolved')" title="View Resolved / Re-engaged" style="border-left: 4px solid #10b981;">
               <div>
                 <div class="stat-number" id="alertResolvedCount" style="color: #059669;">0</div>
                 <div class="stat-label" data-i18n="statusResolved">ተፈቷል / ተመልሷል</div>
               </div>
             </div>
+          </div>
+
+          <!-- Interactive Segmented Follow-up Status Tabs -->
+          <div class="followup-status-tabs" id="alertStatusTabsBar">
+            <button type="button" class="followup-tab-pill active-pending" id="pillTabPending" onclick="setAlertStatusFilter('pending')">
+              <i class="fa-solid fa-hourglass-half" style="color: #d97706;"></i>
+              <span data-i18n="tabPendingFollowup">ክትትል ያልተደረገላቸው</span>
+              <span id="pillCountPending" class="pill-count">0</span>
+            </button>
+            <button type="button" class="followup-tab-pill" id="pillTabContacted" onclick="setAlertStatusFilter('contacted')">
+              <i class="fa-solid fa-phone" style="color: #2563eb;"></i>
+              <span data-i18n="tabContactedFollowup">ተገናኝቷል / በሂደት ላይ</span>
+              <span id="pillCountContacted" class="pill-count">0</span>
+            </button>
+            <button type="button" class="followup-tab-pill" id="pillTabNeedsVisit" onclick="setAlertStatusFilter('needs_visit')">
+              <i class="fa-solid fa-house-chimney-user" style="color: #db2777;"></i>
+              <span data-i18n="tabNeedsVisitFollowup">የቤት ጉብኝት የሚሹ</span>
+              <span id="pillCountNeedsVisit" class="pill-count">0</span>
+            </button>
+            <button type="button" class="followup-tab-pill" id="pillTabResolved" onclick="setAlertStatusFilter('resolved')">
+              <i class="fa-solid fa-circle-check" style="color: #059669;"></i>
+              <span data-i18n="tabResolvedFollowup">ተፈቷል / የተመለሱ</span>
+              <span id="pillCountResolved" class="pill-count">0</span>
+            </button>
+            <button type="button" class="followup-tab-pill" id="pillTabAll" onclick="setAlertStatusFilter('all')">
+              <i class="fa-solid fa-layer-group"></i>
+              <span data-i18n="tabAllAlerts">ሁሉም 3 ሳምንት የቀሩ</span>
+              <span id="pillCountAll" class="pill-count">0</span>
+            </button>
           </div>
 
           <!-- Filters -->
@@ -522,14 +557,6 @@
               <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
               <option value="Youth" data-i18n="catYouth">ወጣቶች (Youth)</option>
               <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
-            </select>
-
-            <select id="alertFilterFollowupStatus" class="form-control" style="flex: 1; min-width: 160px;" onchange="filter3AbsentAlertsList()">
-              <option value="All" data-i18n="allStatuses">ሁሉም የክትትል ሁኔታ</option>
-              <option value="pending" data-i18n="statusPending">ክትትል ያልተደረገለት (Pending)</option>
-              <option value="contacted" data-i18n="statusContacted">ተገናኝቷል / በሂደት ላይ</option>
-              <option value="resolved" data-i18n="statusResolved">ተፈቷል / ተመልሷል</option>
-              <option value="needs_visit" data-i18n="statusNeedsVisit">የቤት ጉብኝት የሚሻ</option>
             </select>
           </div>
 

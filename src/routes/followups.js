@@ -15,12 +15,17 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
         f.student_id,
         f.user_id,
         f.contact_date,
+        f.contact_date AS last_contact_date,
         f.contact_type,
+        f.contact_type AS contact_method,
         f.contacted_person,
+        f.contacted_person AS parent_contacted,
         f.reason_category,
+        f.reason_category AS reason_for_absence,
         f.notes,
         f.status,
         f.next_followup_date,
+        f.next_followup_date AS next_action,
         f.created_at,
         u.full_name AS logged_by_name,
         u.username AS logged_by_username
@@ -30,7 +35,12 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
       ORDER BY f.contact_date DESC, f.created_at DESC
     `, [studentId]);
 
-    res.json(followups);
+    // Return structured object with followups array for frontend convenience
+    res.json({
+      student_id: parseInt(studentId, 10),
+      total: followups.length,
+      followups: followups
+    });
   } catch (error) {
     console.error('Fetch student follow-ups error:', error);
     res.status(500).json({ message: 'Error retrieving follow-up history' });
@@ -45,12 +55,17 @@ router.get('/recent', authenticateToken, requireAdmin, async (req, res) => {
         f.id,
         f.student_id,
         f.contact_date,
+        f.contact_date AS last_contact_date,
         f.contact_type,
+        f.contact_type AS contact_method,
         f.contacted_person,
+        f.contacted_person AS parent_contacted,
         f.reason_category,
+        f.reason_category AS reason_for_absence,
         f.notes,
         f.status,
         f.next_followup_date,
+        f.next_followup_date AS next_action,
         f.created_at,
         s.first_name,
         s.father_name,
@@ -76,12 +91,18 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   const {
     student_id,
     contact_date,
+    contactDate,
     contact_type,
+    contact_method,
     contacted_person,
+    parent_contacted,
     reason_category,
+    reason_for_absence,
     notes,
     status,
-    next_followup_date
+    followup_status,
+    next_followup_date,
+    next_action
   } = req.body;
 
   if (!student_id || !notes || notes.trim() === '') {
@@ -96,12 +117,12 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     }
     const student = studentRows[0];
 
-    const cDate = contact_date ? contact_date : new Date().toISOString().split('T')[0];
-    const cType = contact_type || 'phone_call';
-    const cPerson = contacted_person || 'Parent';
-    const rCategory = reason_category || '';
-    const fStatus = status || 'contacted';
-    const nextDate = next_followup_date ? next_followup_date : null;
+    const cDate = contact_date || contactDate || new Date().toISOString().split('T')[0];
+    const cType = contact_type || contact_method || 'phone_call';
+    const cPerson = contacted_person || parent_contacted || 'Parent';
+    const rCategory = reason_category || reason_for_absence || '';
+    const fStatus = status || followup_status || 'contacted';
+    const nextDate = (next_followup_date || next_action || '').toString().trim() || null;
 
     const [result] = await pool.query(`
       INSERT INTO pastoral_followups (
@@ -128,9 +149,12 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       req
     });
 
+    const followupId = result[0]?.id || result.insertId || result?.id;
+
     res.status(201).json({
       message: 'Pastoral follow-up logged successfully',
-      followupId: result.insertId
+      followupId,
+      status: fStatus
     });
   } catch (error) {
     console.error('Create follow-up error:', error);
@@ -141,28 +165,29 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 // PATCH /api/followups/:id/status - Update follow-up status (e.g. resolved, contacted)
 router.patch('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { status, notes } = req.body;
+  const { status, followup_status, notes } = req.body;
+  const newStatus = status || followup_status;
 
-  if (!status) {
+  if (!newStatus) {
     return res.status(400).json({ message: 'Status is required' });
   }
 
   try {
     if (notes) {
-      await pool.query('UPDATE pastoral_followups SET status = ?, notes = ? WHERE id = ?', [status, notes.trim(), id]);
+      await pool.query('UPDATE pastoral_followups SET status = ?, notes = ? WHERE id = ?', [newStatus, notes.trim(), id]);
     } else {
-      await pool.query('UPDATE pastoral_followups SET status = ? WHERE id = ?', [status, id]);
+      await pool.query('UPDATE pastoral_followups SET status = ? WHERE id = ?', [newStatus, id]);
     }
 
     logActivity({
       userId: req.user.id,
       username: req.user.username,
       action: 'FOLLOWUP_STATUS',
-      details: `Updated follow-up ID ${id} status to ${status}`,
+      details: `Updated follow-up ID ${id} status to ${newStatus}`,
       req
     });
 
-    res.json({ message: 'Follow-up status updated successfully' });
+    res.json({ message: 'Follow-up status updated successfully', status: newStatus });
   } catch (error) {
     console.error('Update follow-up status error:', error);
     res.status(500).json({ message: 'Error updating follow-up status' });

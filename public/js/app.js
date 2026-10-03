@@ -2016,6 +2016,7 @@ async function deleteStudent(id) {
 // 4. 3-CONSECUTIVE ABSENCES ALERT & PASTORAL CARE FOLLOW-UP (Admin)
 // ==========================================
 let cachedAlertsList = [];
+let currentAlertStatusTab = 'pending'; // Default: Show pending / needs follow-up queue
 let currentTimelineStudent = null;
 
 async function load3AbsentAlerts() {
@@ -2044,26 +2045,75 @@ async function load3AbsentAlerts() {
     const elTotal = document.getElementById('alertTotalFlagged');
     const elPending = document.getElementById('alertPendingFollowup');
     const elContacted = document.getElementById('alertContactedCount');
+    const elNeedsVisit = document.getElementById('alertNeedsVisitCount');
     const elResolved = document.getElementById('alertResolvedCount');
 
     if (elTotal) elTotal.textContent = totalCount;
     if (elPending) elPending.textContent = pendingCount;
-    if (elContacted) elContacted.textContent = contactedCount + needsVisitCount;
+    if (elContacted) elContacted.textContent = contactedCount;
+    if (elNeedsVisit) elNeedsVisit.textContent = needsVisitCount;
     if (elResolved) elResolved.textContent = resolvedCount;
 
+    // Update pill tab counters
+    const pPending = document.getElementById('pillCountPending');
+    const pContacted = document.getElementById('pillCountContacted');
+    const pNeedsVisit = document.getElementById('pillCountNeedsVisit');
+    const pResolved = document.getElementById('pillCountResolved');
+    const pAll = document.getElementById('pillCountAll');
+
+    if (pPending) pPending.textContent = pendingCount;
+    if (pContacted) pContacted.textContent = contactedCount;
+    if (pNeedsVisit) pNeedsVisit.textContent = needsVisitCount;
+    if (pResolved) pResolved.textContent = resolvedCount;
+    if (pAll) pAll.textContent = totalCount;
+
     if (badge) {
-      badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
-      badge.textContent = totalCount;
+      badge.style.display = pendingCount > 0 ? 'inline-block' : (totalCount > 0 ? 'inline-block' : 'none');
+      badge.textContent = pendingCount > 0 ? pendingCount : totalCount;
+      badge.title = `${pendingCount} pending pastoral follow-ups`;
     }
     if (drawerBadge) {
-      drawerBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
-      drawerBadge.textContent = totalCount;
+      drawerBadge.style.display = pendingCount > 0 ? 'inline-block' : (totalCount > 0 ? 'inline-block' : 'none');
+      drawerBadge.textContent = pendingCount > 0 ? pendingCount : totalCount;
     }
 
-    filter3AbsentAlertsList();
+    setAlertStatusFilter(currentAlertStatusTab);
   } catch (err) {
     console.error('Error loading 3-absent alerts:', err);
   }
+}
+
+function setAlertStatusFilter(statusTab) {
+  currentAlertStatusTab = statusTab || 'all';
+
+  // Update pills UI
+  const pills = ['pending', 'contacted', 'needs_visit', 'resolved', 'all'];
+  pills.forEach(p => {
+    const pillId = p === 'pending' ? 'pillTabPending' :
+                   p === 'contacted' ? 'pillTabContacted' :
+                   p === 'needs_visit' ? 'pillTabNeedsVisit' :
+                   p === 'resolved' ? 'pillTabResolved' : 'pillTabAll';
+    const el = document.getElementById(pillId);
+    if (el) {
+      el.className = `followup-tab-pill ${p === currentAlertStatusTab ? `active-${p}` : ''}`;
+    }
+  });
+
+  // Update clickable stats boxes active styling
+  document.querySelectorAll('.clickable-stat').forEach(box => box.classList.remove('active-stat'));
+  if (currentAlertStatusTab === 'pending') {
+    document.getElementById('alertPendingFollowup')?.closest('.clickable-stat')?.classList.add('active-stat');
+  } else if (currentAlertStatusTab === 'contacted') {
+    document.getElementById('alertContactedCount')?.closest('.clickable-stat')?.classList.add('active-stat');
+  } else if (currentAlertStatusTab === 'needs_visit') {
+    document.getElementById('alertNeedsVisitCount')?.closest('.clickable-stat')?.classList.add('active-stat');
+  } else if (currentAlertStatusTab === 'resolved') {
+    document.getElementById('alertResolvedCount')?.closest('.clickable-stat')?.classList.add('active-stat');
+  } else if (currentAlertStatusTab === 'all') {
+    document.getElementById('alertTotalFlagged')?.closest('.clickable-stat')?.classList.add('active-stat');
+  }
+
+  filter3AbsentAlertsList();
 }
 
 function getFollowupStatusBadge(status) {
@@ -2079,13 +2129,44 @@ function getFollowupStatusBadge(status) {
   }
 }
 
+function getContactMethodLabel(method) {
+  switch (method) {
+    case 'phone_call':
+    case 'phone':
+      return `<i class="fa-solid fa-phone" style="color: #2563eb;"></i> ${t('methodPhone') || 'Phone Call'}`;
+    case 'home_visit':
+      return `<i class="fa-solid fa-house-chimney-user" style="color: #db2777;"></i> ${t('methodHomeVisit') || 'Home Visit'}`;
+    case 'in_person':
+      return `<i class="fa-solid fa-church" style="color: #7c3aed;"></i> ${t('methodInPerson') || 'In-Person'}`;
+    case 'telegram':
+    case 'sms':
+      return `<i class="fa-brands fa-telegram" style="color: #0284c7;"></i> ${t('methodTelegram') || 'Telegram / SMS'}`;
+    default:
+      return `<i class="fa-solid fa-comment-dots"></i> ${escapeHtml(method || 'Other')}`;
+  }
+}
+
+function getContactedPersonLabel(person) {
+  switch (person) {
+    case 'Mother':
+      return `<i class="fa-solid fa-person-dress" style="color: #e11d48;"></i> ${t('personMother') || 'Mother'}`;
+    case 'Father':
+      return `<i class="fa-solid fa-person" style="color: #0284c7;"></i> ${t('personFather') || 'Father'}`;
+    case 'Student':
+      return `<i class="fa-solid fa-graduation-cap" style="color: #16a34a;"></i> ${t('personStudent') || 'Student'}`;
+    case 'Guardian':
+      return `<i class="fa-solid fa-people-roof" style="color: #d97706;"></i> ${t('personGuardian') || 'Guardian'}`;
+    default:
+      return `<i class="fa-solid fa-user"></i> ${escapeHtml(person || 'Parent')}`;
+  }
+}
+
 function filter3AbsentAlertsList() {
   const container = document.getElementById('alertsContainer');
   if (!container) return;
 
   const search = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
   const categoryFilter = document.getElementById('alertFilterCategory')?.value || 'All';
-  const statusFilter = document.getElementById('alertFilterFollowupStatus')?.value || 'All';
 
   let list = cachedAlertsList;
 
@@ -2093,8 +2174,11 @@ function filter3AbsentAlertsList() {
     list = list.filter(a => a.category === categoryFilter);
   }
 
-  if (statusFilter !== 'All') {
-    list = list.filter(a => (a.followup_status || 'pending') === statusFilter);
+  if (currentAlertStatusTab !== 'all') {
+    list = list.filter(a => {
+      const st = a.followup_status || 'pending';
+      return st === currentAlertStatusTab;
+    });
   }
 
   if (search) {
@@ -2103,17 +2187,23 @@ function filter3AbsentAlertsList() {
       const mother = (a.mother_name || '').toLowerCase();
       const phone = (a.phone || '').toLowerCase();
       const emergency = (a.emergency_contact || '').toLowerCase();
-      return name.includes(search) || mother.includes(search) || phone.includes(search) || emergency.includes(search);
+      const notes = (a.followup_notes || a.notes || '').toLowerCase();
+      const reason = (a.followup_reason || a.reason_for_absence || '').toLowerCase();
+      return name.includes(search) || mother.includes(search) || phone.includes(search) || emergency.includes(search) || notes.includes(search) || reason.includes(search);
     });
   }
 
   container.innerHTML = '';
 
   if (list.length === 0) {
+    let emptyMsg = t('noAlerts');
+    if (cachedAlertsList.length > 0) {
+      emptyMsg = t('noFollowupsInTab') || 'No students currently in this follow-up status category.';
+    }
     container.innerHTML = `
       <div style="text-align: center; padding: 2.5rem; color: #15803d; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
         <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
-        <h4 style="font-size: 1.1rem; font-weight: 700;">${t('noAlerts')}</h4>
+        <h4 style="font-size: 1.1rem; font-weight: 700;">${emptyMsg}</h4>
       </div>
     `;
     return;
@@ -2121,15 +2211,25 @@ function filter3AbsentAlertsList() {
 
   list.forEach(a => {
     const statusBadge = getFollowupStatusBadge(a.followup_status);
-    const hasFollowup = a.total_followups > 0;
-    const lastContactStr = a.last_contact_date ? formatDate(a.last_contact_date) : null;
+    const hasFollowup = (a.total_followups > 0) || (a.followup_status && a.followup_status !== 'pending') || !!a.latest_followup_id;
+    const lastContactStr = (a.followup_date || a.last_contact_date) ? formatDate(a.followup_date || a.last_contact_date) : null;
+    const methodHtml = getContactMethodLabel(a.followup_contact_type || a.contact_method);
+    const personHtml = getContactedPersonLabel(a.followup_contacted_person || a.parent_contacted);
+    const reasonText = a.followup_reason || a.reason_for_absence;
+    const notesText = a.followup_notes || a.notes;
+    const nextDate = a.next_followup_date || a.next_action;
+    const loggedBy = a.followup_logged_by;
+
+    const borderColor = a.followup_status === 'resolved' ? '#10b981' : 
+                        a.followup_status === 'needs_visit' ? '#db2777' : 
+                        a.followup_status === 'contacted' ? '#3b82f6' : '#f59e0b';
 
     container.innerHTML += `
-      <div class="alert-card" style="margin-bottom: 1rem; border-left: 5px solid ${a.followup_status === 'resolved' ? '#10b981' : (a.followup_status === 'needs_visit' ? '#dc2626' : (a.followup_status === 'contacted' ? '#3b82f6' : '#f59e0b'))};">
+      <div class="alert-card" style="margin-bottom: 1rem; border-left: 5px solid ${borderColor};">
         <div class="alert-student-info" style="flex: 1; min-width: 260px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
             <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 700;">
-              <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger); margin-right: 4px;"></i>
+              <i class="fa-solid fa-triangle-exclamation" style="color: ${a.followup_status === 'resolved' ? '#10b981' : 'var(--danger)'}; margin-right: 4px;"></i>
               ${escapeHtml(a.first_name)} ${escapeHtml(a.father_name)}
               <span class="tag tag-category" style="margin-left: 6px;">${escapeHtml(a.category)}</span>
             </h4>
@@ -2145,16 +2245,34 @@ function filter3AbsentAlertsList() {
           </div>
 
           ${hasFollowup ? `
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.83rem; margin-top: 0.4rem;">
-              <div style="font-weight: 600; color: #334155; margin-bottom: 2px;">
-                <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> ${t('lastContact')}: ${lastContactStr} (${a.total_followups} ${t('followupTotalCount')})
+            <div class="pastoral-detail-box ${a.followup_status || 'contacted'}">
+              <div class="pastoral-detail-header">
+                <span><i class="fa-solid fa-clipboard-check" style="color: var(--primary);"></i> ${t('lastContact')}: ${lastContactStr || 'Recorded'}</span>
+                <span style="font-size: 0.78rem; font-weight: 600; color: #64748b;">${a.total_followups} ${t('followupTotalCount')}</span>
               </div>
-              <div style="color: #475569;"><strong>${t('reasonCategory')}:</strong> ${escapeHtml(a.reason_for_absence || '-')}</div>
-              ${a.followup_notes ? `<div style="color: #64748b; font-style: italic; margin-top: 2px;">"${escapeHtml(a.followup_notes)}"</div>` : ''}
+              <div class="pastoral-meta-chips">
+                <span class="pastoral-chip">${methodHtml}</span>
+                <span class="pastoral-chip">${personHtml}</span>
+                ${reasonText ? `<span class="pastoral-chip" style="background: #f1f5f9; font-weight: 600;"><i class="fa-solid fa-tag"></i> ${escapeHtml(reasonText)}</span>` : ''}
+                ${nextDate ? `<span class="pastoral-chip" style="background: #e0e7ff; color: #4338ca; font-weight: 600;"><i class="fa-solid fa-calendar-day"></i> ${t('nextFollowupDate')}: ${formatDate(nextDate)}</span>` : ''}
+              </div>
+              ${notesText ? `
+                <div class="pastoral-notes-quote">
+                  <i class="fa-solid fa-quote-left" style="color: #94a3b8; margin-right: 4px; font-size: 0.75rem;"></i>
+                  ${escapeHtml(notesText)}
+                </div>
+              ` : ''}
+              <div class="pastoral-footer-meta">
+                <span><i class="fa-solid fa-user-pen"></i> ${t('loggedBy')}: <strong>${escapeHtml(loggedBy || 'System')}</strong></span>
+                <span><i class="fa-solid fa-calendar"></i> ${lastContactStr ? lastContactStr : ''}</span>
+              </div>
             </div>
           ` : `
-            <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 0.4rem 0.65rem; font-size: 0.82rem; color: #b45309;">
-              <i class="fa-solid fa-bell"></i> ${t('noFollowupLogged')}
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.83rem; color: #b45309; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem;">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem; color: #d97706;"></i>
+              <div>
+                <strong>${t('noFollowupLogged')}</strong> — ${t('pastoralCareSubtitle')}
+              </div>
             </div>
           `}
         </div>
@@ -2174,7 +2292,7 @@ function filter3AbsentAlertsList() {
           </div>
 
           <button type="button" class="btn btn-primary btn-sm" onclick="openLogFollowupModal(${a.student_id}, '${escapeHtml(a.first_name)} ${escapeHtml(a.father_name)}', '${a.followup_status || 'pending'}', '${escapeHtml(a.phone || '')}', '${escapeHtml(a.emergency_contact || '')}', '${escapeHtml(a.mother_name || '')}')">
-            <i class="fa-solid fa-pen-to-square"></i> ${t('logFollowup')}
+            <i class="fa-solid fa-pen-to-square"></i> ${hasFollowup ? (t('updateFollowup') || 'Update Follow-up') : t('logFollowup')}
           </button>
 
           <div style="display: flex; gap: 0.4rem;">
@@ -2239,12 +2357,19 @@ async function handleSaveFollowup(e) {
   try {
     const payload = {
       student_id: parseInt(studentId, 10),
-      parent_contacted: contactedPerson,
+      contact_date: contactDate,
+      contactDate: contactDate,
+      contact_type: contactMethod,
       contact_method: contactMethod,
+      contacted_person: contactedPerson,
+      parent_contacted: contactedPerson,
+      reason_category: reasonCategory,
       reason_for_absence: reasonCategory,
       notes: notes,
+      next_followup_date: nextDate,
       next_action: nextDate,
-      status: followupStatus
+      status: followupStatus,
+      followup_status: followupStatus
     };
 
     await api('/api/followups', {
@@ -2254,7 +2379,7 @@ async function handleSaveFollowup(e) {
 
     showToast(t('followupSaved') || 'Follow-up log recorded successfully!', 'success');
     closeModal('modalLogFollowup');
-    load3AbsentAlerts();
+    await load3AbsentAlerts();
   } catch (err) {
     console.error('Error saving follow-up:', err);
   } finally {
@@ -2276,38 +2401,49 @@ async function openFollowupTimelineModal(studentId, studentName, phone, emergenc
     if (!container) return;
     container.innerHTML = '';
 
-    if (!data || !data.followups || data.followups.length === 0) {
+    const list = Array.isArray(data) ? data : (data?.followups || []);
+
+    if (!list || list.length === 0) {
       container.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 2.5rem 1rem;">
           <i class="fa-solid fa-clipboard-list" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.75rem; display: block;"></i>
-          ${t('noFollowupLogged')}
+          ${t('noFollowups') || t('noFollowupLogged')}
         </div>
       `;
       return;
     }
 
-    data.followups.forEach(f => {
+    list.forEach(f => {
       const statusBadge = getFollowupStatusBadge(f.status);
-      const dateDisplay = formatDate(f.created_at || f.contact_date);
+      const dateDisplay = formatDate(f.created_at || f.contact_date || f.last_contact_date);
+      const methodHtml = getContactMethodLabel(f.contact_type || f.contact_method);
+      const personHtml = getContactedPersonLabel(f.contacted_person || f.parent_contacted);
+      const reasonText = f.reason_category || f.reason_for_absence;
+      const nextDate = f.next_followup_date || f.next_action;
 
       container.innerHTML += `
-        <div class="timeline-item" style="display: flex; gap: 0.75rem; align-items: flex-start;">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; margin-top: 2px;">
-            <i class="fa-solid fa-phone-volume"></i>
-          </div>
-          <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.4rem;">
-              <span style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">
-                ${escapeHtml(f.parent_contacted || 'Contact')} (${escapeHtml(f.contact_method || 'Phone')})
-              </span>
+        <div class="timeline-item">
+          <div class="timeline-bullet"></div>
+          <div class="timeline-card">
+            <div class="timeline-header">
+              <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                ${personHtml} <span style="color: #94a3b8;">•</span> ${methodHtml}
+              </div>
               ${statusBadge}
             </div>
-            <div style="font-size: 0.85rem; color: #334155; margin-bottom: 0.35rem;">
-              <strong>${t('reasonCategory')}:</strong> ${escapeHtml(f.reason_for_absence || 'Unspecified')}
-            </div>
-            <div style="font-size: 0.85rem; color: #475569; background: #fff; border: 1px solid #f1f5f9; padding: 0.5rem 0.65rem; border-radius: 6px; margin-bottom: 0.4rem;">
+            ${reasonText ? `
+              <div style="font-size: 0.82rem; color: #475569; margin-bottom: 0.35rem;">
+                <strong>${t('reasonCategory')}:</strong> <span class="tag" style="background: #f1f5f9; color: #334155; font-size: 0.78rem;">${escapeHtml(reasonText)}</span>
+              </div>
+            ` : ''}
+            <div style="font-size: 0.85rem; color: #334155; background: #fff; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem; border-radius: 6px; margin-bottom: 0.4rem; line-height: 1.5;">
               ${escapeHtml(f.notes || '-')}
             </div>
+            ${nextDate ? `
+              <div style="font-size: 0.78rem; color: #4338ca; background: #e0e7ff; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; margin-bottom: 0.4rem; font-weight: 600;">
+                <i class="fa-solid fa-calendar-day"></i> ${t('nextFollowupDate')}: ${formatDate(nextDate)}
+              </div>
+            ` : ''}
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 0.35rem;">
               <span><i class="fa-solid fa-calendar"></i> ${dateDisplay}</span>
               <span><i class="fa-solid fa-user-pen"></i> ${escapeHtml(f.logged_by_name || 'System')}</span>

@@ -1085,3 +1085,191 @@ tr:hover td {
   background-color: #f0fdf4 !important;
 }
 
+/* Pastoral Follow-up Status Tabs & Segmented Filter Bar */
+.followup-status-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  -webkit-overflow-scrolling: touch;
+}
+.followup-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+.followup-tab-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+.followup-tab-pill .pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+  min-width: 22px;
+}
+
+/* Active States for Status Pills */
+.followup-tab-pill.active-pending {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.18);
+}
+.followup-tab-pill.active-pending .pill-count {
+  background: #f59e0b;
+  color: white;
+}
+
+.followup-tab-pill.active-contacted {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
+.followup-tab-pill.active-contacted .pill-count {
+  background: #3b82f6;
+  color: white;
+}
+
+.followup-tab-pill.active-needs_visit {
+  background: #fdf2f8;
+  color: #be185d;
+  border-color: #ec4899;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.18);
+}
+.followup-tab-pill.active-needs_visit .pill-count {
+  background: #db2777;
+  color: white;
+}
+
+.followup-tab-pill.active-resolved {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.18);
+}
+.followup-tab-pill.active-resolved .pill-count {
+  background: #10b981;
+  color: white;
+}
+
+.followup-tab-pill.active-all {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25);
+}
+.followup-tab-pill.active-all .pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+/* Clickable Stats Boxes */
+.stat-box.clickable-stat {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.stat-box.clickable-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.stat-box.clickable-stat.active-stat {
+  outline: 2px solid var(--primary);
+  background: #f8fafc;
+}
+
+/* Rich Pastoral Details Card */
+.pastoral-detail-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-top: 0.65rem;
+  transition: border-color 0.2s;
+}
+.pastoral-detail-box.resolved {
+  border-left: 4px solid #10b981;
+  background: #f0fdf4;
+}
+.pastoral-detail-box.contacted {
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
+}
+.pastoral-detail-box.needs_visit {
+  border-left: 4px solid #db2777;
+  background: #fdf2f8;
+}
+.pastoral-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+.pastoral-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+.pastoral-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: #475569;
+  font-weight: 500;
+}
+.pastoral-notes-quote {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  color: #334155;
+  line-height: 1.5;
+  font-style: italic;
+  margin-bottom: 0.45rem;
+}
+.pastoral-footer-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  color: #64748b;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+
