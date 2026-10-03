@@ -202,7 +202,7 @@ async function initDatabase() {
     ];
 
     for (const u of defaultUsers) {
-      const [userRows] = await pool.query('SELECT id FROM users WHERE username = ?', [u.username]);
+      const [userRows] = await pool.query('SELECT id, role, password_hash FROM users WHERE LOWER(username) = LOWER(?)', [u.username]);
       if (userRows.length === 0) {
         const hash = await bcrypt.hash(u.password, 10);
         await pool.query(
@@ -210,13 +210,17 @@ async function initDatabase() {
           [u.username, hash, u.full_name, u.role]
         );
         console.log(`Default account created -> username: ${u.username}, role: ${u.role}`);
-      } else if (u.username === 'superadmin') {
-        const hash = await bcrypt.hash(u.password, 10);
-        await pool.query(
-          'UPDATE users SET password_hash = ? WHERE username = ?',
-          [hash, u.username]
-        );
-        console.log(`Superadmin password updated to superadmin1219.`);
+      } else {
+        const user = userRows[0];
+        // Ensure roles match expected permissions
+        if (user.role !== u.role) {
+          await pool.query('UPDATE users SET role = ? WHERE id = ?', [u.role, user.id]);
+        }
+        // Ensure superadmin password is always up to date
+        if (u.username === 'superadmin') {
+          const hash = await bcrypt.hash(u.password, 10);
+          await pool.query('UPDATE users SET password_hash = ?, role = ? WHERE id = ?', [hash, u.role, user.id]);
+        }
       }
     }
 

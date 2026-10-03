@@ -204,13 +204,17 @@
         </div>
 
         <form id="formLogin" onsubmit="handleLogin(event)">
+          <div id="loginErrorAlert" style="display: none; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.4;">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px;"></i> <span id="loginErrorText"></span>
+          </div>
+
           <div class="form-group">
             <label class="form-label" data-i18n="username">የተጠቃሚ ስም</label>
-            <input type="text" id="loginUsername" class="form-control" required autofocus>
+            <input type="text" id="loginUsername" class="form-control" required autofocus autocomplete="username">
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="password">የይለፍ ቃል</label>
-            <input type="password" id="loginPassword" class="form-control" required>
+            <input type="password" id="loginPassword" class="form-control" required autocomplete="current-password">
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;"
             id="btnLoginSubmit">
@@ -219,10 +223,11 @@
         </form>
 
         <div
-          style="margin-top: 1.5rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; font-size: 0.8rem; color: #64748b;">
-          <strong>Demo Login / የመግቢያ መረጃ:</strong><br>
-          • <strong>Admin:</strong> admin / admin123<br>
-          • <strong>Encoder:</strong> encoder / encoder123
+          style="margin-top: 1.5rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #475569; line-height: 1.6;">
+          <strong style="color: #1e293b;">Default Login Credentials / የመግቢያ መረጃ:</strong><br>
+          • <strong>Super Admin:</strong> <code style="color: #4338ca; font-weight: 700;">superadmin</code> / <code style="color: #4338ca; font-weight: 700;">superadmin1219</code><br>
+          • <strong>Admin:</strong> <code style="color: #0284c7; font-weight: 700;">admin</code> / <code style="color: #0284c7; font-weight: 700;">admin123</code><br>
+          • <strong>Encoder:</strong> <code style="color: #16a34a; font-weight: 700;">encoder</code> / <code style="color: #16a34a; font-weight: 700;">encoder123</code>
         </div>
       </div>
     </section>

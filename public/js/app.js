@@ -86,15 +86,18 @@ function setLanguage(lang) {
 
 // API Fetch Helper
 async function api(endpoint, options = {}) {
+  const isAuthLogin = endpoint.startsWith('/api/auth/login');
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(!isAuthLogin && token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
   try {
     const response = await fetch(endpoint, { ...options, headers });
-    if (response.status === 401 || response.status === 403) {
+    
+    // Only auto-logout if we were making an authenticated call with an expired token
+    if (!isAuthLogin && (response.status === 401 || response.status === 403)) {
       if (token && response.status === 401) {
         logout();
         return null;
@@ -149,6 +152,10 @@ async function handleLogin(e) {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
   const btn = document.getElementById('btnLoginSubmit');
+  const errBox = document.getElementById('loginErrorAlert');
+  const errText = document.getElementById('loginErrorText');
+
+  if (errBox) errBox.style.display = 'none';
 
   btn.disabled = true;
   btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('loggingIn')}`;
@@ -165,11 +172,15 @@ async function handleLogin(e) {
       localStorage.setItem('app_token', token);
       localStorage.setItem('app_user', JSON.stringify(currentUser));
 
+      if (errBox) errBox.style.display = 'none';
       showToast(`${t('welcome')}, ${currentUser.full_name}!`, 'success');
       initAppView();
     }
   } catch (err) {
-    // Handled in api()
+    if (errBox && errText) {
+      errText.textContent = err.message || 'Login failed. Please check your username and password.';
+      errBox.style.display = 'block';
+    }
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<i class="fa-solid fa-arrow-right-to-bracket"></i> ${t('signIn')}`;

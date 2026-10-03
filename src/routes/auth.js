@@ -7,12 +7,13 @@ const pool = require('../config/db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const { logActivity } = require('../utils/auditLogger');
 
-// Rate limiter for login: max 10 attempts per 15 minutes per IP
+// Rate limiter for login: max 50 attempts per 15 minutes per IP (cloud proxy safe)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { message: 'Too many login attempts from this IP. Please try again after 15 minutes.' }
 });
 
@@ -24,19 +25,21 @@ router.post('/login', loginLimiter, async (req, res) => {
     return res.status(400).json({ message: 'Username and password are required' });
   }
 
+  const cleanUsername = String(username).trim();
+
   try {
     const [users] = await pool.query(
-      'SELECT id, username, password_hash, full_name, role FROM users WHERE username = ?',
-      [username.trim()]
+      'SELECT id, username, password_hash, full_name, role FROM users WHERE LOWER(TRIM(username)) = LOWER(?)',
+      [cleanUsername]
     );
 
     if (users.length === 0) {
-      logActivity({ username: username.trim(), action: 'LOGIN_FAILED', details: 'Invalid username attempt', req });
+      logActivity({ username: cleanUsername, action: 'LOGIN_FAILED', details: 'Invalid username attempt', req });
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
     const user = users[0];
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    const passwordMatch = await bcrypt.compare(String(password), user.password_hash);
 
     if (!passwordMatch) {
       logActivity({ userId: user.id, username: user.username, action: 'LOGIN_FAILED', details: 'Wrong password attempt', req });

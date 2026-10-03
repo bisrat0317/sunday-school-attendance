@@ -19,6 +19,9 @@ const backupRoutes = require('./routes/backup');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxy (Vercel / Cloudflare / Nginx) for correct IP rate-limiting & SSL headers
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
