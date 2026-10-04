@@ -76,6 +76,20 @@ router.get('/export/full-json', authenticateToken, requireSuperAdmin, async (req
       console.warn('Student promotions query note:', e.message);
     }
 
+    let assessments = [];
+    let studentGrades = [];
+    let gradeSettings = [];
+    try {
+      const [assResult] = await pool.query('SELECT * FROM assessments ORDER BY academic_year DESC, semester ASC, category ASC, exam_date DESC');
+      assessments = assResult;
+      const [gradesResult] = await pool.query('SELECT * FROM student_grades ORDER BY id ASC');
+      studentGrades = gradesResult;
+      const [settingsResult] = await pool.query('SELECT * FROM grade_settings ORDER BY academic_year DESC, category ASC');
+      gradeSettings = settingsResult;
+    } catch (e) {
+      console.warn('Assessments/grades query note for JSON backup:', e.message);
+    }
+
     const backupData = {
       app: 'Bete Yared Sunday School Management System',
       version: '1.0.0',
@@ -86,7 +100,10 @@ router.get('/export/full-json', authenticateToken, requireSuperAdmin, async (req
         total_sessions: sessions.length,
         total_attendance_records: attendance.length,
         total_pastoral_followups: followups.length,
-        total_promotions: promotions.length
+        total_promotions: promotions.length,
+        total_assessments: assessments.length,
+        total_student_grades: studentGrades.length,
+        total_grade_settings: gradeSettings.length
       },
       data: {
         students,
@@ -94,7 +111,10 @@ router.get('/export/full-json', authenticateToken, requireSuperAdmin, async (req
         session_encoders: sessionEncoders,
         attendance,
         pastoral_followups: followups,
-        student_promotions: promotions
+        student_promotions: promotions,
+        assessments,
+        student_grades: studentGrades,
+        grade_settings: gradeSettings
       }
     };
 
@@ -107,7 +127,7 @@ router.get('/export/full-json', authenticateToken, requireSuperAdmin, async (req
       userId: req.user.id,
       username: req.user.username,
       action: 'DATABASE_BACKUP_JSON',
-      details: `Downloaded complete database JSON backup (${students.length} students, ${attendance.length} attendance records)`,
+      details: `Downloaded complete database JSON backup (${students.length} students, ${attendance.length} attendance, ${assessments.length} assessments, ${studentGrades.length} grades)`,
       req
     });
   } catch (error) {

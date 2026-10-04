@@ -98,6 +98,48 @@ async function generateMasterWorkbook() {
     console.warn('[Backup Engine] Promotions table query note:', e.message);
   }
 
+  // 6. Fetch Student Assessments & Grades
+  let assessments = [];
+  let studentGrades = [];
+  let gradeSettings = [];
+  try {
+    const [assResult] = await pool.query(`
+      SELECT 
+        a.id, a.category, a.title, a.assessment_type, a.semester, a.academic_year,
+        a.exam_date, a.max_score, a.weight, a.description, a.created_at,
+        u.full_name AS creator_name
+      FROM assessments a
+      LEFT JOIN users u ON a.created_by = u.id
+      ORDER BY a.academic_year DESC, a.semester ASC, a.category ASC, a.exam_date DESC
+    `);
+    assessments = assResult;
+
+    const [gradesResult] = await pool.query(`
+      SELECT 
+        g.id, g.assessment_id, g.student_id, g.score, g.is_absent, g.remarks, g.updated_at,
+        a.title AS assessment_title, a.assessment_type, a.semester, a.academic_year,
+        a.exam_date, a.max_score, a.weight, a.category AS assessment_category,
+        st.first_name, st.father_name, st.christian_name, st.category AS student_category, st.phone
+      FROM student_grades g
+      JOIN assessments a ON g.assessment_id = a.id
+      JOIN students st ON g.student_id = st.id
+      ORDER BY a.academic_year DESC, a.semester ASC, a.category ASC, a.exam_date DESC, st.first_name ASC
+    `);
+    studentGrades = gradesResult;
+
+    const [settingsResult] = await pool.query(`
+      SELECT 
+        gs.id, gs.category, gs.semester, gs.academic_year, gs.pass_mark, gs.updated_at,
+        u.full_name AS updated_by_name
+      FROM grade_settings gs
+      LEFT JOIN users u ON gs.updated_by = u.id
+      ORDER BY gs.academic_year DESC, gs.category ASC, gs.semester ASC
+    `);
+    gradeSettings = settingsResult;
+  } catch (gradeErr) {
+    console.warn('[Backup Engine] Assessments/grades query note:', gradeErr.message);
+  }
+
   // 6. Build Attendance Matrix Sheet
   const sortedSessions = [...sessions].sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
   
@@ -223,13 +265,90 @@ async function generateMasterWorkbook() {
     XLSX.utils.book_append_sheet(workbook, wsPromo, 'Promotions & Alumni');
   }
 
+  // Sheet 6: Student Assessment Results & Marks
+  if (studentGrades.length > 0) {
+    const gradesForSheet = studentGrades.map((g, i) => {
+      const maxScore = parseFloat(g.max_score) || 100;
+      const weight = parseFloat(g.weight) || 0;
+      const rawScore = g.score !== null ? parseFloat(g.score) : null;
+      let calculatedWeight = '';
+      let scorePercentage = '';
+      if (g.is_absent) {
+        calculatedWeight = '0% (Absent)';
+        scorePercentage = '0%';
+      } else if (rawScore !== null) {
+        calculatedWeight = `${parseFloat(((rawScore / maxScore) * weight).toFixed(2))}%`;
+        scorePercentage = `${parseFloat(((rawScore / maxScore) * 100).toFixed(2))}%`;
+      }
+
+      return {
+        '#': i + 1,
+        'Student Name (የተማሪ ስም)': `${g.first_name} ${g.father_name}`,
+        'Christian Name (የክርስትና ስም)': g.christian_name || '',
+        'Category (ምድብ)': g.student_category,
+        'Academic Year (የትምህርት ዘመን)': g.academic_year,
+        'Semester (መንፈቀ ዓመት)': g.semester,
+        'Assessment Title (የፈተና ርዕስ)': g.assessment_title,
+        'Assessment Type (ዓይነት)': g.assessment_type,
+        'Exam Date (ቀን)': g.exam_date ? String(g.exam_date).split('T')[0] : '',
+        'Max Score (ሙሉ ነጥብ)': g.max_score,
+        'Weight % (ድርሻ)': `${g.weight}%`,
+        'Raw Score (ያገኘው ነጥብ)': g.is_absent ? 'Absent (አልተፈተነም)' : (rawScore !== null ? rawScore : '-'),
+        'Score % (የመቶኛ ውጤት)': scorePercentage,
+        'Weighted Score % (የተሰላ ድርሻ)': calculatedWeight,
+        'Absent Status (አልተፈተነም)': g.is_absent ? 'Yes' : 'No',
+        'Teacher Remarks (ማስታወሻ)': g.remarks || ''
+      };
+    });
+    const wsGrades = XLSX.utils.json_to_sheet(gradesForSheet);
+    XLSX.utils.book_append_sheet(workbook, wsGrades, 'Assessment Results & Marks');
+  }
+
+  // Sheet 7: Assessments Directory
+  if (assessments.length > 0) {
+    const assessmentsForSheet = assessments.map((a, i) => ({
+      '#': i + 1,
+      'Assessment Title': a.title,
+      'Category': a.category,
+      'Assessment Type': a.assessment_type,
+      'Semester': a.semester,
+      'Academic Year': a.academic_year,
+      'Exam Date': a.exam_date ? String(a.exam_date).split('T')[0] : '',
+      'Max Score': a.max_score,
+      'Weight (%)': `${a.weight}%`,
+      'Description / Notes': a.description || '',
+      'Created By': a.creator_name || 'Admin',
+      'Created Date': a.created_at ? String(a.created_at).split('T')[0] : ''
+    }));
+    const wsAssessments = XLSX.utils.json_to_sheet(assessmentsForSheet);
+    XLSX.utils.book_append_sheet(workbook, wsAssessments, 'Assessments Directory');
+  }
+
+  // Sheet 8: Grade Pass Mark Settings
+  if (gradeSettings.length > 0) {
+    const settingsForSheet = gradeSettings.map((s, i) => ({
+      '#': i + 1,
+      'Category': s.category,
+      'Semester': s.semester,
+      'Academic Year': s.academic_year,
+      'Pass Mark (%)': `${s.pass_mark}%`,
+      'Updated By': s.updated_by_name || 'Admin',
+      'Last Updated': s.updated_at ? String(s.updated_at).split('T')[0] : ''
+    }));
+    const wsSettings = XLSX.utils.json_to_sheet(settingsForSheet);
+    XLSX.utils.book_append_sheet(workbook, wsSettings, 'Grade Pass Mark Settings');
+  }
+
   return {
     workbook,
     students,
     sessions,
     attendance,
     followups,
-    promotions
+    promotions,
+    assessments,
+    studentGrades,
+    gradeSettings
   };
 }
 
@@ -237,7 +356,7 @@ async function generateMasterWorkbook() {
  * Generate Master Excel export as in-memory Buffer (Zero-disk writes, safe for Serverless)
  */
 async function generateMasterExcelBuffer() {
-  const { workbook, students, sessions, attendance } = await generateMasterWorkbook();
+  const { workbook, students, sessions, attendance, assessments, studentGrades } = await generateMasterWorkbook();
   const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   const dateStr = getFormattedDate();
   const filename = `SundaySchool_Master_Export_${dateStr}.xlsx`;
@@ -247,7 +366,9 @@ async function generateMasterExcelBuffer() {
     counts: {
       students: students.length,
       sessions: sessions.length,
-      attendance: attendance.length
+      attendance: attendance.length,
+      assessments: (assessments || []).length,
+      student_grades: (studentGrades || []).length
     }
   };
 }
@@ -263,7 +384,17 @@ async function executeWeeklyExport(isManual = false, customRecipientEmail = null
   console.log(`[Backup Engine] Starting ${isManual ? 'manual' : 'scheduled Monday night'} Sunday School export...`);
 
   try {
-    const { workbook, students, sessions, attendance, followups, promotions } = await generateMasterWorkbook();
+    const { 
+      workbook, 
+      students, 
+      sessions, 
+      attendance, 
+      followups, 
+      promotions,
+      assessments,
+      studentGrades,
+      gradeSettings
+    } = await generateMasterWorkbook();
 
     const excelFilename = `SundaySchool_Weekly_Export_${dateStr}_${isManual ? 'manual' : 'auto'}.xlsx`;
     const jsonFilename = `SundaySchool_Database_Snapshot_${dateStr}_${isManual ? 'manual' : 'auto'}.json`;
@@ -284,13 +415,19 @@ async function executeWeeklyExport(isManual = false, customRecipientEmail = null
           sessions: sessions.length,
           attendance_records: attendance.length,
           pastoral_followups: followups.length,
-          promotions: promotions.length
+          promotions: promotions.length,
+          assessments: (assessments || []).length,
+          student_grades: (studentGrades || []).length,
+          grade_settings: (gradeSettings || []).length
         },
         students,
         sessions,
         attendance,
         pastoral_followups: followups,
-        promotions
+        promotions,
+        assessments,
+        student_grades: studentGrades,
+        grade_settings: gradeSettings
       };
       fs.writeFileSync(jsonFilePath, JSON.stringify(jsonSnapshot, null, 2), 'utf-8');
 
@@ -311,7 +448,9 @@ async function executeWeeklyExport(isManual = false, customRecipientEmail = null
         counts: {
           students: students.length,
           sessions: sessions.length,
-          attendance: attendance.length
+          attendance: attendance.length,
+          assessments: (assessments || []).length,
+          student_grades: (studentGrades || []).length
         },
         isManual
       });
@@ -326,7 +465,7 @@ async function executeWeeklyExport(isManual = false, customRecipientEmail = null
         userId: 1,
         username: 'SYSTEM',
         action: 'WEEKLY_AUTO_EXPORT',
-        details: `${isManual ? 'Manual' : 'Scheduled Monday Night'} full export generated: ${excelFilename} & ${jsonFilename} (${students.length} students, ${attendance.length} records)${emailResult && emailResult.success ? ` [Emailed to ${emailResult.recipient}]` : ''}`,
+        details: `${isManual ? 'Manual' : 'Scheduled Monday Night'} full export generated: ${excelFilename} & ${jsonFilename} (${students.length} students, ${attendance.length} attendance, ${(assessments || []).length} assessments, ${(studentGrades || []).length} grades)${emailResult && emailResult.success ? ` [Emailed to ${emailResult.recipient}]` : ''}`,
         req: null
       });
     } catch (logErr) {
@@ -340,6 +479,8 @@ async function executeWeeklyExport(isManual = false, customRecipientEmail = null
       studentCount: students.length,
       sessionCount: sessions.length,
       attendanceCount: attendance.length,
+      assessmentCount: (assessments || []).length,
+      gradeCount: (studentGrades || []).length,
       dateStr,
       emailDelivery: emailResult
     };

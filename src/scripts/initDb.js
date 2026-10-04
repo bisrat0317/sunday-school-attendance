@@ -183,7 +183,7 @@ async function initDatabase() {
         title VARCHAR(150) NOT NULL,
         assessment_type VARCHAR(50) DEFAULT 'exam',
         semester VARCHAR(50) NOT NULL DEFAULT 'Semester 1',
-        academic_year VARCHAR(20) DEFAULT '2017',
+        academic_year VARCHAR(20) DEFAULT '2025',
         exam_date DATE NOT NULL,
         max_score NUMERIC(5,2) DEFAULT 100.00,
         weight NUMERIC(5,2) NOT NULL DEFAULT 100.00,
@@ -215,7 +215,7 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         category VARCHAR(50) DEFAULT 'all',
         semester VARCHAR(50) DEFAULT 'all',
-        academic_year VARCHAR(20) DEFAULT '2017',
+        academic_year VARCHAR(20) DEFAULT '2025',
         pass_mark NUMERIC(5,2) NOT NULL DEFAULT 50.00,
         updated_by INT REFERENCES users(id) ON DELETE SET NULL,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -226,7 +226,7 @@ async function initDatabase() {
     // Insert default global pass mark (50%) if not exists
     await pool.query(`
       INSERT INTO grade_settings (category, semester, academic_year, pass_mark)
-      VALUES ('all', 'all', '2017', 50.00)
+      VALUES ('all', 'all', '2025', 50.00)
       ON CONFLICT (category, semester, academic_year) DO NOTHING;
     `);
 

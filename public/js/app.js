@@ -4779,7 +4779,7 @@ function getAssessmentTypeBadge(type) {
 async function loadAssessments() {
   const category = document.getElementById('filterGradeCategory')?.value || 'Youth';
   const semester = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
-  const academicYear = document.getElementById('filterGradeYear')?.value || '2017';
+  const academicYear = document.getElementById('filterGradeYear')?.value || '2025';
 
   try {
     // 1. Fetch pass mark setting
@@ -4939,7 +4939,7 @@ function openCreateAssessmentModal() {
   // Pre-fill category & semester from main filter
   const curCat = document.getElementById('filterGradeCategory')?.value || 'Youth';
   const curSem = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
-  const curYear = document.getElementById('filterGradeYear')?.value || '2017';
+  const curYear = document.getElementById('filterGradeYear')?.value || '2025';
 
   document.getElementById('assessmentCategory').value = curCat;
   document.getElementById('assessmentSemester').value = curSem;
@@ -4996,7 +4996,7 @@ async function openEditAssessmentModal(id) {
     document.getElementById('assessmentType').value = a.assessment_type || 'exam';
     document.getElementById('assessmentTitle').value = a.title;
     document.getElementById('assessmentSemester').value = a.semester || 'Semester 1';
-    document.getElementById('assessmentAcademicYear').value = a.academic_year || '2017';
+    document.getElementById('assessmentAcademicYear').value = a.academic_year || '2025';
     
     const examDateStr = a.exam_date ? new Date(a.exam_date).toISOString().split('T')[0] : '';
     document.getElementById('assessmentExamDate').value = examDateStr;
@@ -5103,7 +5103,7 @@ async function handleSavePassMark(e) {
   e.preventDefault();
   const category = document.getElementById('passMarkCategory').value;
   const semester = document.getElementById('filterGradeSemester')?.value || 'all';
-  const academic_year = document.getElementById('filterGradeYear')?.value || '2017';
+  const academic_year = document.getElementById('filterGradeYear')?.value || '2025';
   const pass_mark = parseFloat(document.getElementById('inputPassMarkValue').value);
 
   if (isNaN(pass_mark) || pass_mark < 0 || pass_mark > 100) {
@@ -5473,7 +5473,7 @@ function openGradebookMatrixModal() {
 async function loadGradebookMatrix() {
   const category = document.getElementById('matrixCategorySelect')?.value || 'Youth';
   const semester = document.getElementById('matrixSemesterSelect')?.value || 'Semester 1';
-  const academicYear = document.getElementById('filterGradeYear')?.value || '2017';
+  const academicYear = document.getElementById('filterGradeYear')?.value || '2025';
 
   const titleEl = document.getElementById('gradebookMatrixTitle');
   const subEl = document.getElementById('gradebookMatrixSubtitle');
@@ -5633,8 +5633,13 @@ function exportGradebookMatrixToExcel() {
   showToast('Gradebook Excel exported successfully!', 'success');
 }
 
-// 10. Batch Report Card Print System
+// 10. Batch Report Card Print System (Super Admin Only)
 function openBatchReportCardsModal(singleStudentId = null) {
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    showToast(t('superAdminOnly') || 'ይህ አገልግሎት ለዋና አስተዳዳሪ (Super Admin) ብቻ የተፈቀደ ነው', 'danger');
+    return;
+  }
+
   const curCat = document.getElementById('filterGradeCategory')?.value || 'Youth';
   const curSem = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
 
@@ -5648,13 +5653,18 @@ function openBatchReportCardsModal(singleStudentId = null) {
 }
 
 async function loadBatchReportCards(singleStudentId = null) {
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    showToast(t('superAdminOnly') || 'Super Admin access required', 'danger');
+    return;
+  }
+
   const category = document.getElementById('reportCardCategorySelect')?.value || 'Youth';
   const semester = document.getElementById('reportCardSemesterSelect')?.value || 'Semester 1';
-  const academicYear = document.getElementById('filterGradeYear')?.value || '2017';
+  const academicYear = document.getElementById('filterGradeYear')?.value || '2025';
 
   const container = document.getElementById('batchReportCardsContainer');
   if (!container) return;
-  container.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem;"></i><p style="margin-top: 0.5rem;">የተማሪዎች ውጤት ካርድ በመዘጋጀት ላይ...</p></div>`;
+  container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #000;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem;"></i><p style="margin-top: 0.5rem;">የተማሪዎች ውጤት ካርድ በመዘጋጀት ላይ...</p></div>`;
 
   try {
     let url = `/api/grades/report-cards?category=${encodeURIComponent(category)}&semester=${encodeURIComponent(semester)}&academic_year=${encodeURIComponent(academicYear)}`;
@@ -5662,13 +5672,13 @@ async function loadBatchReportCards(singleStudentId = null) {
 
     const res = await api(url);
     if (!res || !res.report_cards) {
-      container.innerHTML = `<p style="text-align: center; padding: 2rem;">ምንም መረጃ አልተገኘም።</p>`;
+      container.innerHTML = `<p style="text-align: center; padding: 2rem; color: #000;">ምንም መረጃ አልተገኘም።</p>`;
       return;
     }
 
     currentReportCardsData = res.report_cards;
     if (currentReportCardsData.length === 0) {
-      container.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5;"></i><p>ለዚህ ምድብ ተማሪዎች አልተገኙም።</p></div>`;
+      container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #000;"><i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5;"></i><p>ለዚህ ምድብ ተማሪዎች አልተገኙም።</p></div>`;
       return;
     }
 
@@ -5688,23 +5698,23 @@ async function loadBatchReportCards(singleStudentId = null) {
 
       let assessmentsTableRows = '';
       if (rc.assessments.length === 0) {
-        assessmentsTableRows = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">ለዚህ መንፈቀ ዓመት ፈተናዎች አልተመዘገቡም።</td></tr>`;
+        assessmentsTableRows = `<tr><td colspan="9" style="text-align: center; color: #000; padding: 1.2rem;">ለዚህ መንፈቀ ዓመት ፈተናዎች አልተመዘገቡም።</td></tr>`;
       } else {
         rc.assessments.forEach((a, idx) => {
-          const scoreDisplay = a.is_absent ? '<span style="color:#b91c1c; font-weight:700;">አልተፈተነም</span>' : (a.raw_score !== null ? `<strong style="color:#0f172a;">${a.raw_score}</strong>` : '-');
-          const weightDisplay = a.weighted_score !== null ? `<strong>${a.weighted_score}%</strong>` : (a.is_absent ? '0%' : '-');
+          const scoreDisplay = a.is_absent ? 'አልተፈተነም (Absent)' : (a.raw_score !== null ? a.raw_score : '-');
+          const weightDisplay = a.weighted_score !== null ? `${a.weighted_score}%` : (a.is_absent ? '0%' : '-');
 
           assessmentsTableRows += `
             <tr>
-              <td style="text-align: center; width: 35px; color: #64748b;">${idx + 1}</td>
-              <td style="font-weight: 700;">${escapeHtml(a.title)}</td>
-              <td>${escapeHtml(a.assessment_type || 'Exam')}</td>
-              <td>${formatDate(a.exam_date)}</td>
-              <td style="text-align: center;">${a.max_score}</td>
-              <td style="text-align: center; font-weight: 600;">${a.weight}%</td>
-              <td style="text-align: center;">${scoreDisplay}</td>
-              <td style="text-align: center; background: #f8fafc;">${weightDisplay}</td>
-              <td style="font-size: 0.8rem; color: #475569;">${escapeHtml(a.remarks || '')}</td>
+              <td style="text-align: center; width: 30px; color: #000;">${idx + 1}</td>
+              <td style="font-weight: 700; color: #000;">${escapeHtml(a.title)}</td>
+              <td style="color: #000;">${escapeHtml(a.assessment_type || 'Exam')}</td>
+              <td style="color: #000;">${formatDate(a.exam_date)}</td>
+              <td style="text-align: center; color: #000;">${a.max_score}</td>
+              <td style="text-align: center; font-weight: 600; color: #000;">${a.weight}%</td>
+              <td style="text-align: center; font-weight: 700; color: #000;">${scoreDisplay}</td>
+              <td style="text-align: center; font-weight: 700; color: #000;">${weightDisplay}</td>
+              <td style="font-size: 0.78rem; color: #000;">${escapeHtml(a.remarks || '')}</td>
             </tr>
           `;
         });
@@ -5713,12 +5723,11 @@ async function loadBatchReportCards(singleStudentId = null) {
       cardEl.innerHTML = `
         <!-- Church Report Card Header -->
         <div class="report-card-header">
-          <div class="report-card-cross"><i class="fa-solid fa-cross"></i></div>
-          <h2 class="report-card-school-name" data-i18n="appTitle">ቤተ ያሬድ ሰንበት ትምሕርት ቤት</h2>
-          <p style="font-size: 0.88rem; color: #64748b; margin: 2px 0 6px 0;">Bete Yared Sunday School - Student Evaluation Report Card</p>
-          <div style="font-size: 1.1rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">
-            የተማሪ የውጤት ካርድ (${rc.semester} - ${rc.academic_year} ዓ.ም.)
-          </div>
+          <img src="images/logo.png" alt="Logo" class="report-card-logo">
+          <h2 class="report-card-school-name">ቤተ ያሬድ ሰንበት ትምሕርት ቤት</h2>
+          <div class="report-card-school-sub">Bete Yared Sunday School</div>
+          <div class="report-card-title">የተማሪ የውጤት ካርድ | Student Evaluation Report Card</div>
+          <div class="report-card-subtitle">መንፈቀ ዓመት፡ ${escapeHtml(rc.semester)} | የትምህርት ዘመን፡ ${escapeHtml(rc.academic_year)} ዓ.ም. (E.C.)</div>
         </div>
 
         <!-- Student Personal & Class Details -->
@@ -5729,7 +5738,7 @@ async function loadBatchReportCards(singleStudentId = null) {
           </div>
           <div class="report-card-info-item">
             <span class="report-card-info-label">የክርስትና ስም</span>
-            <span class="report-card-info-value" style="color: #b45309;">${escapeHtml(st.christian_name || '-')}</span>
+            <span class="report-card-info-value">${escapeHtml(st.christian_name || '-')}</span>
           </div>
           <div class="report-card-info-item">
             <span class="report-card-info-label">የእናት ስም</span>
@@ -5740,12 +5749,12 @@ async function loadBatchReportCards(singleStudentId = null) {
             <span class="report-card-info-value">${escapeHtml(rc.category)}</span>
           </div>
           <div class="report-card-info-item">
-            <span class="report-card-info-label">ስልክ ቁጥር</span>
-            <span class="report-card-info-value">${escapeHtml(st.phone || '-')}</span>
-          </div>
-          <div class="report-card-info-item">
             <span class="report-card-info-label">ዕድሜ</span>
             <span class="report-card-info-value">${st.age ? st.age + ' ዓመት' : '-'}</span>
+          </div>
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">ስልክ ቁጥር</span>
+            <span class="report-card-info-value">${escapeHtml(st.phone || '-')}</span>
           </div>
         </div>
 
@@ -5753,7 +5762,7 @@ async function loadBatchReportCards(singleStudentId = null) {
         <table class="report-card-table">
           <thead>
             <tr>
-              <th>#</th>
+              <th style="width: 30px; text-align: center;">#</th>
               <th>የፈተና ርዕስ (Assessment)</th>
               <th>ዓይነት</th>
               <th>የፈተና ቀን</th>
@@ -5768,61 +5777,65 @@ async function loadBatchReportCards(singleStudentId = null) {
             ${assessmentsTableRows}
           </tbody>
           <tfoot>
-            <tr style="background: #f1f5f9; font-weight: 800;">
-              <td colspan="5" style="text-align: right; padding-right: 1rem;">አጠቃላይ የፈተናዎች ድምር ድርሻ (Total):</td>
+            <tr>
+              <td colspan="5" style="text-align: right; padding-right: 0.75rem;">አጠቃላይ የፈተናዎች ድምር ድርሻ (Total Weight):</td>
               <td style="text-align: center;">${sum.total_possible_weights}%</td>
-              <td colspan="1"></td>
-              <td style="text-align: center; font-size: 1.05rem; color: #1e3a8a;">${sum.total_score}%</td>
+              <td colspan="1" style="text-align: right; padding-right: 0.5rem;">አጠቃላይ ውጤት:</td>
+              <td style="text-align: center; font-size: 0.95rem;">${sum.total_score}%</td>
               <td></td>
             </tr>
           </tfoot>
         </table>
 
         <!-- Final Evaluation Summary & Attendance -->
-        <div class="report-card-summary-card ${!isPass && !isUngraded ? 'summary-fail' : ''}">
+        <div class="report-card-summary-card">
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">አጠቃላይ ድምር ውጤት</div>
-            <div class="report-card-summary-val ${!isPass && !isUngraded ? 'fail' : ''}">${sum.total_score}%</div>
-            <div style="font-size: 0.75rem; color: #64748b;">(የማለፊያ ወሰን፡ ${sum.pass_mark}%)</div>
+            <div class="report-card-summary-label">አጠቃላይ ድምር ውጤት</div>
+            <div class="report-card-summary-val">${sum.total_score}%</div>
+            <div style="font-size: 0.72rem; color: #000; margin-top: 1px;">(የማለፊያ ወሰን፡ ${sum.pass_mark}%)</div>
           </div>
 
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">ውጤት (Evaluation)</div>
-            <div style="margin-top: 4px;">
-              ${isPass ? `<span class="badge-pass" style="font-size: 1.15rem; padding: 0.4rem 1.1rem;"><i class="fa-solid fa-circle-check"></i> አልፏል (PASS)</span>` : (isUngraded ? `<span class="badge-ungraded" style="font-size: 1rem; padding: 0.35rem 0.85rem;">አልተጠናቀቀም</span>` : `<span class="badge-fail" style="font-size: 1.15rem; padding: 0.4rem 1.1rem;"><i class="fa-solid fa-circle-xmark"></i> አላለፈም (FAIL)</span>`)}
+            <div class="report-card-summary-label">ውሳኔ (Evaluation)</div>
+            <div style="margin-top: 2px;">
+              <span class="report-card-status-badge">${isPass ? 'አልፏል (PASS)' : (isUngraded ? 'አልተመዘገበም' : 'አላለፈም (FAIL)')}</span>
             </div>
           </div>
 
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">የክፍል ደረጃ (Rank)</div>
-            <div style="font-size: 1.4rem; font-weight: 800; color: #0284c7;">
-              ${sum.rank !== '-' ? sum.rank + ' <span style="font-size: 0.85rem; color: #64748b; font-weight: normal;">/ ' + sum.total_students_in_class + '</span>' : '-'}
+            <div class="report-card-summary-label">የክፍል ደረጃ (Rank)</div>
+            <div class="report-card-summary-val">
+              ${sum.rank !== '-' ? sum.rank + ' / ' + sum.total_students_in_class : '-'}
             </div>
           </div>
 
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">የመገኘት መጠን (Attendance)</div>
-            <div style="font-size: 1.3rem; font-weight: 800; color: #4338ca;">
+            <div class="report-card-summary-label">የመገኘት መጠን (Attendance)</div>
+            <div class="report-card-summary-val">
               ${att.rate_percentage}%
             </div>
-            <div style="font-size: 0.72rem; color: #64748b;">(የተገኘው፡ ${att.present_count} / ${att.total_sessions})</div>
+            <div style="font-size: 0.72rem; color: #000; margin-top: 1px;">(የተገኘው፡ ${att.present_count} / ${att.total_sessions})</div>
           </div>
         </div>
 
         <!-- Official Signatures Block -->
         <div class="report-card-signatures">
           <div class="report-card-sign-box">
-            <div>የክፍሉ መምህር ፊርማ (Teacher)</div>
-            <div style="margin-top: 2rem; font-size: 0.75rem; color: #94a3b8;">ፊርማ እና ቀን</div>
+            <div>የክፍሉ መምህር ፊርማ (Teacher Signature)</div>
+            <div class="report-card-sign-sub">ፊርማ እና ቀን</div>
           </div>
           <div class="report-card-sign-box">
             <div>የሰንበት ት/ቤት ኃላፊ (Director / Head)</div>
-            <div style="margin-top: 2rem; font-size: 0.75rem; color: #94a3b8;">ማኅተም እና ፊርማ</div>
+            <div class="report-card-sign-sub">ማኅተም እና ፊርማ</div>
           </div>
           <div class="report-card-sign-box">
-            <div>የተሰጠበት ቀን (Date Issued)</div>
-            <div style="margin-top: 2rem; font-weight: 700; color: #1e293b;">${todayEthFormatted}</div>
+            <div>የወላጅ / አሳዳጊ ፊርማ (Parent / Guardian)</div>
+            <div class="report-card-sign-sub">ፊርማ እና ቀን</div>
           </div>
+        </div>
+
+        <div class="report-card-footer-date">
+          የተሰጠበት ቀን (Date Issued): <strong>${todayEthFormatted}</strong>
         </div>
       `;
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const { logActivity } = require('../utils/auditLogger');
 
 // Helper to get pass mark setting for a given category, semester, and academic year
@@ -11,7 +11,7 @@ async function getPassMarkSetting(category, semester, academicYear) {
     const [exact] = await pool.query(
       `SELECT pass_mark FROM grade_settings 
        WHERE category = ? AND semester = ? AND academic_year = ? LIMIT 1`,
-      [category || 'all', semester || 'all', academicYear || '2017']
+      [category || 'all', semester || 'all', academicYear || '2025']
     );
     if (exact && exact.length > 0 && exact[0].pass_mark != null) {
       return parseFloat(exact[0].pass_mark);
@@ -101,7 +101,7 @@ router.post('/assessments', authenticateToken, requireAdmin, async (req, res) =>
       title,
       assessment_type = 'exam',
       semester = 'Semester 1',
-      academic_year = '2017',
+      academic_year = '2025',
       exam_date,
       max_score = 100,
       weight = 100,
@@ -406,7 +406,7 @@ router.post('/assessments/:id/roster', authenticateToken, requireAdmin, async (r
 // --------------------------------------------------------------------------
 router.get('/settings', authenticateToken, async (req, res) => {
   try {
-    const { category = 'all', semester = 'all', academic_year = '2017' } = req.query;
+    const { category = 'all', semester = 'all', academic_year = '2025' } = req.query;
     const passMark = await getPassMarkSetting(category, semester, academic_year);
 
     const [allSettings] = await pool.query(
@@ -426,7 +426,7 @@ router.get('/settings', authenticateToken, async (req, res) => {
 
 router.post('/settings', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { category = 'all', semester = 'all', academic_year = '2017', pass_mark } = req.body;
+    const { category = 'all', semester = 'all', academic_year = '2025', pass_mark } = req.body;
     const numPassMark = parseFloat(pass_mark);
 
     if (isNaN(numPassMark) || numPassMark < 0 || numPassMark > 100) {
@@ -466,7 +466,7 @@ router.post('/settings', authenticateToken, requireAdmin, async (req, res) => {
 // --------------------------------------------------------------------------
 router.get('/matrix', authenticateToken, async (req, res) => {
   try {
-    const { category, semester = 'Semester 1', academic_year = '2017' } = req.query;
+    const { category, semester = 'Semester 1', academic_year = '2025' } = req.query;
 
     if (!category) {
       return res.status(400).json({ message: 'Category is required for gradebook matrix' });
@@ -609,11 +609,11 @@ router.get('/matrix', authenticateToken, async (req, res) => {
 });
 
 // --------------------------------------------------------------------------
-// 10. GET /api/grades/report-cards - Batch (or single) Report Cards for Print
+// 10. GET /api/grades/report-cards - Batch (or single) Report Cards for Print (Super Admin Only)
 // --------------------------------------------------------------------------
-router.get('/report-cards', authenticateToken, async (req, res) => {
+router.get('/report-cards', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    const { category, semester = 'Semester 1', academic_year = '2017', student_id } = req.query;
+    const { category, semester = 'Semester 1', academic_year = '2025', student_id } = req.query;
 
     if (!category && !student_id) {
       return res.status(400).json({ message: 'Category or student_id is required' });

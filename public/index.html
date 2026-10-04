@@ -1220,7 +1220,7 @@
                 <button class="btn btn-secondary" onclick="openGradebookMatrixModal()">
                   <i class="fa-solid fa-table-cells-large"></i> <span data-i18n="gradebookMatrix">የክፍል ውጤት ማጠቃለያ</span>
                 </button>
-                <button class="btn btn-success" style="background: #059669; border-color: #047857;" onclick="openBatchReportCardsModal()">
+                <button class="btn btn-success super-admin-only" style="background: #059669; border-color: #047857;" onclick="openBatchReportCardsModal()">
                   <i class="fa-solid fa-print"></i> <span data-i18n="batchReportCards">የተማሪዎች ውጤት ካርድ አትም</span>
                 </button>
               </div>
@@ -1254,10 +1254,12 @@
                   <option value="Summer" data-i18n="summerTerm">የበጋ ትምህርት</option>
                 </select>
 
-                <select id="filterGradeYear" class="form-control" style="max-width: 120px;" onchange="loadAssessments()">
-                  <option value="2017" selected>2017 ዓ.ም.</option>
-                  <option value="2018">2018 ዓ.ም.</option>
-                  <option value="2016">2016 ዓ.ም.</option>
+                <select id="filterGradeYear" class="form-control" style="max-width: 140px;" onchange="loadAssessments()">
+                  <option value="2025" selected>2025 ዓ.ም. (2025 E.C.)</option>
+                  <option value="2026">2026 ዓ.ም. (2026 E.C.)</option>
+                  <option value="2024">2024 ዓ.ም. (2024 E.C.)</option>
+                  <option value="2023">2023 ዓ.ም. (2023 E.C.)</option>
+                  <option value="2017">2017 ዓ.ም.</option>
                 </select>
               </div>
 
@@ -2305,9 +2307,11 @@
             <div class="form-group">
               <label class="form-label" data-i18n="academicYear">የትምህርት ዘመን *</label>
               <select id="assessmentAcademicYear" class="form-control" required>
-                <option value="2017" selected>2017 ዓ.ም.</option>
-                <option value="2018">2018 ዓ.ም.</option>
-                <option value="2016">2016 ዓ.ም.</option>
+                <option value="2025" selected>2025 ዓ.ም. (2025 E.C.)</option>
+                <option value="2026">2026 ዓ.ም. (2026 E.C.)</option>
+                <option value="2024">2024 ዓ.ም. (2024 E.C.)</option>
+                <option value="2023">2023 ዓ.ም. (2023 E.C.)</option>
+                <option value="2017">2017 ዓ.ም.</option>
               </select>
             </div>
           </div>
@@ -2518,7 +2522,7 @@
             <button class="btn btn-success btn-sm" onclick="exportGradebookMatrixToExcel()">
               <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
             </button>
-            <button class="btn btn-primary btn-sm" onclick="openBatchReportCardsModal()">
+            <button class="btn btn-primary btn-sm super-admin-only" onclick="openBatchReportCardsModal()">
               <i class="fa-solid fa-print"></i> <span data-i18n="batchReportCards">ውጤት ካርድ አትም</span>
             </button>
           </div>
