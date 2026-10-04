@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Bete Yared Sunday School Management System - User Manual</title>
+  <title>Bete Yared Sunday School Management System - User Manual & Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@400;600;700&display=swap" rel="stylesheet">
@@ -10,7 +10,7 @@
   <style>
     @page {
       size: A4;
-      margin: 16mm 14mm 16mm 14mm;
+      margin: 14mm 12mm 14mm 12mm;
       @bottom-right {
         content: counter(page);
         font-family: 'Inter', sans-serif;
@@ -29,8 +29,8 @@
       font-family: 'Inter', 'Noto Sans Ethiopic', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #1e293b;
       background: #ffffff;
-      line-height: 1.55;
-      font-size: 9.5pt;
+      line-height: 1.5;
+      font-size: 9pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -47,20 +47,19 @@
 
     /* Cover Page */
     .cover-page {
-      height: 100vh;
+      height: 96vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 40px 20px 20px 20px;
+      padding: 35px 25px 25px 25px;
       text-align: center;
       background: linear-gradient(145deg, #0f172a 0%, #1e3a8a 50%, #1e1b4b 100%);
       color: #ffffff;
       border-radius: 12px;
-      margin-bottom: 20px;
     }
 
     .cover-top {
-      margin-top: 30px;
+      margin-top: 20px;
     }
 
     .cover-badge {
@@ -70,60 +69,60 @@
       backdrop-filter: blur(8px);
       padding: 6px 18px;
       border-radius: 50px;
-      font-size: 9pt;
+      font-size: 8.5pt;
       font-weight: 600;
       letter-spacing: 1px;
       text-transform: uppercase;
       color: #93c5fd;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
 
     .cover-icon {
-      font-size: 54pt;
+      font-size: 48pt;
       color: #fbbf24;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       text-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
     }
 
     .cover-title {
-      font-size: 26pt;
+      font-size: 24pt;
       font-weight: 800;
       line-height: 1.2;
       color: #ffffff;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       letter-spacing: -0.5px;
     }
 
     .cover-title-am {
-      font-size: 19pt;
+      font-size: 17pt;
       font-weight: 700;
       color: #fde68a;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .cover-subtitle {
-      font-size: 12.5pt;
+      font-size: 11.5pt;
       color: #cbd5e1;
-      max-width: 520px;
+      max-width: 540px;
       margin: 0 auto;
       font-weight: 400;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     .cover-features-pills {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 10px;
-      margin: 35px 0;
+      gap: 8px;
+      margin: 28px 0;
     }
 
     .cover-pill {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 8.5pt;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 8pt;
       color: #e2e8f0;
       display: flex;
       align-items: center;
@@ -132,63 +131,64 @@
 
     .cover-footer {
       border-top: 1px solid rgba(255, 255, 255, 0.15);
-      padding-top: 18px;
-      font-size: 8.5pt;
+      padding-top: 15px;
+      font-size: 8pt;
       color: #94a3b8;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    /* Content Layout */
+    /* Section Headers */
     .section-header {
       border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 8px;
-      margin-top: 22px;
-      margin-bottom: 14px;
+      padding-bottom: 6px;
+      margin-top: 18px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     h1 {
-      font-size: 16pt;
+      font-size: 14pt;
       font-weight: 800;
       color: #0f172a;
       letter-spacing: -0.3px;
     }
 
     h2 {
-      font-size: 13pt;
+      font-size: 11.5pt;
       font-weight: 700;
       color: #1e3a8a;
-      margin-top: 16px;
-      margin-bottom: 8px;
+      margin-top: 14px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     h3 {
-      font-size: 10.5pt;
+      font-size: 9.8pt;
       font-weight: 700;
       color: #334155;
-      margin-top: 12px;
-      margin-bottom: 6px;
+      margin-top: 8px;
+      margin-bottom: 4px;
     }
 
     p {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       color: #334155;
+      font-size: 8.8pt;
     }
 
-    /* Cards & Boxes */
+    /* Cards */
     .card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 12px;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
     }
 
     .card-primary {
@@ -209,31 +209,37 @@
       border-left: 4px solid #16a34a;
     }
 
-    /* Grid Layouts */
+    .card-purple {
+      background: #faf5ff;
+      border-color: #e9d5ff;
+      border-left: 4px solid #9333ea;
+    }
+
+    /* Grids */
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
     .grid-3 {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
     /* Tables */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 10px 0 16px 0;
-      font-size: 8.8pt;
+      margin: 8px 0 12px 0;
+      font-size: 8.2pt;
     }
 
     th, td {
-      padding: 7px 10px;
+      padding: 6px 8px;
       text-align: left;
       border-bottom: 1px solid #e2e8f0;
     }
@@ -242,9 +248,9 @@
       background: #f1f5f9;
       color: #0f172a;
       font-weight: 700;
-      font-size: 8.5pt;
+      font-size: 8pt;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
 
     tr:nth-child(even) td {
@@ -254,9 +260,9 @@
     /* Badges */
     .badge {
       display: inline-block;
-      padding: 2px 7px;
+      padding: 2px 6px;
       border-radius: 4px;
-      font-size: 7.5pt;
+      font-size: 7pt;
       font-weight: 700;
       text-transform: uppercase;
     }
@@ -267,11 +273,11 @@
     .badge-admin { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
     .badge-encoder { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
 
-    /* Numbered Steps */
+    /* Numbered Step Boxes */
     .step-box {
       display: flex;
-      gap: 12px;
-      margin-bottom: 10px;
+      gap: 10px;
+      margin-bottom: 8px;
       align-items: flex-start;
     }
 
@@ -279,31 +285,32 @@
       background: #1e3a8a;
       color: #ffffff;
       font-weight: 700;
-      font-size: 8.5pt;
-      width: 22px;
-      height: 22px;
+      font-size: 8pt;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .step-content {
       flex: 1;
+      font-size: 8.5pt;
     }
 
     .step-content strong {
       color: #0f172a;
     }
 
-    /* Footer Note */
+    /* Footer */
     .footer-doc {
-      margin-top: 30px;
-      padding-top: 10px;
+      margin-top: 20px;
+      padding-top: 8px;
       border-top: 1px solid #cbd5e1;
-      font-size: 8pt;
+      font-size: 7.5pt;
       color: #64748b;
       display: flex;
       justify-content: space-between;
@@ -312,7 +319,7 @@
 </head>
 <body>
 
-  <!-- COVER PAGE -->
+  <!-- ==================== COVER PAGE ==================== -->
   <div class="cover-page page-break">
     <div class="cover-top">
       <div class="cover-badge">
@@ -322,122 +329,119 @@
         <i class="fa-solid fa-graduation-cap"></i>
       </div>
       <h1 class="cover-title">Bete Yared Sunday School</h1>
-      <div class="cover-title-am">የቤተ ያሬድ ሰንበት ትምህርት ቤት የተማሪዎች መከታተያ ሲስተም</div>
+      <div class="cover-title-am">የቤተ ያሬድ ሰንበት ትምህርት ቤት የአስተዳደር እና የተማሪዎች መከታተያ ሲስተም</div>
       <p class="cover-subtitle">
-        Comprehensive Administration Manual, Attendance Engine Rules & Encoder Operational Guidelines
+        Comprehensive Administration Manual, Attendance Engine Rules, Gradebook System, Batch Report Cards & Encoder Operational Guide
       </p>
 
       <div class="cover-features-pills">
         <div class="cover-pill"><i class="fa-solid fa-language"></i> Bilingual (English & አማርኛ)</div>
         <div class="cover-pill"><i class="fa-solid fa-clock"></i> Ethiopian Dual-Time Engine</div>
-        <div class="cover-pill"><i class="fa-solid fa-lock"></i> Locked Finalized Attendance</div>
+        <div class="cover-pill"><i class="fa-solid fa-lock"></i> Finalized Attendance Locking</div>
         <div class="cover-pill"><i class="fa-solid fa-bell"></i> 3-Absent Urgent Alerts</div>
         <div class="cover-pill"><i class="fa-solid fa-users"></i> Automatic Sibling Grouping</div>
         <div class="cover-pill"><i class="fa-solid fa-arrows-split-up-and-left"></i> Cross-Category Makeups</div>
+        <div class="cover-pill"><i class="fa-solid fa-award"></i> Gradebook & Assessment Engine</div>
+        <div class="cover-pill"><i class="fa-solid fa-print"></i> Batch Single-Page Report Cards</div>
       </div>
     </div>
 
     <div class="cover-footer">
-      <div><strong>Version:</strong> 2.0 (Release Edition)</div>
+      <div><strong>Version:</strong> 2.5 (Complete Production Edition)</div>
       <div><strong>Parish Sunday School Administration</strong></div>
-      <div><strong>Date:</strong> 2026</div>
+      <div><strong>Academic Year:</strong> 2025 ዓ.ም. (2025 E.C.)</div>
     </div>
   </div>
 
-  <!-- SECTION 1: SYSTEM OVERVIEW -->
+  <!-- ==================== SECTION 1: SYSTEM OVERVIEW ==================== -->
   <div class="section-header">
-    <i class="fa-solid fa-circle-info" style="color: #2563eb; font-size: 14pt;"></i>
+    <i class="fa-solid fa-circle-info" style="color: #2563eb; font-size: 13pt;"></i>
     <h1>1. System Overview & Core Capabilities</h1>
   </div>
 
   <p>
-    The <strong>Bete Yared Sunday School Attendance & Student Management System</strong> is a cloud-ready platform tailored to automate attendance taking, maintain clean student directories, streamline family/sibling pastoral care, and prevent dropouts through real-time attendance alerts.
+    The <strong>Bete Yared Sunday School Management System</strong> is a cloud-ready platform designed to automate attendance recording, manage comprehensive student and family profiles, power an academic grading and assessment engine, generate individual single-page student report cards, and provide proactive pastoral follow-up.
   </p>
 
   <div class="grid-2 avoid-break">
     <div class="card card-primary">
-      <h3 style="color: #1e40af;"><i class="fa-solid fa-shield-halved"></i> Role Integrity & Scoped Access</h3>
-      <p style="font-size: 8.8pt;">
-        Two distinct user levels ensure maximum data security. <strong>Administrators</strong> oversee scheduling, student records, and reports, while <strong>Encoders</strong> have access limited strictly to the sessions assigned to them.
+      <h3 style="color: #1e40af;"><i class="fa-solid fa-shield-halved"></i> Scoped Access & Operational Integrity</h3>
+      <p>
+        Clean role segregation between <strong>Administrators</strong> (handling scheduling, student profiles, assessments, report cards, and promotions) and <strong>Attendance Encoders</strong> (restricted strictly to assigned class rosters).
       </p>
     </div>
     <div class="card card-success">
       <h3 style="color: #15803d;"><i class="fa-solid fa-lock"></i> Draft vs. Finalized Locking</h3>
-      <p style="font-size: 8.8pt;">
-        Encoders can save in-progress sessions as <strong>Drafts</strong>. Once <strong>Finalized</strong>, the session is securely locked against further edits to preserve audit compliance.
+      <p>
+        Encoders can save ongoing sessions as working <strong>Drafts</strong>. Once <strong>Finalized</strong>, attendance sheets are locked against unauthorized alterations to ensure strict historical compliance.
       </p>
     </div>
   </div>
 
   <div class="grid-2 avoid-break">
     <div class="card card-warning">
-      <h3 style="color: #b45309;"><i class="fa-solid fa-clock"></i> Ethiopian Dual-Time Support</h3>
-      <p style="font-size: 8.8pt;">
-        Built-in Ethiopian time conversion bridges international standard time and traditional parish hours (e.g., 09:00 - 11:00 EAT automatically renders as ከጠዋቱ 3:00 - 5:00 ሰዓት).
+      <h3 style="color: #b45309;"><i class="fa-solid fa-clock"></i> Ethiopian Dual-Time Engine</h3>
+      <p>
+        Bridges international 24-hour schedules with traditional Ethiopian parish hours (e.g. <code>09:00 - 11:00 EAT</code> renders automatically as <code>ከጠዋቱ 3:00 - 5:00 ሰዓት</code>).
       </p>
     </div>
-    <div class="card">
-      <h3 style="color: #475569;"><i class="fa-solid fa-arrows-split-up-and-left"></i> Cross-Category Makeup Classes</h3>
-      <p style="font-size: 8.8pt;">
-        Students attending make-up sessions in another grade are recorded with a <em>Cross-Category</em> badge, disabling duplicate marking in their home class and crediting their attendance.
+    <div class="card card-purple">
+      <h3 style="color: #7e22ce;"><i class="fa-solid fa-award"></i> Grade Management & Report Cards</h3>
+      <p>
+        Assessment weighting, batch mark entry sheets, configurable pass/fail thresholds, class rankings, and 1-click single-page printable report cards with official church logo branding.
       </p>
     </div>
   </div>
 
-  <!-- SECTION 2: RBAC PERMISSIONS -->
+  <!-- ==================== SECTION 2: RBAC MATRIX ==================== -->
   <div class="section-header avoid-break">
-    <i class="fa-solid fa-users-gear" style="color: #2563eb; font-size: 14pt;"></i>
+    <i class="fa-solid fa-users-gear" style="color: #2563eb; font-size: 13pt;"></i>
     <h1>2. Role-Based Access Control (RBAC) Matrix</h1>
   </div>
 
   <table class="avoid-break">
     <thead>
       <tr>
-        <th style="width: 48%;">Feature / Permission</th>
-        <th style="width: 26%; text-align: center;">Administrator (አስተዳዳሪ)</th>
-        <th style="width: 26%; text-align: center;">Attendance Encoder (መዝጋቢ)</th>
+        <th style="width: 52%;">Feature / System Capability</th>
+        <th style="width: 24%; text-align: center;">Administrator (አስተዳዳሪ)</th>
+        <th style="width: 24%; text-align: center;">Attendance Encoder (መዝጋቢ)</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>Dashboard & Statistical Reports</strong></td>
+        <td><strong>Dashboard & Statistical KPI Cards</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Access</span></td>
         <td style="text-align: center;"><span class="badge badge-encoder">Summary View</span></td>
       </tr>
       <tr>
-        <td><strong>Student Registration & Profile Editing</strong></td>
+        <td><strong>Student Registration, Profile Editing & History</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
         <td style="text-align: center;"><span class="badge badge-absent">Read-Only</span></td>
       </tr>
       <tr>
-        <td><strong>Family & Sibling Directory</strong></td>
+        <td><strong>Family & Sibling Household Directory</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Access</span></td>
         <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
-        <td><strong>Excel / CSV Bulk Student Import</strong></td>
+        <td><strong>Bulk Excel / CSV Student Import with Verification</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Access</span></td>
         <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
-        <td><strong>Create Sessions & Recurring Series</strong></td>
+        <td><strong>Session Scheduling & Recurrence Engine</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">No</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
         <td><strong>Assign Multiple Encoders to Sessions</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">No</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
-        <td><strong>Edit Upcoming Sessions</strong> (session_date &ge; today)</td>
+        <td><strong>Edit Upcoming Sessions</strong> (<code>session_date &ge; today</code>)</td>
         <td style="text-align: center;"><span class="badge badge-present">Yes (Upcoming Only)</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">No</span></td>
-      </tr>
-      <tr>
-        <td><strong>Edit Past Sessions</strong> (Historical integrity)</td>
-        <td style="text-align: center;"><span class="badge badge-absent">Locked</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">Locked</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
         <td><strong>Record Attendance for Assigned Sessions</strong></td>
@@ -445,32 +449,72 @@
         <td style="text-align: center;"><span class="badge badge-present">Assigned Only</span></td>
       </tr>
       <tr>
-        <td><strong>Save Temporary Attendance Drafts</strong></td>
+        <td><strong>Save Temporary Working Drafts</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Yes</span></td>
         <td style="text-align: center;"><span class="badge badge-present">Yes</span></td>
       </tr>
       <tr>
-        <td><strong>Finalize & Lock Attendance Sheet</strong></td>
+        <td><strong>Finalize & Lock Attendance Sheets</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Yes</span></td>
         <td style="text-align: center;"><span class="badge badge-present">Yes</span></td>
       </tr>
       <tr>
-        <td><strong>Modify Finalized Attendance</strong></td>
+        <td><strong>Modify Finalized / Locked Attendance</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Authorized Edit</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">Locked</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Locked (Contact Admin)</span></td>
       </tr>
       <tr>
-        <td><strong>3-Consecutive-Absent Alerts & Direct Dial</strong></td>
+        <td><strong>Add Cross-Category Make-up Students</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Yes</span></td>
+        <td style="text-align: center;"><span class="badge badge-present">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>3-Consecutive-Absent Urgent Alerts & Direct Dial</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Active Monitor</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">No</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
-        <td><strong>Category Matrix & Excel Export</strong></td>
+        <td><strong>Inactive Students Registry & Reactivation</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>Annual Student Academic Promotions</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>Create Assessments & Configure Weighting</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>Batch Enter & Save Student Marks</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>Configure Minimum Passing Threshold (%)</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>Gradebook Matrix & 1-Click Excel Export</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Export</span></td>
-        <td style="text-align: center;"><span class="badge badge-absent">No</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
       </tr>
       <tr>
-        <td><strong>User Account Creation & Password Resets</strong></td>
+        <td><strong>Batch Report Card Print System (Single Page)</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Generation</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>Category Attendance Matrix & Excel Export</strong></td>
+        <td style="text-align: center;"><span class="badge badge-present">Full Export</span></td>
+        <td style="text-align: center;"><span class="badge badge-absent">Hidden</span></td>
+      </tr>
+      <tr>
+        <td><strong>User Account Administration & Password Resets</strong></td>
         <td style="text-align: center;"><span class="badge badge-present">Full Control</span></td>
         <td style="text-align: center;"><span class="badge badge-absent">Own Password Only</span></td>
       </tr>
@@ -479,20 +523,20 @@
 
   <div class="page-break"></div>
 
-  <!-- SECTION 3: CORE MODULES DETAIL -->
+  <!-- ==================== SECTION 3: DETAILED MODULES ==================== -->
   <div class="section-header">
-    <i class="fa-solid fa-cubes" style="color: #2563eb; font-size: 14pt;"></i>
+    <i class="fa-solid fa-cubes" style="color: #2563eb; font-size: 13pt;"></i>
     <h1>3. Detailed Module Specifications</h1>
   </div>
 
   <h2>3.1 Student Management & Family Sibling Grouping</h2>
   <p>
-    The student registry captures 10 distinct attributes per student: First Name, Father's Name, Mother's Name, Christian (Baptismal) Name, Age, Primary Phone, Emergency / Guardian Contact, Profession/School, Previous Church Service, and Category.
+    The student registry captures 10 distinct attributes: First Name, Father's Name, Mother's Name, Christian (Baptismal) Name, Age, Primary Phone, Emergency / Guardian Phone, Profession/School, Previous Church Service, and Category.
   </p>
   <div class="card card-primary avoid-break">
     <h3 style="color: #1e3a8a;"><i class="fa-solid fa-people-roof"></i> Automated Sibling Grouping Algorithm</h3>
-    <p style="font-size: 8.8pt;">
-      The system executes an automated match across <code>father_name</code> and <code>mother_name</code>. Siblings attending different departments (e.g. one in Child, one in Grade 5, and one in Youth) are organized under a single household banner in the <strong>Families</strong> directory, allowing holistic pastoral coordination.
+    <p>
+      The system executes an automated match across <code>father_name</code> and <code>mother_name</code>. Siblings attending different departments (e.g. one in Child, one in Grade 5, and one in Youth) are automatically organized under a single household banner in the <strong>Families</strong> directory, allowing unified pastoral care and parent notifications.
     </p>
   </div>
 
@@ -500,46 +544,46 @@
   <div class="grid-2 avoid-break">
     <div class="card">
       <h3><i class="fa-solid fa-repeat" style="color: #2563eb;"></i> Flexible Recurrence Series</h3>
-      <p style="font-size: 8.8pt;">
-        Schedule once, or generate weekly/monthly batches (4, 8, 12, 16, or 24 weeks). The system verifies that no schedule overlap occurs in the same category.
+      <p>
+        Schedule one-time classes or generate weekly/monthly batches (4, 8, 12, 16, or 24 weeks). The system verifies that no schedule collision occurs in the same category.
       </p>
     </div>
     <div class="card">
       <h3><i class="fa-solid fa-copy" style="color: #059669;"></i> 1-Click Continue / Copy Session</h3>
-      <p style="font-size: 8.8pt;">
-        Easily duplicate a prior session to next week (+7 days) or next month (+1 month) with all encoders and topics pre-filled.
+      <p>
+        Easily duplicate a prior session to next week (+7 days) or next month (+1 month) with all encoders and course information pre-filled.
       </p>
     </div>
   </div>
 
   <h2>3.3 Attendance Recording & Locking Rules</h2>
   <div class="avoid-break">
-    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-      <div style="flex: 1; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 6px; padding: 8px;">
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <div style="flex: 1; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 6px; padding: 6px 8px;">
         <strong style="color: #166534;"><i class="fa-solid fa-check"></i> Present (ተገኝቷል)</strong>
-        <p style="font-size: 8.2pt; margin: 0; color: #14532d;">Student physically attended the session.</p>
+        <p style="font-size: 7.8pt; margin: 0; color: #14532d;">Student physically attended class.</p>
       </div>
-      <div style="flex: 1; border: 1px solid #fca5a5; background: #fef2f2; border-radius: 6px; padding: 8px;">
+      <div style="flex: 1; border: 1px solid #fca5a5; background: #fef2f2; border-radius: 6px; padding: 6px 8px;">
         <strong style="color: #991b1b;"><i class="fa-solid fa-xmark"></i> Absent (ቀረ)</strong>
-        <p style="font-size: 8.2pt; margin: 0; color: #7f1d1d;">Student missed class without excuse.</p>
+        <p style="font-size: 7.8pt; margin: 0; color: #7f1d1d;">Student missed class without excuse.</p>
       </div>
-      <div style="flex: 1; border: 1px solid #fde68a; background: #fffbeb; border-radius: 6px; padding: 8px;">
+      <div style="flex: 1; border: 1px solid #fde68a; background: #fffbeb; border-radius: 6px; padding: 6px 8px;">
         <strong style="color: #92400e;"><i class="fa-solid fa-clock"></i> Permission (ፈቃድ)</strong>
-        <p style="font-size: 8.2pt; margin: 0; color: #78350f;">Official leave/excuse with remarks.</p>
+        <p style="font-size: 7.8pt; margin: 0; color: #78350f;">Official leave/excuse with reason.</p>
       </div>
     </div>
   </div>
 
   <div class="card card-warning avoid-break">
-    <h3 style="color: #92400e;"><i class="fa-solid fa-shield-virus"></i> Data Integrity Safeguards</h3>
-    <ul style="font-size: 8.8pt; padding-left: 18px; color: #78350f;">
-      <li><strong>Future Date Block</strong>: Attendance cannot be marked prior to the actual session date.</li>
+    <h3 style="color: #92400e;"><i class="fa-solid fa-shield-virus"></i> Attendance Data Safeguards</h3>
+    <ul style="font-size: 8.2pt; padding-left: 16px; color: #78350f;">
+      <li><strong>Future Date Guard</strong>: Attendance cannot be marked prior to the actual session date.</li>
       <li><strong>Finalized Lock</strong>: Finalized attendance is locked for encoders. Only Administrators can adjust locked records.</li>
-      <li><strong>Upcoming-Only Session Edit</strong>: Session details and assigned encoders can only be modified for upcoming dates (<code>session_date &ge; today</code>).</li>
+      <li><strong>Upcoming-Only Session Edit</strong>: Session schedule and assigned encoders can only be modified for upcoming dates (<code>session_date &ge; today</code>).</li>
     </ul>
   </div>
 
-  <h2>3.4 Cross-Category Attendance Workflow</h2>
+  <h2>3.4 Cross-Category Attendance Workflow (Make-up Classes)</h2>
   <p>
     When a student takes a make-up class in another category:
   </p>
@@ -552,7 +596,7 @@
   <div class="step-box avoid-break">
     <div class="step-number">2</div>
     <div class="step-content">
-      <strong>Cross-Category Badge</strong>: The student is marked <code>Present</code> with an amber <em>"Cross-Category"</em> label.
+      <strong>Cross-Category Badge</strong>: The student is marked <code>Present</code> with an amber <em>"Cross-Category"</em> label and receives attendance credit.
     </div>
   </div>
   <div class="step-box avoid-break">
@@ -562,124 +606,219 @@
     </div>
   </div>
 
-  <h2>3.5 3-Consecutive Absent Urgent Alerts</h2>
-  <p>
-    A real-time sliding window scans historical records per category. When a student misses <strong>3 consecutive sessions</strong> in their home category without an excused cross-attendance:
-  </p>
+  <h2>3.5 3-Consecutive Absent Urgent Alerts & Direct Dial</h2>
   <div class="card card-warning avoid-break">
-    <p style="font-size: 8.8pt; margin-bottom: 4px;">
-      <i class="fa-solid fa-phone" style="color: #d97706;"></i> <strong>Immediate Action Triggers:</strong>
+    <h3 style="color: #92400e;"><i class="fa-solid fa-phone" style="color: #d97706;"></i> Proactive Pastoral Follow-Up</h3>
+    <p>
+      A sliding window automatically detects any student who missed <strong>3 consecutive sessions</strong> in their home class. The <strong>3-Absent Alerts</strong> tab provides instant 1-click buttons: <strong>Call Student</strong> and <strong>Call Emergency Contact</strong> for immediate telephone outreach and pastoral note recording.
     </p>
-    <p style="font-size: 8.5pt; color: #92400e; margin: 0;">
-      The <strong>3-Absent Alerts</strong> tab displays their profile, last present date, total absences, and provides two 1-click dial buttons: <strong>Call Student</strong> and <strong>Call Emergency Contact</strong> for instant pastoral outreach.
-    </p>
+  </div>
+
+  <h2>3.6 Inactive Students & Academic Promotions</h2>
+  <div class="grid-2 avoid-break">
+    <div class="card">
+      <h3><i class="fa-solid fa-user-slash" style="color: #64748b;"></i> Inactive Student Registry</h3>
+      <p>
+        Maintains records of withdrawn or paused students with full past history preserved, offering 1-click reactivation at any time.
+      </p>
+    </div>
+    <div class="card">
+      <h3><i class="fa-solid fa-arrows-up-to-line" style="color: #0284c7;"></i> Annual Academic Promotion</h3>
+      <p>
+        Facilitates year-end transitions by advancing students to the next grade level with complete audit logging per student.
+      </p>
+    </div>
   </div>
 
   <div class="page-break"></div>
 
-  <!-- SECTION 4: STEP BY STEP USER GUIDE -->
+  <!-- ==================== SECTION 3.7+: GRADING & REPORT CARDS ==================== -->
   <div class="section-header">
-    <i class="fa-solid fa-book-open-reader" style="color: #2563eb; font-size: 14pt;"></i>
+    <i class="fa-solid fa-award" style="color: #2563eb; font-size: 13pt;"></i>
+    <h1>3.7 Grade Management, Gradebook Matrix & Report Cards</h1>
+  </div>
+
+  <h2>A. Assessment Creation & Weighting Engine</h2>
+  <p>
+    Administrators create and manage academic assessments per category. Key configuration parameters include:
+  </p>
+  <div class="grid-3 avoid-break">
+    <div class="card card-primary">
+      <strong>Category & Semester</strong>
+      <p style="font-size: 8pt; margin-top: 3px;">Assigned to specific Sunday school grades and terms (1st, 2nd, or Summer term).</p>
+    </div>
+    <div class="card card-primary">
+      <strong>Academic Year & Date</strong>
+      <p style="font-size: 8pt; margin-top: 3px;">Full Ethiopian year support from 2026 down to 2018 ዓ.ም. (default 2025 ዓ.ም.) with dual date conversion.</p>
+    </div>
+    <div class="card card-primary">
+      <strong>Weight (%) & Max Score</strong>
+      <p style="font-size: 8pt; margin-top: 3px;">Can weight 100% individually or split into multiple tests (e.g. 20%, 30%, 50%) totaling 100%.</p>
+    </div>
+  </div>
+
+  <h2>B. Batch Student Mark Entry Sheet (ሞላ/ግቤት)</h2>
+  <div class="card card-purple avoid-break">
+    <h3 style="color: #6b21a8;"><i class="fa-solid fa-pen-to-square"></i> Rapid Matrix Mark Entry</h3>
+    <p>
+      Clicking <strong>"ውጤት መዝግብ / ሞላ"</strong> opens a spreadsheet-style modal populated with all students in the class. Teachers and administrators can enter scores rapidly using keyboard navigation (Tab/Enter), with live percentage previews, max-score enforcement, and 1-click batch saving.
+    </p>
+  </div>
+
+  <h2>C. Configurable Passing Threshold & Pure-Numerical Grading</h2>
+  <div class="grid-2 avoid-break">
+    <div class="card card-success">
+      <h3 style="color: #15803d;"><i class="fa-solid fa-flag-checkered"></i> Minimum Pass Threshold</h3>
+      <p>
+        Administrators configure the passing score percentage (default <strong>50%</strong>) globally or per category.
+      </p>
+    </div>
+    <div class="card card-primary">
+      <h3 style="color: #1e40af;"><i class="fa-solid fa-chart-column"></i> Pure Numerical Ranking</h3>
+      <p>
+        No arbitrary letter grades (A, B, C, D). Students are evaluated on weighted total, overall percentage, class rank, and <strong>Pass (አልፏል) / Fail (አላለፈም)</strong> status.
+      </p>
+    </div>
+  </div>
+
+  <h2>D. Gradebook Summary Matrix & Excel Export</h2>
+  <p>
+    The <strong>Gradebook Matrix</strong> provides a master tabulation table of the entire class across all tests in the semester, displaying:
+  </p>
+  <ul style="font-size: 8.5pt; padding-left: 18px; margin-bottom: 8px;">
+    <li>Individual scores and weighted points for each assessment held in the semester.</li>
+    <li>Cumulative Total Weighted Score (%) achieved out of 100%.</li>
+    <li><strong>Class Rank (ደረጃ)</strong> calculated dynamically and ordered from 1st place downwards.</li>
+    <li>Final Result Badge: <strong>አልፏል (Pass)</strong> in green or <strong>አላለፈም (Fail)</strong> in red.</li>
+    <li><strong>1-Click Excel Export</strong>: Downloads the formatted gradebook spreadsheet for official records.</li>
+  </ul>
+
+  <h2>E. Batch Report Card Print System (Single-Page Layout)</h2>
+  <div class="card card-primary avoid-break">
+    <h3 style="color: #1e3a8a;"><i class="fa-solid fa-print"></i> Ink-Friendly Monochrome Single-Page Format</h3>
+    <p>
+      The <strong>Batch Report Cards (ውጤት ካርድ አትም)</strong> system generates individual student report cards formatted to fit exactly <strong>1 student per page</strong> for clean printing.
+    </p>
+    <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 8pt;">
+      <div style="flex: 1; border: 1px solid #cbd5e1; background: #ffffff; padding: 6px; border-radius: 4px;">
+        <strong>Header & Identity</strong>: Church logo, Parish Title, Student Full Name, Baptismal Name, Category, Semester, Academic Year.
+      </div>
+      <div style="flex: 1; border: 1px solid #cbd5e1; background: #ffffff; padding: 6px; border-radius: 4px;">
+        <strong>Academic Breakdown</strong>: Detailed table of all tests taken, max scores, scores obtained, weights, and weighted contribution.
+      </div>
+      <div style="flex: 1; border: 1px solid #cbd5e1; background: #ffffff; padding: 6px; border-radius: 4px;">
+        <strong>Summary & Signatures</strong>: Total Score, Class Rank (ደረጃ), Status (አልፏል/አላለፈም), and official signature lines for Teacher and Admin.
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== SECTION 4: STEP-BY-STEP USER MANUAL ==================== -->
+  <div class="section-header">
+    <i class="fa-solid fa-book-open-reader" style="color: #2563eb; font-size: 13pt;"></i>
     <h1>4. Step-by-Step User Manual</h1>
   </div>
 
-  <h2><i class="fa-solid fa-user-pen" style="color: #7e22ce;"></i> A. User Guide for Attendance Encoders (መዝጋቢዎች)</h2>
-  
+  <h2><i class="fa-solid fa-user-pen" style="color: #7e22ce;"></i> 4.1 Guide for Attendance Encoders (መዝጋቢዎች)</h2>
+
   <div class="step-box avoid-break">
     <div class="step-number">1</div>
     <div class="step-content">
-      <strong>Login to Portal</strong>: Enter your encoder username and password.
+      <strong>Login</strong>: Enter your encoder username and password on the login screen.
     </div>
   </div>
   <div class="step-box avoid-break">
     <div class="step-number">2</div>
     <div class="step-content">
-      <strong>Find Assigned Session</strong>: Navigate to the <strong>Sessions (የትምህርት ክፍለ-ጊዜያት)</strong> tab. Sessions assigned to you will feature a green <em>"Assigned to You"</em> badge.
+      <strong>Locate Assigned Session</strong>: Navigate to the <strong>Sessions (ክፍለ-ጊዜያት)</strong> tab. Your assigned sessions feature a green <em>"Assigned to You"</em> badge.
     </div>
   </div>
   <div class="step-box avoid-break">
     <div class="step-number">3</div>
     <div class="step-content">
-      <strong>Open Attendance Form</strong>: Click <strong>Take Attendance (መገኘት መዝግብ)</strong>.
+      <strong>Open Attendance Form</strong>: Click <strong>Take Attendance (መገኘት መዝግብ)</strong> on the session card.
     </div>
   </div>
   <div class="step-box avoid-break">
     <div class="step-number">4</div>
     <div class="step-content">
-      <strong>Mark Attendance</strong>: Use <strong>Mark All Present</strong> for quick bulk marking, or select individual status pills for each student. Add notes for permissions.
+      <strong>Mark Attendance</strong>: Use <strong>Mark All Present</strong> for quick bulk recording, or toggle individual student badges between <strong>Present (ተገኝቷል)</strong>, <strong>Absent (ቀረ)</strong>, or <strong>Permission (ፈቃድ)</strong>.
     </div>
   </div>
   <div class="step-box avoid-break">
     <div class="step-number">5</div>
     <div class="step-content">
+      <strong>Add Make-up Students (Cross-Category)</strong>: If a student from another category attends, click <em>"+ Add Student from Other Category"</em>, search their name, and add them.
+    </div>
+  </div>
+  <div class="step-box avoid-break">
+    <div class="step-number">6</div>
+    <div class="step-content">
       <strong>Save Draft vs. Finalize</strong>:
-      <br>&bull; Click <strong>Save Draft</strong> if class is still ongoing and you need to finish later.
-      <br>&bull; Click <strong>Finalize & Save</strong> once complete to lock the attendance record.
+      <br>&bull; Click <strong>Save Draft (ጊዜያዊ ረቂቅ)</strong> if the class is ongoing and you will complete it later.
+      <br>&bull; Click <strong>Finalize & Save (አጽድቀህ መዝግብ)</strong> once complete to lock the attendance record.
     </div>
   </div>
 
-  <hr style="margin: 16px 0; border: 0; border-top: 1px solid #e2e8f0;">
+  <hr style="margin: 14px 0; border: 0; border-top: 1px solid #e2e8f0;">
 
-  <h2><i class="fa-solid fa-user-gear" style="color: #2563eb;"></i> B. User Guide for System Administrators (አስተዳዳሪዎች)</h2>
+  <h2><i class="fa-solid fa-user-gear" style="color: #2563eb;"></i> 4.2 Guide for System Administrators (አስተዳዳሪዎች)</h2>
 
   <div class="step-box avoid-break">
     <div class="step-number">1</div>
     <div class="step-content">
-      <strong>Registering New Students</strong>:
-      <br>Go to <strong>Students</strong> &rarr; click <strong>"+ Register New Student"</strong> &rarr; Fill in student and parental details &rarr; Click <strong>Save</strong>.
+      <strong>Student Registration & Import</strong>:
+      <br>&bull; Go to <strong>Students</strong> &rarr; click <strong>"+ Register New Student"</strong> &rarr; Fill in details &rarr; Click <strong>Save</strong>.
+      <br>&bull; To import in bulk, go to <strong>Category Attendance Matrix</strong> &rarr; click <strong>"Import from Excel/CSV"</strong>.
     </div>
   </div>
 
   <div class="step-box avoid-break">
     <div class="step-number">2</div>
     <div class="step-content">
-      <strong>Scheduling a Class & Assigning Encoders</strong>:
-      <br>Go to <strong>Sessions</strong> &rarr; click <strong>"+ Create New Session"</strong> &rarr; Fill title, date, start/end time (Ethiopian time preview updates automatically) &rarr; Check one or more encoders in the <strong>Assigned Encoders</strong> checklist &rarr; Choose optional recurrence (e.g., Weekly 12 weeks) &rarr; Click <strong>Create</strong>.
+      <strong>Session Scheduling & Assigning Encoders</strong>:
+      <br>Go to <strong>Sessions</strong> &rarr; click <strong>"+ Create New Session"</strong> &rarr; Fill title, date, time (check Ethiopian dual-time preview), select category, check assigned encoders, choose recurrence (e.g. Weekly 12 weeks) &rarr; Click <strong>Create</strong>.
     </div>
   </div>
 
   <div class="step-box avoid-break">
     <div class="step-number">3</div>
     <div class="step-content">
-      <strong>Editing Upcoming Sessions & Re-assigning Encoders</strong>:
-      <br>Click the <strong>Edit (<i class="fa-solid fa-pen-to-square"></i>)</strong> icon on any upcoming session &rarr; Adjust title, time, or check/uncheck encoders &rarr; Click <strong>Save Changes</strong>.
-    </div>
-  </div>
-
-  <div class="step-box avoid-break">
-    <div class="step-number">4</div>
-    <div class="step-content">
-      <strong>Managing 3-Absent Alerts</strong>:
+      <strong>Managing Pastoral 3-Absent Alerts</strong>:
       <br>Open the <strong>3-Absent Alerts</strong> tab &rarr; Review flagged students &rarr; Click <strong>Call Student</strong> or <strong>Call Emergency</strong> for immediate telephone outreach.
     </div>
   </div>
 
   <div class="step-box avoid-break">
+    <div class="step-number">4</div>
+    <div class="step-content">
+      <strong>Managing Assessments & Entering Marks</strong>:
+      <br>&bull; Open <strong>Gradebook (የውጤት መመዝገቢያ)</strong> &rarr; click <strong>"+ አዲስ ፈተና / ምዘና ፍጠር"</strong> &rarr; Set Category, Semester, Academic Year (`2025 ዓ.ም.`), Date, Weight, and Max Score.
+      <br>&bull; Click <strong>"ውጤት መዝግብ / ሞላ (Enter Marks)"</strong> on the assessment &rarr; enter student scores in the batch modal &rarr; click <strong>Save All Marks</strong>.
+    </div>
+  </div>
+
+  <div class="step-box avoid-break">
     <div class="step-number">5</div>
     <div class="step-content">
-      <strong>Exporting Category Matrix Reports</strong>:
-      <br>Open <strong>Category Matrix & Export</strong> &rarr; Select Category filter &rarr; Click <strong>Export to Excel</strong> for parish reporting.
+      <strong>Gradebook Matrix & Report Card Batch Printing</strong>:
+      <br>&bull; Click <strong>የውጤት ሰንጠረዥ (Gradebook Matrix)</strong> to inspect class ranking and export to Excel.
+      <br>&bull; Click <strong>ውጤት ካርድ አትም (Batch Report Cards)</strong> &rarr; click <strong>አትም / በ-PDF አስቀምጥ</strong> to print all single-page report cards at once.
     </div>
   </div>
 
   <div class="step-box avoid-break">
     <div class="step-number">6</div>
     <div class="step-content">
-      <strong>Bulk Importing Students from Excel</strong>:
-      <br>Go to <strong>Category Matrix & Export</strong> &rarr; click <strong>"Import from Excel/CSV"</strong> &rarr; Download the template &rarr; Fill in your data &rarr; Upload & confirm the pre-validation table.
-    </div>
-  </div>
-
-  <div class="step-box avoid-break">
-    <div class="step-number">7</div>
-    <div class="step-content">
-      <strong>User Management</strong>:
-      <br>Go to <strong>User Management</strong> to create new Encoder accounts or reset forgotten passwords.
+      <strong>Academic Promotions & User Management</strong>:
+      <br>&bull; Go to <strong>Promotions (የክፍል ሽግግር)</strong> to advance students at year-end.
+      <br>&bull; Go to <strong>User Management (ተጠቃሚዎች)</strong> to create Encoder accounts and manage credentials.
     </div>
   </div>
 
   <div class="footer-doc avoid-break">
-    <div>Bete Yared Sunday School Management System &bull; User Manual</div>
+    <div>Bete Yared Sunday School Management System &bull; Complete User Manual</div>
     <div>Strictly for Internal Parish Administration</div>
   </div>
 
