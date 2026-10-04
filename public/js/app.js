@@ -290,7 +290,7 @@ function switchTab(tabName) {
   const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
 
   // Role access guards
-  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'users') && !isAdmin) {
+  if ((tabName === 'dashboard' || tabName === 'categoryMatrix' || tabName === 'grades' || tabName === 'alerts' || tabName === 'inactive' || tabName === 'users') && !isAdmin) {
     tabName = 'sessions';
   }
   if ((tabName === 'promotions' || tabName === 'analytics' || tabName === 'backup' || tabName === 'auditLogs') && !isSuperAdmin) {
@@ -323,6 +323,7 @@ function switchTab(tabName) {
   if (tabName === 'promotions' && isSuperAdmin) loadPromotionCandidateStudents();
   if (tabName === 'analytics' && isSuperAdmin) loadAdvancedAnalytics();
   if (tabName === 'categoryMatrix' && isAdmin) loadCategoryMatrix();
+  if (tabName === 'grades' && isAdmin) loadAssessments();
   if (tabName === 'alerts' && isAdmin) load3AbsentAlerts();
   if (tabName === 'inactive' && isAdmin) loadInactiveStudents();
   if (tabName === 'backup' && isSuperAdmin) loadWeeklyArchives();
@@ -343,6 +344,7 @@ function refreshActiveTabData() {
   else if (tabId === 'tabPromotions' && isSuperAdmin) loadPromotionCandidateStudents();
   else if (tabId === 'tabAnalytics' && isSuperAdmin) loadAdvancedAnalytics();
   else if (tabId === 'tabCategoryMatrix') loadCategoryMatrix();
+  else if (tabId === 'tabGrades' && isAdmin) loadAssessments();
   else if (tabId === 'tabAlerts') load3AbsentAlerts();
   else if (tabId === 'tabInactive') loadInactiveStudents();
   else if (tabId === 'tabBackup' && isSuperAdmin) loadWeeklyArchives();
@@ -4738,6 +4740,1102 @@ function formatDate(dateStr) {
   }
 
   return d.toISOString().split('T')[0];
+}
+
+// ==========================================================================
+// GRADE & ASSESSMENT MANAGEMENT LOGIC
+// ==========================================================================
+let currentAssessmentsList = [];
+let activeAssessmentId = null;
+let activeAssessmentData = null;
+let activeAssessmentRoster = [];
+let currentPassThreshold = 50.0;
+let currentMatrixData = null;
+let currentReportCardsData = [];
+
+// Assessment Type Badges helper
+function getAssessmentTypeBadge(type) {
+  switch (type) {
+    case 'quiz':
+      return `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-list-check"></i> ${t('typeQuiz')}</span>`;
+    case 'midterm':
+      return `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;"><i class="fa-solid fa-file-pen"></i> ${t('typeMidterm')}</span>`;
+    case 'final':
+      return `<span class="badge" style="background:#fce7f3; color:#9d174d; border:1px solid #fbcfe8;"><i class="fa-solid fa-graduation-cap"></i> ${t('typeFinal')}</span>`;
+    case 'assignment':
+      return `<span class="badge" style="background:#f3e8ff; color:#6b21a8; border:1px solid #e9d5ff;"><i class="fa-solid fa-book-open"></i> ${t('typeAssignment')}</span>`;
+    case 'oral':
+      return `<span class="badge" style="background:#dcfce7; color:#166534; border:1px solid #bbf7d0;"><i class="fa-solid fa-microphone"></i> ${t('typeOral')}</span>`;
+    case 'project':
+      return `<span class="badge" style="background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;"><i class="fa-solid fa-diagram-project"></i> ${t('typeProject')}</span>`;
+    case 'attendance':
+      return `<span class="badge" style="background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe;"><i class="fa-solid fa-user-check"></i> ${t('typeAttendance')}</span>`;
+    default:
+      return `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;">${escapeHtml(type)}</span>`;
+  }
+}
+
+// 1. Load Assessments List
+async function loadAssessments() {
+  const category = document.getElementById('filterGradeCategory')?.value || 'Youth';
+  const semester = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
+  const academicYear = document.getElementById('filterGradeYear')?.value || '2017';
+
+  try {
+    // 1. Fetch pass mark setting
+    const settingsRes = await api(`/api/grades/settings?category=${encodeURIComponent(category)}&semester=${encodeURIComponent(semester)}&academic_year=${encodeURIComponent(academicYear)}`);
+    if (settingsRes && settingsRes.current_pass_mark != null) {
+      currentPassThreshold = parseFloat(settingsRes.current_pass_mark);
+      const passDisplay = document.getElementById('displayCurrentPassMark');
+      if (passDisplay) passDisplay.textContent = `${currentPassThreshold}%`;
+    }
+
+    // 2. Fetch assessments
+    const res = await api(`/api/grades/assessments?category=${encodeURIComponent(category)}&semester=${encodeURIComponent(semester)}&academic_year=${encodeURIComponent(academicYear)}`);
+    const assessments = res.assessments || [];
+    currentAssessmentsList = assessments;
+
+    const tbody = document.getElementById('assessmentsTableBody');
+    const mobileContainer = document.getElementById('assessmentsCardContainer');
+    if (tbody) tbody.innerHTML = '';
+    if (mobileContainer) mobileContainer.innerHTML = '';
+
+    // Calculate sum of weights for this category & semester
+    const totalWeights = assessments.reduce((acc, a) => acc + (parseFloat(a.weight) || 0), 0);
+    const weightSummaryText = document.getElementById('gradeWeightSummaryText');
+    const weightTargetBadge = document.getElementById('gradeWeightTargetBadge');
+
+    if (weightSummaryText) {
+      weightSummaryText.innerHTML = `በዚህ መንፈቀ ዓመት የተዘጋጁ ፈተናዎች አጠቃላይ ድርሻ፡ <strong style="font-size:1.05rem;">${totalWeights}%</strong> (ጠቅላላ ፈተናዎች: ${assessments.length})`;
+    }
+    if (weightTargetBadge) {
+      if (totalWeights === 100) {
+        weightTargetBadge.innerHTML = `<span class="badge" style="background: #15803d; color: #fff;"><i class="fa-solid fa-circle-check"></i> ሙሉ 100% ተሞልቷል</span>`;
+      } else if (totalWeights > 100) {
+        weightTargetBadge.innerHTML = `<span class="badge" style="background: #b91c1c; color: #fff;"><i class="fa-solid fa-triangle-exclamation"></i> ድምር ከ100% በልጧል (${totalWeights}%)</span>`;
+      } else {
+        weightTargetBadge.innerHTML = `<span class="badge" style="background: #0284c7; color: #fff;">የቀረው ድርሻ፡ ${100 - totalWeights}%</span>`;
+      }
+    }
+
+    if (assessments.length === 0) {
+      const emptyHtml = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;"><i class="fa-solid fa-clipboard-list" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>${t('noAssessments')}</td></tr>`;
+      if (tbody) tbody.innerHTML = emptyHtml;
+      if (mobileContainer) mobileContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;"><i class="fa-solid fa-clipboard-list" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>${t('noAssessments')}</div>`;
+      return;
+    }
+
+    assessments.forEach(a => {
+      const totalStudents = parseInt(a.total_students, 10) || 0;
+      const gradedStudents = parseInt(a.graded_students, 10) || 0;
+      const progressPct = totalStudents > 0 ? Math.round((gradedStudents / totalStudents) * 100) : 0;
+      const weightNum = parseFloat(a.weight) || 0;
+      const maxScoreNum = parseFloat(a.max_score) || 100;
+
+      // Progress bar color
+      let progressColor = '#3b82f6';
+      if (progressPct === 100) progressColor = '#10b981';
+      else if (progressPct > 0) progressColor = '#f59e0b';
+
+      // Desktop row
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${escapeHtml(a.title)}</div>
+            ${a.description ? `<div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">${escapeHtml(a.description)}</div>` : ''}
+          </td>
+          <td>${getAssessmentTypeBadge(a.assessment_type)}</td>
+          <td style="font-size: 0.88rem; font-weight: 500;">
+            ${formatDate(a.exam_date)}
+          </td>
+          <td>
+            <span class="badge-weight-pill"><i class="fa-solid fa-percent"></i> ${weightNum}%</span>
+          </td>
+          <td>
+            <strong style="color: var(--text-main);">${maxScoreNum}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">pts</span>
+          </td>
+          <td style="min-width: 140px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 3px;">
+              <span style="font-weight: 600; color: ${gradedStudents > 0 ? '#1e293b' : '#94a3b8'};">${gradedStudents} / ${totalStudents}</span>
+              <span style="color: ${progressColor}; font-weight: 700;">${progressPct}%</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+              <div style="width: ${progressPct}%; height: 100%; background: ${progressColor}; transition: width 0.3s ease;"></div>
+            </div>
+          </td>
+          <td style="text-align: right; white-space: nowrap;">
+            <div style="display: inline-flex; gap: 0.4rem;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="openGradeEntryModal(${a.id})" title="${t('enterMarks')}">
+                <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="enterMarks">${t('enterMarks')}</span>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="openEditAssessmentModal(${a.id})" title="Edit">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="deleteAssessment(${a.id})" title="Delete">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // Mobile card
+      if (mobileContainer) {
+        const card = document.createElement('div');
+        card.className = 'mobile-card';
+        card.style.cssText = 'background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);';
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; gap: 0.5rem;">
+            <div>
+              <div style="font-weight: 700; font-size: 1rem; color: var(--text-main);">${escapeHtml(a.title)}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                <i class="fa-regular fa-calendar" style="margin-right: 3px;"></i> ${formatDate(a.exam_date)}
+              </div>
+            </div>
+            ${getAssessmentTypeBadge(a.assessment_type)}
+          </div>
+
+          <div style="display: flex; gap: 0.6rem; margin: 0.6rem 0; font-size: 0.82rem; flex-wrap: wrap;">
+            <span class="badge-weight-pill">ክብደት: <strong>${weightNum}%</strong></span>
+            <span style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.2rem 0.5rem; font-weight: 600;">ሙሉ ነጥብ: <strong>${maxScoreNum}</strong></span>
+          </div>
+
+          <div style="margin: 0.6rem 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 3px;">
+              <span>ውጤት የተሞላ: <strong>${gradedStudents} / ${totalStudents}</strong></span>
+              <span style="color: ${progressColor}; font-weight: 700;">${progressPct}%</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+              <div style="width: ${progressPct}%; height: 100%; background: ${progressColor};"></div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px solid #f1f5f9;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openGradeEntryModal(${a.id})" style="flex: 1; margin-right: 0.5rem;">
+              <i class="fa-solid fa-pen-to-square"></i> ${t('enterMarks')}
+            </button>
+            <div style="display: flex; gap: 0.35rem;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="openEditAssessmentModal(${a.id})"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" class="btn btn-outline btn-sm" style="color: #ef4444;" onclick="deleteAssessment(${a.id})"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+          </div>
+        `;
+        mobileContainer.appendChild(card);
+      }
+    });
+  } catch (err) {
+    console.error('Error loading assessments:', err);
+  }
+}
+
+// 2. Open Create Assessment Modal
+function openCreateAssessmentModal() {
+  document.getElementById('formAssessment').reset();
+  document.getElementById('assessmentEditId').value = '';
+  document.getElementById('modalAssessmentTitle').textContent = t('createAssessment');
+
+  // Pre-fill category & semester from main filter
+  const curCat = document.getElementById('filterGradeCategory')?.value || 'Youth';
+  const curSem = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
+  const curYear = document.getElementById('filterGradeYear')?.value || '2017';
+
+  document.getElementById('assessmentCategory').value = curCat;
+  document.getElementById('assessmentSemester').value = curSem;
+  document.getElementById('assessmentAcademicYear').value = curYear;
+
+  const todayIso = new Date().toISOString().split('T')[0];
+  document.getElementById('assessmentExamDate').value = todayIso;
+  updateAssessmentEthDateHint(todayIso);
+
+  // Auto calculate remaining weight to reach 100% or default 100
+  const existingSum = currentAssessmentsList.reduce((acc, a) => acc + (parseFloat(a.weight) || 0), 0);
+  let defaultWeight = 100;
+  if (existingSum > 0 && existingSum < 100) {
+    defaultWeight = 100 - existingSum;
+  }
+  document.getElementById('assessmentWeight').value = defaultWeight;
+  document.getElementById('assessmentMaxScore').value = 100;
+
+  // Add change listener to date input for live Ethiopian date preview
+  const dateInput = document.getElementById('assessmentExamDate');
+  if (dateInput) {
+    dateInput.oninput = () => updateAssessmentEthDateHint(dateInput.value);
+  }
+
+  openModal('modalAssessment');
+}
+
+function updateAssessmentEthDateHint(dateStr) {
+  const hintEl = document.getElementById('assessmentEthDateHint');
+  if (!hintEl) return;
+  if (!dateStr) {
+    hintEl.textContent = '';
+    return;
+  }
+  const eth = gregorianToEthiopian(dateStr);
+  if (eth && eth.month) {
+    const monthName = ETHIOPIAN_MONTHS_AM[eth.month - 1] || '';
+    hintEl.textContent = `📅 የኢትዮጵያ ቀን፡ ${monthName} ${eth.day} ቀን ${eth.year} ዓ.ም.`;
+  } else {
+    hintEl.textContent = '';
+  }
+}
+
+// 3. Open Edit Assessment Modal
+async function openEditAssessmentModal(id) {
+  try {
+    const res = await api(`/api/grades/assessments/${id}`);
+    if (!res || !res.assessment) return;
+    const a = res.assessment;
+
+    document.getElementById('assessmentEditId').value = a.id;
+    document.getElementById('modalAssessmentTitle').textContent = t('editAssessment');
+    document.getElementById('assessmentCategory').value = a.category;
+    document.getElementById('assessmentType').value = a.assessment_type || 'exam';
+    document.getElementById('assessmentTitle').value = a.title;
+    document.getElementById('assessmentSemester').value = a.semester || 'Semester 1';
+    document.getElementById('assessmentAcademicYear').value = a.academic_year || '2017';
+    
+    const examDateStr = a.exam_date ? new Date(a.exam_date).toISOString().split('T')[0] : '';
+    document.getElementById('assessmentExamDate').value = examDateStr;
+    updateAssessmentEthDateHint(examDateStr);
+
+    document.getElementById('assessmentWeight').value = a.weight || 100;
+    document.getElementById('assessmentMaxScore').value = a.max_score || 100;
+    document.getElementById('assessmentDescription').value = a.description || '';
+
+    const dateInput = document.getElementById('assessmentExamDate');
+    if (dateInput) {
+      dateInput.oninput = () => updateAssessmentEthDateHint(dateInput.value);
+    }
+
+    openModal('modalAssessment');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+// 4. Save Assessment (Create or Update)
+async function handleSaveAssessment(e) {
+  e.preventDefault();
+  const editId = document.getElementById('assessmentEditId').value;
+  const category = document.getElementById('assessmentCategory').value;
+  const assessment_type = document.getElementById('assessmentType').value;
+  const title = document.getElementById('assessmentTitle').value.trim();
+  const semester = document.getElementById('assessmentSemester').value;
+  const academic_year = document.getElementById('assessmentAcademicYear').value;
+  const exam_date = document.getElementById('assessmentExamDate').value;
+  const weight = parseFloat(document.getElementById('assessmentWeight').value);
+  const max_score = parseFloat(document.getElementById('assessmentMaxScore').value);
+  const description = document.getElementById('assessmentDescription').value.trim();
+
+  if (isNaN(weight) || weight <= 0 || weight > 100) {
+    showToast('Weight must be between 1% and 100%', 'danger');
+    return;
+  }
+
+  const payload = {
+    category,
+    assessment_type,
+    title,
+    semester,
+    academic_year,
+    exam_date,
+    weight,
+    max_score,
+    description
+  };
+
+  const btn = document.getElementById('btnSubmitAssessment');
+  btn.disabled = true;
+
+  try {
+    if (editId) {
+      await api(`/api/grades/assessments/${editId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+      showToast('Assessment updated successfully!', 'success');
+    } else {
+      await api('/api/grades/assessments', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      showToast('Assessment created successfully!', 'success');
+    }
+
+    closeModal('modalAssessment');
+    loadAssessments();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 5. Delete Assessment
+async function deleteAssessment(id) {
+  if (!confirm(t('deleteAssessmentConfirm'))) return;
+  try {
+    await api(`/api/grades/assessments/${id}`, { method: 'DELETE' });
+    showToast('Assessment deleted successfully', 'info');
+    loadAssessments();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+// 6. Pass Mark Modal & Save
+function openPassMarkModal() {
+  const curCat = document.getElementById('filterGradeCategory')?.value || 'all';
+  const passCatSelect = document.getElementById('passMarkCategory');
+  if (passCatSelect) passCatSelect.value = curCat;
+
+  const inputVal = document.getElementById('inputPassMarkValue');
+  if (inputVal) inputVal.value = currentPassThreshold;
+
+  openModal('modalPassMark');
+}
+
+async function handleSavePassMark(e) {
+  e.preventDefault();
+  const category = document.getElementById('passMarkCategory').value;
+  const semester = document.getElementById('filterGradeSemester')?.value || 'all';
+  const academic_year = document.getElementById('filterGradeYear')?.value || '2017';
+  const pass_mark = parseFloat(document.getElementById('inputPassMarkValue').value);
+
+  if (isNaN(pass_mark) || pass_mark < 0 || pass_mark > 100) {
+    showToast('Pass mark must be between 0 and 100%', 'danger');
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmitPassMark');
+  btn.disabled = true;
+
+  try {
+    const res = await api('/api/grades/settings', {
+      method: 'POST',
+      body: JSON.stringify({
+        category,
+        semester,
+        academic_year,
+        pass_mark
+      })
+    });
+
+    currentPassThreshold = pass_mark;
+    const passDisplay = document.getElementById('displayCurrentPassMark');
+    if (passDisplay) passDisplay.textContent = `${pass_mark}%`;
+
+    showToast(res.message || 'Pass mark updated!', 'success');
+    closeModal('modalPassMark');
+    loadAssessments();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 7. Student Mark Entry Roster (Batch fill marks)
+async function openGradeEntryModal(assessmentId) {
+  activeAssessmentId = assessmentId;
+  try {
+    const res = await api(`/api/grades/assessments/${assessmentId}/roster`);
+    if (!res || !res.assessment) return;
+
+    activeAssessmentData = res.assessment;
+    activeAssessmentRoster = res.roster || [];
+
+    // Title & Subtitle
+    const titleEl = document.getElementById('gradeEntryModalTitle');
+    const subEl = document.getElementById('gradeEntryModalSubtitle');
+    if (titleEl) {
+      titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> ${escapeHtml(activeAssessmentData.title)}`;
+    }
+    if (subEl) {
+      subEl.innerHTML = `
+        <span class="tag tag-category">${activeAssessmentData.category}</span>
+        <span style="margin: 0 4px;">•</span>
+        <span>${activeAssessmentData.semester}</span>
+        <span style="margin: 0 4px;">•</span>
+        <span>ሙሉ ነጥብ: <strong>${activeAssessmentData.max_score}</strong></span>
+        <span style="margin: 0 4px;">•</span>
+        <span>ድርሻ: <strong>${activeAssessmentData.weight}%</strong></span>
+      `;
+    }
+
+    renderGradeEntryRoster();
+    openModal('modalGradeEntry');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+function renderGradeEntryRoster(filterText = '') {
+  const tbody = document.getElementById('gradeEntryTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const maxScore = parseFloat(activeAssessmentData?.max_score) || 100;
+  const weight = parseFloat(activeAssessmentData?.weight) || 100;
+
+  let totalCount = activeAssessmentRoster.length;
+  let filledCount = 0;
+  let absentCount = 0;
+  let scoreSum = 0;
+
+  const query = filterText.trim().toLowerCase();
+
+  const filtered = activeAssessmentRoster.filter(st => {
+    if (!query) return true;
+    const name = `${st.first_name} ${st.father_name} ${st.mother_name || ''} ${st.christian_name || ''}`.toLowerCase();
+    return name.includes(query);
+  });
+
+  filtered.forEach((st, idx) => {
+    const isAbsent = Boolean(st.is_absent);
+    const hasScore = !isAbsent && st.score !== null && st.score !== undefined && st.score !== '';
+    const rawVal = hasScore ? parseFloat(st.score) : '';
+    const weightedVal = hasScore ? ((rawVal / maxScore) * weight).toFixed(1) : (isAbsent ? '0.0' : '-');
+
+    if (hasScore) {
+      filledCount++;
+      scoreSum += rawVal;
+    }
+    if (isAbsent) {
+      absentCount++;
+    }
+
+    const tr = document.createElement('tr');
+    tr.id = `rosterRow_${st.student_id}`;
+    if (isAbsent) tr.style.background = '#fef2f2';
+
+    tr.innerHTML = `
+      <td style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
+      <td>
+        <div style="font-weight: 700; color: #0f172a;">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          ${st.christian_name ? `<span style="color: #b45309;"><i class="fa-solid fa-cross" style="font-size: 0.7rem;"></i> ${escapeHtml(st.christian_name)}</span>` : ''}
+          ${st.phone ? `<span style="margin-left: 6px;"><i class="fa-solid fa-phone" style="font-size: 0.7rem;"></i> ${escapeHtml(st.phone)}</span>` : ''}
+        </div>
+      </td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 0.35rem;">
+          <input 
+            type="number" 
+            class="grade-score-input"
+            id="inputScore_${st.student_id}"
+            min="0" 
+            max="${maxScore}" 
+            step="0.5" 
+            placeholder="0 - ${maxScore}"
+            value="${rawVal}"
+            ${isAbsent ? 'disabled' : ''}
+            oninput="handleRosterScoreInput(${st.student_id}, this.value)"
+            onkeydown="handleRosterScoreKeydown(event, ${st.student_id})"
+          />
+          <span style="font-size: 0.8rem; color: var(--text-muted);">/${maxScore}</span>
+        </div>
+      </td>
+      <td style="text-align: center;">
+        <label style="display: inline-flex; align-items: center; cursor: pointer; gap: 0.3rem; font-size: 0.82rem; color: ${isAbsent ? '#b91c1c' : '#64748b'}; font-weight: 600;">
+          <input 
+            type="checkbox" 
+            id="checkAbsent_${st.student_id}"
+            ${isAbsent ? 'checked' : ''}
+            onchange="handleRosterAbsentChange(${st.student_id}, this.checked)"
+          />
+          <span data-i18n="markAbsent">${t('markAbsent')}</span>
+        </label>
+      </td>
+      <td>
+        <span id="displayWeighted_${st.student_id}" class="badge-weight-pill" style="font-size: 0.85rem;">
+          ${weightedVal}%
+        </span>
+      </td>
+      <td>
+        <input 
+          type="text" 
+          class="form-control" 
+          style="font-size: 0.85rem; padding: 0.35rem 0.6rem;" 
+          placeholder="አስተያየት..." 
+          value="${escapeHtml(st.remarks || '')}"
+          oninput="handleRosterRemarksInput(${st.student_id}, this.value)"
+        />
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Update Roster Header Stats
+  const totalEl = document.getElementById('gradeEntryTotalStudents');
+  const filledEl = document.getElementById('gradeEntryFilledCount');
+  const absentEl = document.getElementById('gradeEntryAbsentCount');
+  const avgEl = document.getElementById('gradeEntryAvgScore');
+
+  if (totalEl) totalEl.textContent = totalCount;
+  if (filledEl) filledEl.textContent = filledCount;
+  if (absentEl) absentEl.textContent = absentCount;
+  if (avgEl) {
+    const avg = filledCount > 0 ? ((scoreSum / filledCount) / maxScore * 100).toFixed(1) : 0;
+    avgEl.textContent = `${avg}%`;
+  }
+}
+
+function filterGradeEntryRoster() {
+  const val = document.getElementById('gradeEntrySearchInput')?.value || '';
+  renderGradeEntryRoster(val);
+}
+
+function handleRosterScoreInput(studentId, value) {
+  const item = activeAssessmentRoster.find(r => r.student_id === studentId);
+  if (!item) return;
+
+  const maxScore = parseFloat(activeAssessmentData?.max_score) || 100;
+  const weight = parseFloat(activeAssessmentData?.weight) || 100;
+
+  if (value === '' || value === null) {
+    item.score = null;
+  } else {
+    let num = parseFloat(value);
+    if (!isNaN(num)) {
+      if (num < 0) num = 0;
+      if (num > maxScore) num = maxScore;
+      item.score = num;
+    }
+  }
+
+  // Update live weighted display
+  const weightEl = document.getElementById(`displayWeighted_${studentId}`);
+  if (weightEl) {
+    if (item.score !== null && item.score !== undefined) {
+      const wVal = ((item.score / maxScore) * weight).toFixed(1);
+      weightEl.textContent = `${wVal}%`;
+    } else {
+      weightEl.textContent = '-';
+    }
+  }
+
+  // Update header stats
+  updateRosterLiveStats();
+}
+
+function handleRosterScoreKeydown(event, studentId) {
+  // Allow Enter key or ArrowDown to move to next student's score input
+  if (event.key === 'Enter' || event.key === 'ArrowDown') {
+    event.preventDefault();
+    const currIdx = activeAssessmentRoster.findIndex(r => r.student_id === studentId);
+    if (currIdx >= 0 && currIdx < activeAssessmentRoster.length - 1) {
+      const nextStudent = activeAssessmentRoster[currIdx + 1];
+      const nextInput = document.getElementById(`inputScore_${nextStudent.student_id}`);
+      if (nextInput && !nextInput.disabled) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    }
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    const currIdx = activeAssessmentRoster.findIndex(r => r.student_id === studentId);
+    if (currIdx > 0) {
+      const prevStudent = activeAssessmentRoster[currIdx - 1];
+      const prevInput = document.getElementById(`inputScore_${prevStudent.student_id}`);
+      if (prevInput && !prevInput.disabled) {
+        prevInput.focus();
+        prevInput.select();
+      }
+    }
+  }
+}
+
+function handleRosterAbsentChange(studentId, isChecked) {
+  const item = activeAssessmentRoster.find(r => r.student_id === studentId);
+  if (!item) return;
+
+  item.is_absent = isChecked;
+  const inputEl = document.getElementById(`inputScore_${studentId}`);
+  const rowEl = document.getElementById(`rosterRow_${studentId}`);
+  const weightEl = document.getElementById(`displayWeighted_${studentId}`);
+
+  if (isChecked) {
+    item.score = null;
+    if (inputEl) {
+      inputEl.value = '';
+      inputEl.disabled = true;
+    }
+    if (rowEl) rowEl.style.background = '#fef2f2';
+    if (weightEl) weightEl.textContent = '0.0%';
+  } else {
+    if (inputEl) {
+      inputEl.disabled = false;
+      inputEl.focus();
+    }
+    if (rowEl) rowEl.style.background = '';
+    if (weightEl) weightEl.textContent = '-';
+  }
+
+  updateRosterLiveStats();
+}
+
+function handleRosterRemarksInput(studentId, value) {
+  const item = activeAssessmentRoster.find(r => r.student_id === studentId);
+  if (item) item.remarks = value;
+}
+
+function updateRosterLiveStats() {
+  const maxScore = parseFloat(activeAssessmentData?.max_score) || 100;
+  let totalCount = activeAssessmentRoster.length;
+  let filledCount = 0;
+  let absentCount = 0;
+  let scoreSum = 0;
+
+  activeAssessmentRoster.forEach(st => {
+    if (st.is_absent) {
+      absentCount++;
+    } else if (st.score !== null && st.score !== undefined && st.score !== '') {
+      filledCount++;
+      scoreSum += parseFloat(st.score);
+    }
+  });
+
+  const filledEl = document.getElementById('gradeEntryFilledCount');
+  const absentEl = document.getElementById('gradeEntryAbsentCount');
+  const avgEl = document.getElementById('gradeEntryAvgScore');
+
+  if (filledEl) filledEl.textContent = filledCount;
+  if (absentEl) absentEl.textContent = absentCount;
+  if (avgEl) {
+    const avg = filledCount > 0 ? ((scoreSum / filledCount) / maxScore * 100).toFixed(1) : 0;
+    avgEl.textContent = `${avg}%`;
+  }
+}
+
+function clearAllGradeScores() {
+  if (!confirm('Are you sure you want to reset all entered marks in this sheet?')) return;
+  activeAssessmentRoster.forEach(r => {
+    r.score = null;
+    r.is_absent = false;
+    r.remarks = '';
+  });
+  renderGradeEntryRoster();
+}
+
+// 8. Save All Roster Marks
+async function saveRosterGrades() {
+  if (!activeAssessmentId) return;
+
+  const btn = document.getElementById('btnSaveRosterGrades');
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('savingGrades')}`;
+
+  const payload = {
+    grades: activeAssessmentRoster.map(st => ({
+      student_id: st.student_id,
+      score: st.score,
+      is_absent: st.is_absent,
+      remarks: st.remarks || ''
+    }))
+  };
+
+  try {
+    const res = await api(`/api/grades/assessments/${activeAssessmentId}/roster`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    showToast(res.message || t('gradesSavedSuccess'), 'success');
+    closeModal('modalGradeEntry');
+    loadAssessments();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ${t('saveGrades')}`;
+  }
+}
+
+// 9. Gradebook Matrix
+function openGradebookMatrixModal() {
+  const curCat = document.getElementById('filterGradeCategory')?.value || 'Youth';
+  const curSem = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
+
+  const catSelect = document.getElementById('matrixCategorySelect');
+  const semSelect = document.getElementById('matrixSemesterSelect');
+  if (catSelect) catSelect.value = curCat;
+  if (semSelect) semSelect.value = curSem;
+
+  loadGradebookMatrix();
+  openModal('modalGradebookMatrix');
+}
+
+async function loadGradebookMatrix() {
+  const category = document.getElementById('matrixCategorySelect')?.value || 'Youth';
+  const semester = document.getElementById('matrixSemesterSelect')?.value || 'Semester 1';
+  const academicYear = document.getElementById('filterGradeYear')?.value || '2017';
+
+  const titleEl = document.getElementById('gradebookMatrixTitle');
+  const subEl = document.getElementById('gradebookMatrixSubtitle');
+  if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-table-cells" style="color: var(--primary);"></i> ${t('gradebookMatrix')} (${category} - ${semester})`;
+  if (subEl) subEl.textContent = `Comprehensive semester grade overview with rank and pass/fail evaluation (Pass Mark: ${currentPassThreshold}%)`;
+
+  try {
+    const res = await api(`/api/grades/matrix?category=${encodeURIComponent(category)}&semester=${encodeURIComponent(semester)}&academic_year=${encodeURIComponent(academicYear)}`);
+    if (!res) return;
+
+    currentMatrixData = res;
+    const thead = document.getElementById('gradebookMatrixThead');
+    const tbody = document.getElementById('gradebookMatrixTbody');
+    if (!thead || !tbody) return;
+
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const assessments = res.assessments || [];
+    const matrix = res.matrix || [];
+    const passMark = res.pass_mark || 50;
+
+    // Build Table Header
+    let theadHtml = `
+      <tr>
+        <th style="width: 40px;">#</th>
+        <th style="min-width: 170px;" data-i18n="studentName">የተማሪው ስም</th>
+    `;
+
+    assessments.forEach(a => {
+      theadHtml += `
+        <th style="text-align: center; min-width: 100px;">
+          <div style="font-weight: 700; color: #1e3a8a;">${escapeHtml(a.title)}</div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 500;">ክብደት፡ ${a.weight}%</div>
+        </th>
+      `;
+    });
+
+    theadHtml += `
+        <th style="text-align: center; min-width: 110px; background: #eff6ff;" data-i18n="totalScore">አጠቃላይ ውጤት</th>
+        <th style="text-align: center; min-width: 95px;" data-i18n="status">ሁኔታ (Pass/Fail)</th>
+        <th style="text-align: center; width: 60px;" data-i18n="rank">ደረጃ</th>
+      </tr>
+    `;
+    thead.innerHTML = theadHtml;
+
+    if (matrix.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${assessments.length + 5}" style="text-align: center; color: var(--text-muted); padding: 2rem;">No students found in this category.</td></tr>`;
+      return;
+    }
+
+    // Build Table Body
+    matrix.forEach((row, idx) => {
+      const st = row.student;
+      let trHtml = `
+        <tr>
+          <td style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
+          <td>
+            <div style="font-weight: 700; color: #0f172a;">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</div>
+            ${st.christian_name ? `<div style="font-size: 0.76rem; color: #b45309;"><i class="fa-solid fa-cross" style="font-size: 0.68rem;"></i> ${escapeHtml(st.christian_name)}</div>` : ''}
+          </td>
+      `;
+
+      assessments.forEach(a => {
+        const sc = row.scores[a.id];
+        if (!sc || (sc.raw_score === null && !sc.is_absent)) {
+          trHtml += `<td style="text-align: center; color: #cbd5e1;">-</td>`;
+        } else if (sc.is_absent) {
+          trHtml += `<td style="text-align: center;"><span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:0.72rem;">አልተፈተነም</span></td>`;
+        } else {
+          trHtml += `
+            <td style="text-align: center;">
+              <span style="font-weight: 700; color: #1e293b;">${sc.raw_score}</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">(${sc.weighted_score}%)</span>
+            </td>
+          `;
+        }
+      });
+
+      // Total Score
+      const totalScore = row.total_score;
+      const isPass = row.pass_status === 'pass';
+      const isUngraded = row.pass_status === 'ungraded';
+
+      let statusBadge = `<span class="badge-ungraded"><i class="fa-solid fa-minus"></i> ${t('statusUngraded')}</span>`;
+      if (isPass) {
+        statusBadge = `<span class="badge-pass"><i class="fa-solid fa-circle-check"></i> ${t('statusPass')}</span>`;
+      } else if (!isUngraded) {
+        statusBadge = `<span class="badge-fail"><i class="fa-solid fa-circle-xmark"></i> ${t('statusFail')}</span>`;
+      }
+
+      trHtml += `
+          <td style="text-align: center; background: #f8fafc;">
+            <strong style="font-size: 1.05rem; color: ${isPass ? '#15803d' : (isUngraded ? '#64748b' : '#b91c1c')};">${row.has_grades ? totalScore + '%' : '-'}</strong>
+          </td>
+          <td style="text-align: center;">${statusBadge}</td>
+          <td style="text-align: center; font-weight: 800; color: #0284c7; font-size: 0.95rem;">${row.rank}</td>
+        </tr>
+      `;
+      tbody.innerHTML += trHtml;
+    });
+
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+function exportGradebookMatrixToExcel() {
+  if (!currentMatrixData || !currentMatrixData.matrix) {
+    showToast('No matrix data available to export', 'danger');
+    return;
+  }
+
+  const { category, semester, academic_year, assessments, matrix, pass_mark } = currentMatrixData;
+  const rows = [];
+
+  // Header row
+  const header = ['#', 'የተማሪው ሙሉ ስም', 'የክርስትና ስም', 'ስልክ'];
+  assessments.forEach(a => {
+    header.push(`${a.title} (${a.weight}%)`);
+  });
+  header.push('አጠቃላይ ውጤት (%)', 'ውጤት (Pass/Fail)', 'ደረጃ');
+  rows.push(header);
+
+  matrix.forEach((row, idx) => {
+    const st = row.student;
+    const r = [
+      idx + 1,
+      `${st.first_name} ${st.father_name}`,
+      st.christian_name || '',
+      st.phone || ''
+    ];
+
+    assessments.forEach(a => {
+      const sc = row.scores[a.id];
+      if (!sc || (sc.raw_score === null && !sc.is_absent)) {
+        r.push('-');
+      } else if (sc.is_absent) {
+        r.push('አልተፈተነም');
+      } else {
+        r.push(sc.raw_score);
+      }
+    });
+
+    r.push(row.has_grades ? `${row.total_score}%` : '-');
+    r.push(row.pass_status === 'pass' ? 'አልፏል (Pass)' : (row.pass_status === 'fail' ? 'አላለፈም (Fail)' : 'አልተመዘገበም'));
+    r.push(row.rank || '-');
+    rows.push(r);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Gradebook');
+
+  const filename = `Sunday_School_Grades_${category}_${semester}_${academic_year}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  showToast('Gradebook Excel exported successfully!', 'success');
+}
+
+// 10. Batch Report Card Print System
+function openBatchReportCardsModal(singleStudentId = null) {
+  const curCat = document.getElementById('filterGradeCategory')?.value || 'Youth';
+  const curSem = document.getElementById('filterGradeSemester')?.value || 'Semester 1';
+
+  const catSelect = document.getElementById('reportCardCategorySelect');
+  const semSelect = document.getElementById('reportCardSemesterSelect');
+  if (catSelect) catSelect.value = curCat;
+  if (semSelect) semSelect.value = curSem;
+
+  loadBatchReportCards(singleStudentId);
+  openModal('modalBatchReportCards');
+}
+
+async function loadBatchReportCards(singleStudentId = null) {
+  const category = document.getElementById('reportCardCategorySelect')?.value || 'Youth';
+  const semester = document.getElementById('reportCardSemesterSelect')?.value || 'Semester 1';
+  const academicYear = document.getElementById('filterGradeYear')?.value || '2017';
+
+  const container = document.getElementById('batchReportCardsContainer');
+  if (!container) return;
+  container.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem;"></i><p style="margin-top: 0.5rem;">የተማሪዎች ውጤት ካርድ በመዘጋጀት ላይ...</p></div>`;
+
+  try {
+    let url = `/api/grades/report-cards?category=${encodeURIComponent(category)}&semester=${encodeURIComponent(semester)}&academic_year=${encodeURIComponent(academicYear)}`;
+    if (singleStudentId) url += `&student_id=${singleStudentId}`;
+
+    const res = await api(url);
+    if (!res || !res.report_cards) {
+      container.innerHTML = `<p style="text-align: center; padding: 2rem;">ምንም መረጃ አልተገኘም።</p>`;
+      return;
+    }
+
+    currentReportCardsData = res.report_cards;
+    if (currentReportCardsData.length === 0) {
+      container.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5;"></i><p>ለዚህ ምድብ ተማሪዎች አልተገኙም።</p></div>`;
+      return;
+    }
+
+    container.innerHTML = '';
+
+    const todayEthFormatted = formatDate(new Date().toISOString().split('T')[0]);
+
+    currentReportCardsData.forEach(rc => {
+      const st = rc.student;
+      const sum = rc.summary;
+      const att = rc.attendance;
+      const isPass = sum.pass_status === 'pass';
+      const isUngraded = sum.pass_status === 'ungraded';
+
+      const cardEl = document.createElement('div');
+      cardEl.className = 'report-card-page';
+
+      let assessmentsTableRows = '';
+      if (rc.assessments.length === 0) {
+        assessmentsTableRows = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">ለዚህ መንፈቀ ዓመት ፈተናዎች አልተመዘገቡም።</td></tr>`;
+      } else {
+        rc.assessments.forEach((a, idx) => {
+          const scoreDisplay = a.is_absent ? '<span style="color:#b91c1c; font-weight:700;">አልተፈተነም</span>' : (a.raw_score !== null ? `<strong style="color:#0f172a;">${a.raw_score}</strong>` : '-');
+          const weightDisplay = a.weighted_score !== null ? `<strong>${a.weighted_score}%</strong>` : (a.is_absent ? '0%' : '-');
+
+          assessmentsTableRows += `
+            <tr>
+              <td style="text-align: center; width: 35px; color: #64748b;">${idx + 1}</td>
+              <td style="font-weight: 700;">${escapeHtml(a.title)}</td>
+              <td>${escapeHtml(a.assessment_type || 'Exam')}</td>
+              <td>${formatDate(a.exam_date)}</td>
+              <td style="text-align: center;">${a.max_score}</td>
+              <td style="text-align: center; font-weight: 600;">${a.weight}%</td>
+              <td style="text-align: center;">${scoreDisplay}</td>
+              <td style="text-align: center; background: #f8fafc;">${weightDisplay}</td>
+              <td style="font-size: 0.8rem; color: #475569;">${escapeHtml(a.remarks || '')}</td>
+            </tr>
+          `;
+        });
+      }
+
+      cardEl.innerHTML = `
+        <!-- Church Report Card Header -->
+        <div class="report-card-header">
+          <div class="report-card-cross"><i class="fa-solid fa-cross"></i></div>
+          <h2 class="report-card-school-name" data-i18n="appTitle">ቤተ ያሬድ ሰንበት ትምሕርት ቤት</h2>
+          <p style="font-size: 0.88rem; color: #64748b; margin: 2px 0 6px 0;">Bete Yared Sunday School - Student Evaluation Report Card</p>
+          <div style="font-size: 1.1rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">
+            የተማሪ የውጤት ካርድ (${rc.semester} - ${rc.academic_year} ዓ.ም.)
+          </div>
+        </div>
+
+        <!-- Student Personal & Class Details -->
+        <div class="report-card-student-info">
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">የተማሪው ሙሉ ስም</span>
+            <span class="report-card-info-value">${escapeHtml(st.first_name)} ${escapeHtml(st.father_name)}</span>
+          </div>
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">የክርስትና ስም</span>
+            <span class="report-card-info-value" style="color: #b45309;">${escapeHtml(st.christian_name || '-')}</span>
+          </div>
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">የእናት ስም</span>
+            <span class="report-card-info-value">${escapeHtml(st.mother_name || '-')}</span>
+          </div>
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">የክፍል ምድብ</span>
+            <span class="report-card-info-value">${escapeHtml(rc.category)}</span>
+          </div>
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">ስልክ ቁጥር</span>
+            <span class="report-card-info-value">${escapeHtml(st.phone || '-')}</span>
+          </div>
+          <div class="report-card-info-item">
+            <span class="report-card-info-label">ዕድሜ</span>
+            <span class="report-card-info-value">${st.age ? st.age + ' ዓመት' : '-'}</span>
+          </div>
+        </div>
+
+        <!-- Academic Performance Table -->
+        <table class="report-card-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>የፈተና ርዕስ (Assessment)</th>
+              <th>ዓይነት</th>
+              <th>የፈተና ቀን</th>
+              <th style="text-align: center;">ሙሉ ነጥብ</th>
+              <th style="text-align: center;">ድርሻ (%)</th>
+              <th style="text-align: center;">ያገኘው ውጤት</th>
+              <th style="text-align: center;">የተሰላ ድርሻ</th>
+              <th>ማስታወሻ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${assessmentsTableRows}
+          </tbody>
+          <tfoot>
+            <tr style="background: #f1f5f9; font-weight: 800;">
+              <td colspan="5" style="text-align: right; padding-right: 1rem;">አጠቃላይ የፈተናዎች ድምር ድርሻ (Total):</td>
+              <td style="text-align: center;">${sum.total_possible_weights}%</td>
+              <td colspan="1"></td>
+              <td style="text-align: center; font-size: 1.05rem; color: #1e3a8a;">${sum.total_score}%</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- Final Evaluation Summary & Attendance -->
+        <div class="report-card-summary-card ${!isPass && !isUngraded ? 'summary-fail' : ''}">
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">አጠቃላይ ድምር ውጤት</div>
+            <div class="report-card-summary-val ${!isPass && !isUngraded ? 'fail' : ''}">${sum.total_score}%</div>
+            <div style="font-size: 0.75rem; color: #64748b;">(የማለፊያ ወሰን፡ ${sum.pass_mark}%)</div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">ውጤት (Evaluation)</div>
+            <div style="margin-top: 4px;">
+              ${isPass ? `<span class="badge-pass" style="font-size: 1.15rem; padding: 0.4rem 1.1rem;"><i class="fa-solid fa-circle-check"></i> አልፏል (PASS)</span>` : (isUngraded ? `<span class="badge-ungraded" style="font-size: 1rem; padding: 0.35rem 0.85rem;">አልተጠናቀቀም</span>` : `<span class="badge-fail" style="font-size: 1.15rem; padding: 0.4rem 1.1rem;"><i class="fa-solid fa-circle-xmark"></i> አላለፈም (FAIL)</span>`)}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">የክፍል ደረጃ (Rank)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #0284c7;">
+              ${sum.rank !== '-' ? sum.rank + ' <span style="font-size: 0.85rem; color: #64748b; font-weight: normal;">/ ' + sum.total_students_in_class + '</span>' : '-'}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">የመገኘት መጠን (Attendance)</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #4338ca;">
+              ${att.rate_percentage}%
+            </div>
+            <div style="font-size: 0.72rem; color: #64748b;">(የተገኘው፡ ${att.present_count} / ${att.total_sessions})</div>
+          </div>
+        </div>
+
+        <!-- Official Signatures Block -->
+        <div class="report-card-signatures">
+          <div class="report-card-sign-box">
+            <div>የክፍሉ መምህር ፊርማ (Teacher)</div>
+            <div style="margin-top: 2rem; font-size: 0.75rem; color: #94a3b8;">ፊርማ እና ቀን</div>
+          </div>
+          <div class="report-card-sign-box">
+            <div>የሰንበት ት/ቤት ኃላፊ (Director / Head)</div>
+            <div style="margin-top: 2rem; font-size: 0.75rem; color: #94a3b8;">ማኅተም እና ፊርማ</div>
+          </div>
+          <div class="report-card-sign-box">
+            <div>የተሰጠበት ቀን (Date Issued)</div>
+            <div style="margin-top: 2rem; font-weight: 700; color: #1e293b;">${todayEthFormatted}</div>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(cardEl);
+    });
+
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+}
+
+function triggerBatchPrint() {
+  window.print();
 }
 
 // Initial Bootstrap on Page Load

@@ -73,6 +73,10 @@
           <div class="nav-icon-bubble"><i class="fa-solid fa-table-cells"></i></div>
           <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
         </button>
+        <button class="drawer-nav-item admin-only" id="drawerTabGrades" onclick="switchTab('grades')">
+          <div class="nav-icon-bubble"><i class="fa-solid fa-award"></i></div>
+          <span data-i18n="navGrades">የውጤት መመዝገቢያ</span>
+        </button>
         <button class="drawer-nav-item admin-only" id="drawerTabAlerts" onclick="switchTab('alerts')">
           <div class="nav-icon-bubble"><i class="fa-solid fa-bell"></i></div>
           <span data-i18n="navAlerts">3 ሳምንት የቀሩ</span>
@@ -171,6 +175,9 @@
       </button>
       <button class="nav-tab admin-only" id="tabBtnCategoryMatrix" onclick="switchTab('categoryMatrix')">
         <i class="fa-solid fa-table-cells"></i> <span data-i18n="navCategoryMatrix">የምድብ መገኘት (Export)</span>
+      </button>
+      <button class="nav-tab admin-only" id="tabBtnGrades" onclick="switchTab('grades')">
+        <i class="fa-solid fa-award"></i> <span data-i18n="navGrades">የውጤት መመዝገቢያ</span>
       </button>
       <button class="nav-tab admin-only" id="tabBtnAlerts" onclick="switchTab('alerts')">
         <i class="fa-solid fa-bell"></i> <span data-i18n="navAlerts">3 ሳምንት የቀሩ</span>
@@ -1190,6 +1197,122 @@
         </div>
       </section>
 
+      <!-- TAB: GRADE & ASSESSMENT MANAGEMENT -->
+      <section id="tabGrades" class="tab-pane" style="display: none;">
+        <div class="card">
+          <div class="card-header" style="flex-direction: column; align-items: stretch; gap: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <h3 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="fa-solid fa-award" style="color: var(--primary);"></i>
+                  <span data-i18n="gradesTitle">የውጤት እና ምዘና አስተዳደር</span>
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;" data-i18n="gradesSubtitle">
+                  የፈተና ዓይነቶችን ማዘጋጀት፣ የተማሪዎችን ውጤት መሙላት፣ የማለፊያ ነጥብ መወሰን እና የውጤት ካርድ ማተም
+                </p>
+              </div>
+
+              <!-- Top Action Buttons -->
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="openCreateAssessmentModal()">
+                  <i class="fa-solid fa-plus"></i> <span data-i18n="createAssessment">+ አዲስ ፈተና አዘጋጅ</span>
+                </button>
+                <button class="btn btn-secondary" onclick="openGradebookMatrixModal()">
+                  <i class="fa-solid fa-table-cells-large"></i> <span data-i18n="gradebookMatrix">የክፍል ውጤት ማጠቃለያ</span>
+                </button>
+                <button class="btn btn-success" style="background: #059669; border-color: #047857;" onclick="openBatchReportCardsModal()">
+                  <i class="fa-solid fa-print"></i> <span data-i18n="batchReportCards">የተማሪዎች ውጤት ካርድ አትም</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Controls & Pass Mark Quick Status -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; flex: 1; min-width: 280px;">
+                <select id="filterGradeCategory" class="form-control" style="max-width: 180px;" onchange="loadAssessments()">
+                  <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+                  <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+                  <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+                  <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+                  <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+                  <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+                  <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+                  <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+                  <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+                  <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+                  <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+                  <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+                  <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
+                  <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+                  <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
+                  <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+                </select>
+
+                <select id="filterGradeSemester" class="form-control" style="max-width: 170px;" onchange="loadAssessments()">
+                  <option value="Semester 1" data-i18n="sem1" selected>1ኛ መንፈቀ ዓመት</option>
+                  <option value="Semester 2" data-i18n="sem2">2ኛ መንፈቀ ዓመት</option>
+                  <option value="Summer" data-i18n="summerTerm">የበጋ ትምህርት</option>
+                </select>
+
+                <select id="filterGradeYear" class="form-control" style="max-width: 120px;" onchange="loadAssessments()">
+                  <option value="2017" selected>2017 ዓ.ም.</option>
+                  <option value="2018">2018 ዓ.ም.</option>
+                  <option value="2016">2016 ዓ.ም.</option>
+                </select>
+              </div>
+
+              <!-- Pass Mark Status Badge & Configure Button -->
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <div style="font-size: 0.85rem; color: #1e293b; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.35rem 0.65rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <i class="fa-solid fa-flag-checkered" style="color: #0284c7;"></i>
+                  <span data-i18n="passMark">የማለፊያ ነጥብ</span>:
+                  <strong id="displayCurrentPassMark" style="color: #0369a1;">50%</strong>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="openPassMarkModal()" title="Change minimum pass threshold">
+                  <i class="fa-solid fa-gear"></i> <span data-i18n="editPassMark">ወሰን ቀይር</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Semester Assessment Weight Status Bar -->
+            <div id="gradeSemesterWeightSummary" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem; padding: 0.4rem 0.75rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1e40af;">
+              <div>
+                <i class="fa-solid fa-circle-info"></i>
+                <span id="gradeWeightSummaryText">በዚህ መንፈቀ ዓመት የተዘጋጁ ፈተናዎች አጠቃላይ ድርሻ፡ <strong>0%</strong></span>
+              </div>
+              <div id="gradeWeightTargetBadge">
+                <span class="badge" style="background: #3b82f6; color: #fff;">ዒላማ ድምር፡ 100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assessments List Table (Desktop) -->
+          <div class="table-responsive desktop-only" style="margin-top: 0.5rem;">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="assessmentTitle">የፈተና ርዕስ</th>
+                  <th data-i18n="assessmentType">ዓይነት</th>
+                  <th data-i18n="examDate">የፈተና ቀን</th>
+                  <th data-i18n="weight">ድርሻ (%)</th>
+                  <th data-i18n="maxScore">ሙሉ ነጥብ</th>
+                  <th data-i18n="gradedCount">የተሞላ ውጤት</th>
+                  <th data-i18n="actions" style="text-align: right;">ድርጊት</th>
+                </tr>
+              </thead>
+              <tbody id="assessmentsTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Assessments Cards Container (Mobile) -->
+          <div id="assessmentsCardContainer" class="mobile-card-list" style="margin-top: 0.5rem;">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -2107,7 +2230,385 @@
           </table>
         </div>
       </div>
-  <!-- 12. MODAL: SEND BACKUP EMAIL -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalPromotionHistory')" data-i18n="close">ዝጋ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GRADE MANAGEMENT MODALS ==================== -->
+
+  <!-- 12. MODAL: CREATE / EDIT ASSESSMENT -->
+  <div id="modalAssessment" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalAssessmentTitle" data-i18n="createAssessment">+ አዲስ የምዘና ፈተና አዘጋጅ</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Define assessment type, semester, exam date, and weight</p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalAssessment')">&times;</button>
+      </div>
+      <form id="formAssessment" onsubmit="handleSaveAssessment(event)">
+        <div class="modal-body">
+          <input type="hidden" id="assessmentEditId" value="">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="category">ምድብ *</label>
+              <select id="assessmentCategory" class="form-control" required>
+                <option value="Child" data-i18n="catChild">ህፃናት (Child)</option>
+                <option value="Grade 1" data-i18n="catGrade1">1ኛ ክፍል (Grade 1)</option>
+                <option value="Grade 2" data-i18n="catGrade2">2ኛ ክፍል (Grade 2)</option>
+                <option value="Grade 3" data-i18n="catGrade3">3ኛ ክፍል (Grade 3)</option>
+                <option value="Grade 4" data-i18n="catGrade4">4ኛ ክፍል (Grade 4)</option>
+                <option value="Grade 5" data-i18n="catGrade5">5ኛ ክፍል (Grade 5)</option>
+                <option value="Grade 6" data-i18n="catGrade6">6ኛ ክፍል (Grade 6)</option>
+                <option value="Grade 7" data-i18n="catGrade7">7ኛ ክፍል (Grade 7)</option>
+                <option value="Grade 8" data-i18n="catGrade8">8ኛ ክፍል (Grade 8)</option>
+                <option value="Grade 9" data-i18n="catGrade9">9ኛ ክፍል (Grade 9)</option>
+                <option value="Grade 10" data-i18n="catGrade10">10ኛ ክፍል (Grade 10)</option>
+                <option value="Grade 11" data-i18n="catGrade11">11ኛ ክፍል (Grade 11)</option>
+                <option value="Grade 12" data-i18n="catGrade12">12ኛ ክፍል (Grade 12)</option>
+                <option value="Teens" data-i18n="catTeens">አዳጊዎች (Teens)</option>
+                <option value="Youth" data-i18n="catYouth" selected>ወጣቶች (Youth)</option>
+                <option value="Adult" data-i18n="catAdult">አዋቂዎች (Adult)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="assessmentType">የምዘና ዓይነት *</label>
+              <select id="assessmentType" class="form-control" required>
+                <option value="quiz" data-i18n="typeQuiz">ፈተና / ኩዊዝ (Quiz/Test)</option>
+                <option value="midterm" data-i18n="typeMidterm">አጋማሽ ፈተና (Midterm Exam)</option>
+                <option value="final" data-i18n="typeFinal">ማጠቃለያ ፈተና (Final Exam)</option>
+                <option value="assignment" data-i18n="typeAssignment">የቤት ሥራ / ድርሰት (Assignment)</option>
+                <option value="oral" data-i18n="typeOral">የቃል ፈተና / ዜማና ምንባብ (Oral/Recitation)</option>
+                <option value="project" data-i18n="typeProject">ተግባር / ፕሮጀክት (Project)</option>
+                <option value="attendance" data-i18n="typeAttendance">የመገኘትና ተሳትፎ ነጥብ (Attendance/Conduct)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="assessmentTitle">የፈተና ርዕስ *</label>
+            <input type="text" id="assessmentTitle" class="form-control" placeholder="ለምሳሌ፡ የመጽሐፍ ቅዱስ ጥናት 1ኛ ፈተና" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="semester">መንፈቀ ዓመት *</label>
+              <select id="assessmentSemester" class="form-control" required>
+                <option value="Semester 1" data-i18n="sem1" selected>1ኛ መንፈቀ ዓመት (1st Semester)</option>
+                <option value="Semester 2" data-i18n="sem2">2ኛ መንፈቀ ዓመት (2nd Semester)</option>
+                <option value="Summer" data-i18n="summerTerm">የበጋ ትምህርት (Summer Term)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="academicYear">የትምህርት ዘመን *</label>
+              <select id="assessmentAcademicYear" class="form-control" required>
+                <option value="2017" selected>2017 ዓ.ም.</option>
+                <option value="2018">2018 ዓ.ም.</option>
+                <option value="2016">2016 ዓ.ም.</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="examDate">የፈተና ቀን *</label>
+              <input type="date" id="assessmentExamDate" class="form-control" required>
+              <small id="assessmentEthDateHint" style="color: var(--primary); font-size: 0.8rem; margin-top: 3px; display: block;"></small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="weight">የፈተናው ድርሻ / ክብደት (%) *</label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input type="number" id="assessmentWeight" class="form-control" min="1" max="100" step="0.5" value="100" required>
+                <span style="position: absolute; right: 0.75rem; color: var(--text-muted); font-weight: 600;">%</span>
+              </div>
+              <small style="color: var(--text-muted); font-size: 0.78rem;">አንድ ፈተና 100% ሊሆን ወይም ከሌሎች ጋር ድምሩ 100% ሊሆን ይችላል።</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="maxScore">ሙሉ ነጥብ (Max Score Points)</label>
+            <input type="number" id="assessmentMaxScore" class="form-control" min="1" max="1000" step="1" value="100" required>
+            <small style="color: var(--text-muted); font-size: 0.78rem;">ፈተናው የተሰጠበት ነጥብ (ለምሳሌ ከ100 ወይም ከ50)</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="description">ተጨማሪ ማስታወሻ / ዝርዝር</label>
+            <textarea id="assessmentDescription" class="form-control" rows="2" placeholder="የፈተናው ይዘት ወይም ማስታወሻ..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalAssessment')" data-i18n="cancel">ሰርዝ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitAssessment">
+            <i class="fa-solid fa-save"></i> <span data-i18n="save">አስቀምጥ</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 13. MODAL: STUDENT MARK ENTRY SHEET (Batch Fill Marks) -->
+  <div id="modalGradeEntry" class="modal-overlay" style="display: none;">
+    <div class="modal-content large" style="max-width: 950px;">
+      <div class="modal-header" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3 id="gradeEntryModalTitle" style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i>
+            <span data-i18n="studentGradeSheet">የተማሪዎች ውጤት መመዝገቢያ ሰሌዳ</span>
+          </h3>
+          <p id="gradeEntryModalSubtitle" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;"></p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalGradeEntry')">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding-top: 0.5rem;">
+        <!-- Top Stats & Filter -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+          <input type="text" id="gradeEntrySearchInput" class="form-control" style="max-width: 280px;" placeholder="ተማሪ በስም ፈልግ..." oninput="filterGradeEntryRoster()">
+
+          <!-- Roster Grade Stats -->
+          <div style="display: flex; gap: 0.85rem; font-size: 0.85rem; flex-wrap: wrap;">
+            <div><span style="color: var(--text-muted);">አጠቃላይ ተማሪዎች:</span> <strong id="gradeEntryTotalStudents">0</strong></div>
+            <div><span style="color: #059669;">ውጤት የተሞላላቸው:</span> <strong id="gradeEntryFilledCount" style="color: #059669;">0</strong></div>
+            <div><span style="color: #dc2626;">ያልተፈተኑ:</span> <strong id="gradeEntryAbsentCount" style="color: #dc2626;">0</strong></div>
+            <div><span style="color: var(--primary);">የክፍሉ አማካይ:</span> <strong id="gradeEntryAvgScore" style="color: var(--primary);">0%</strong></div>
+          </div>
+        </div>
+
+        <!-- Student Roster Table -->
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+          <table style="width: 100%;">
+            <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;">
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th data-i18n="studentName">የተማሪው ስም</th>
+                <th style="width: 140px;" data-i18n="rawScore">ያገኘው ውጤት</th>
+                <th style="width: 110px;" data-i18n="markAbsent">አልተፈተነም</th>
+                <th style="width: 110px;" data-i18n="weightedScore">የተሰላ ድርሻ</th>
+                <th data-i18n="remarks">ማስታወሻ / አስተያየት</th>
+              </tr>
+            </thead>
+            <tbody id="gradeEntryTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalGradeEntry')" data-i18n="cancel">ተመለስ</button>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearAllGradeScores()">
+            <i class="fa-solid fa-rotate-left"></i> ባዶ አድርግ (Reset)
+          </button>
+          <button type="button" class="btn btn-primary" id="btnSaveRosterGrades" onclick="saveRosterGrades()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="saveGrades">ሁሉንም ውጤት መዝግብ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. MODAL: PASS / FAIL THRESHOLD SETTING -->
+  <div id="modalPassMark" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="setPassThresholdTitle">ዝቅተኛ የማለፊያ እና የማስወደቂያ ነጥብ ወሰን</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Set minimum pass percentage for student evaluations (No letter grades)</p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalPassMark')">&times;</button>
+      </div>
+      <form id="formPassMark" onsubmit="handleSavePassMark(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" data-i18n="category">ምድብ</label>
+            <select id="passMarkCategory" class="form-control">
+              <option value="all" selected>ለሁሉም ምድቦች (All Categories Default)</option>
+              <option value="Child">ህፃናት (Child)</option>
+              <option value="Grade 1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12">12ኛ ክፍል (Grade 12)</option>
+              <option value="Teens">አዳጊዎች (Teens)</option>
+              <option value="Youth">ወጣቶች (Youth)</option>
+              <option value="Adult">አዋቂዎች (Adult)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="passMark">ዝቅተኛ የማለፊያ ነጥብ (%) *</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="number" id="inputPassMarkValue" class="form-control" min="1" max="100" step="1" value="50" required>
+              <span style="position: absolute; right: 0.75rem; color: var(--text-muted); font-weight: 600;">%</span>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.82rem; margin-top: 4px; display: block;">
+              ይህን ነጥብና ከዚያ በላይ ያመጡ ተማሪዎች እንደ <strong>አልፏል (Pass)</strong> ይቆጠራሉ፤ ከዚህ በታች ያመጡ ደግሞ <strong>አላለፈም (Fail)</strong> ይባላሉ።
+            </small>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem; font-size: 0.82rem; color: #166534; display: flex; gap: 0.5rem; align-items: center;">
+            <i class="fa-solid fa-circle-check" style="font-size: 1.1rem;"></i>
+            <span>በስርዓቱ ውስጥ A, B, C, D ፊደላት አይኖሩም፤ በቀጥታ በድምር ነጥብ፣ ደረጃ እና <strong>አልፏል / አላለፈም</strong> ሁኔታ ይገለጻል።</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalPassMark')" data-i18n="cancel">ሰርዝ</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitPassMark">
+            <i class="fa-solid fa-save"></i> <span data-i18n="save">አስቀምጥ</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 15. MODAL: GRADEBOOK MATRIX -->
+  <div id="modalGradebookMatrix" class="modal-overlay" style="display: none;">
+    <div class="modal-content large" style="max-width: 1050px;">
+      <div class="modal-header" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3 id="gradebookMatrixTitle" style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-table-cells" style="color: var(--primary);"></i>
+            <span data-i18n="gradebookMatrix">የክፍል ውጤት ማጠቃለያ ሰንጠረዥ</span>
+          </h3>
+          <p id="gradebookMatrixSubtitle" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;"></p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalGradebookMatrix')">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding-top: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <select id="matrixCategorySelect" class="form-control" style="max-width: 180px;" onchange="loadGradebookMatrix()">
+              <option value="Child">ህፃናት (Child)</option>
+              <option value="Grade 1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12">12ኛ ክፍል (Grade 12)</option>
+              <option value="Teens">አዳጊዎች (Teens)</option>
+              <option value="Youth" selected>ወጣቶች (Youth)</option>
+              <option value="Adult">አዋቂዎች (Adult)</option>
+            </select>
+            <select id="matrixSemesterSelect" class="form-control" style="max-width: 170px;" onchange="loadGradebookMatrix()">
+              <option value="Semester 1" selected>1ኛ መንፈቀ ዓመት</option>
+              <option value="Semester 2">2ኛ መንፈቀ ዓመት</option>
+              <option value="Summer">የበጋ ትምህርት</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-success btn-sm" onclick="exportGradebookMatrixToExcel()">
+              <i class="fa-solid fa-file-excel"></i> <span data-i18n="exportExcel">በ-Excel አውርድ</span>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openBatchReportCardsModal()">
+              <i class="fa-solid fa-print"></i> <span data-i18n="batchReportCards">ውጤት ካርድ አትም</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Gradebook Table Container -->
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+          <table id="gradebookMatrixTable" style="width: 100%;">
+            <thead id="gradebookMatrixThead">
+              <!-- Rendered via JS -->
+            </thead>
+            <tbody id="gradebookMatrixTbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalGradebookMatrix')" data-i18n="close">ዝጋ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. MODAL: BATCH REPORT CARD PRINT SYSTEM -->
+  <div id="modalBatchReportCards" class="modal-overlay" style="display: none;">
+    <div class="modal-content large" style="max-width: 1000px; max-height: 90vh;">
+      <div class="modal-header" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-print" style="color: #059669;"></i>
+            <span data-i18n="batchReportCards">የተማሪዎች ውጤት ካርድ (Batch Print)</span>
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;" data-i18n="batchPrintNotice">
+            የሁሉም ተማሪዎች ውጤት ካርድ ከዚህ በታች ተዘጋጅቷል። 'አትም / በ-PDF አስቀምጥ' የሚለውን በመጫን በአንድ ጊዜ ማተም ይችላሉ።
+          </p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('modalBatchReportCards')">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding-top: 0.5rem;">
+        <!-- Controls Bar -->
+        <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <select id="reportCardCategorySelect" class="form-control" style="max-width: 180px;" onchange="loadBatchReportCards()">
+              <option value="Child">ህፃናት (Child)</option>
+              <option value="Grade 1">1ኛ ክፍል (Grade 1)</option>
+              <option value="Grade 2">2ኛ ክፍል (Grade 2)</option>
+              <option value="Grade 3">3ኛ ክፍል (Grade 3)</option>
+              <option value="Grade 4">4ኛ ክፍል (Grade 4)</option>
+              <option value="Grade 5">5ኛ ክፍል (Grade 5)</option>
+              <option value="Grade 6">6ኛ ክፍል (Grade 6)</option>
+              <option value="Grade 7">7ኛ ክፍል (Grade 7)</option>
+              <option value="Grade 8">8ኛ ክፍል (Grade 8)</option>
+              <option value="Grade 9">9ኛ ክፍል (Grade 9)</option>
+              <option value="Grade 10">10ኛ ክፍል (Grade 10)</option>
+              <option value="Grade 11">11ኛ ክፍል (Grade 11)</option>
+              <option value="Grade 12">12ኛ ክፍል (Grade 12)</option>
+              <option value="Teens">አዳጊዎች (Teens)</option>
+              <option value="Youth" selected>ወጣቶች (Youth)</option>
+              <option value="Adult">አዋቂዎች (Adult)</option>
+            </select>
+            <select id="reportCardSemesterSelect" class="form-control" style="max-width: 170px;" onchange="loadBatchReportCards()">
+              <option value="Semester 1" selected>1ኛ መንፈቀ ዓመት</option>
+              <option value="Semester 2">2ኛ መንፈቀ ዓመት</option>
+              <option value="Summer">የበጋ ትምህርት</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-success" style="background: #059669; border-color: #047857; font-weight: 700; font-size: 0.95rem; padding: 0.55rem 1.25rem;" onclick="triggerBatchPrint()">
+            <i class="fa-solid fa-print"></i> <span data-i18n="printPdf">አትም / በ-PDF አስቀምጥ</span>
+          </button>
+        </div>
+
+        <!-- Printable Cards Container (with @media print page breaks) -->
+        <div id="batchReportCardsContainer" style="max-height: 580px; overflow-y: auto; padding: 0.5rem; background: #f1f5f9; border-radius: 8px;">
+          <!-- Dynamically generated student cards via JS -->
+        </div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalBatchReportCards')" data-i18n="close">ዝጋ</button>
+        <button type="button" class="btn btn-success" style="background: #059669; border-color: #047857;" onclick="triggerBatchPrint()">
+          <i class="fa-solid fa-print"></i> <span data-i18n="printPdf">አትም / በ-PDF አስቀምጥ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17. MODAL: SEND BACKUP EMAIL -->
   <div id="modalSendBackupEmail" class="modal-overlay" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">

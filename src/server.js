@@ -15,6 +15,7 @@ const userRoutes = require('./routes/users');
 const auditLogRoutes = require('./routes/auditLogs');
 const followupRoutes = require('./routes/followups');
 const backupRoutes = require('./routes/backup');
+const gradeRoutes = require('./routes/grades');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,6 +65,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/followups', followupRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/grades', gradeRoutes);
 
 // Catch-all fallback for single-page app frontend routing
 app.use((req, res) => {
