@@ -4669,7 +4669,14 @@ async function downloadWeeklyArchiveFile(filename) {
       headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
     });
 
-    if (!response.ok) throw new Error('Failed to download archive');
+    if (!response.ok) {
+      let errText = 'Failed to download archive';
+      try {
+        const errJson = await response.json();
+        if (errJson && errJson.message) errText = errJson.message;
+      } catch (_) {}
+      throw new Error(errText);
+    }
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
@@ -4680,6 +4687,7 @@ async function downloadWeeklyArchiveFile(filename) {
     a.click();
     window.URL.revokeObjectURL(url);
     a.remove();
+    showToast(t('backupDownloadSuccess') || 'Archive file downloaded!', 'success');
   } catch (err) {
     showToast(err.message, 'danger');
   }
